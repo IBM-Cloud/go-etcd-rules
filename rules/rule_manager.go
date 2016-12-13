@@ -47,7 +47,42 @@ func (rm *ruleManager) addRule(rule DynamicRule) int {
 	for _, prefix := range rule.getPrefixes() {
 		rm.prefixes[prefix] = ""
 	}
+	rm.prefixes = reducePrefixes(rm.prefixes)
 	lastIndex := rm.currentIndex
 	rm.currentIndex = rm.currentIndex + 1
 	return lastIndex
+}
+
+func reducePrefixes(prefixes map[string]string) map[string]string {
+	out := map[string]string{}
+	sorted := sortPrefixesByLength(prefixes)
+	for _, prefix := range sorted {
+		add := true
+		for addedPrefix, _ := range out {
+			if strings.HasPrefix(addedPrefix, prefix) {
+				add = false
+			}
+		}
+		if add {
+			out[prefix] = ""
+		}
+	}
+	return out
+}
+
+func sortPrefixesByLength(prefixes map[string]string) []string {
+	out := []string{}
+	for prefix, _ := range prefixes {
+		out = append(out, prefix)
+	}
+	for i := 1; i < len(out); i++ {
+		x := out[i]
+		j := i - 1
+		for j >= 0 && len(out[j]) < len(x) {
+			out[j+1] = out[j]
+			j = j - 1
+		}
+		out[j+1] = x
+	}
+	return out
 }
