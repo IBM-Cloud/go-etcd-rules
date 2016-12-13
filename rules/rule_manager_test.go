@@ -26,3 +26,10 @@ func TestRuleManager(t *testing.T) {
 	rules = rm.getStaticRules("/nothing", nil)
 	assert.Equal(t, 0, len(rules))
 }
+
+func TestReducePrefixes (t *testing.T) {
+	prefixes := map[string]string{"/servers/internal": "", "/servers": ""}
+	prefixes = reducePrefixes(prefixes)
+	assert.Equal(t, 1, len(prefixes))
+	assert.Equal(t, "", prefixes["/servers"])
+}
