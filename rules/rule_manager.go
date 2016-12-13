@@ -55,16 +55,34 @@ func (rm *ruleManager) addRule(rule DynamicRule) int {
 
 func reducePrefixes(prefixes map[string]string) map[string]string {
 	out := map[string]string{}
-	added := []string{}
-	for prefix, _ := range prefixes {
-		for index, outPrefix := range added {
-			if len(outPrefix) > len(prefix) && strings.HasPrefix(outPrefix, prefix) {
-				delete(out, outPrefix)
-				added = append(added[:index], added[index+1:]...)
+	sorted := sortPrefixesByLength(prefixes)
+	for _, prefix := range sorted {
+		add := true
+		for addedPrefix, _ := range out {
+			if strings.HasPrefix(addedPrefix, prefix) {
+				add = false
 			}
 		}
-		out[prefix] = ""
-		added = append(added, prefix)
+		if add {
+			out[prefix] = ""
+		}
+	}
+	return out
+}
+
+func sortPrefixesByLength(prefixes map[string]string) []string {
+	out := []string{}
+	for prefix, _ := range prefixes {
+		out = append(out, prefix)
+	}
+	for i := 1; i < len(out); i++ {
+		x := out[i]
+		j := i - 1
+		for j >= 0 && len(out[j]) < len(x) {
+			out[j+1] = out[j]
+			j = j - 1
+		}
+		out[j + 1] = x
 	}
 	return out
 }
