@@ -1,0 +1,22 @@
+language: go
+
+go:
+  - 1.7.1
+  - tip
+
+sudo: true
+
+before_install:
+  - sudo add-apt-repository ppa:masterminds/glide -y && sudo apt-get update -q
+  - sudo apt-get install glide -y
+  - curl -L  https://github.com/coreos/etcd/releases/download/v2.3.7/etcd-v2.3.7-linux-amd64.tar.gz -o etcd-v2.3.7-linux-amd64.tar.gz
+  - tar xzvf etcd-v2.3.7-linux-amd64.tar.gz
+  - ./etcd-v2.3.7-linux-amd64/etcd &
+
+before_script:
+  - make deps
+
+script:
+  - make test
+  - make vet
+  - make fmt

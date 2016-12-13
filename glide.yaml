@@ -1,0 +1,16 @@
+package: .
+import:
+- package: github.com/IBM-Bluemix/go-etcd-lock
+  subpackages:
+  - lock
+- package: github.com/coreos/etcd
+  subpackages:
+  - client
+- package: github.com/uber-go/zap
+- package: golang.org/x/net
+  subpackages:
+  - context
+testImport:
+- package: github.com/stretchr/testify
+  subpackages:
+  - assert
