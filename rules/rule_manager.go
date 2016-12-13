@@ -82,7 +82,7 @@ func sortPrefixesByLength(prefixes map[string]string) []string {
 			out[j+1] = out[j]
 			j = j - 1
 		}
-		out[j + 1] = x
+		out[j+1] = x
 	}
 	return out
 }
