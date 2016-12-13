@@ -1,5 +1,8 @@
 package: .
 import:
+- package: golang.org/x/net
+  subpackages:
+  - context
 - package: github.com/IBM-Bluemix/go-etcd-lock
   subpackages:
   - lock
@@ -7,9 +10,6 @@ import:
   subpackages:
   - client
 - package: github.com/uber-go/zap
-- package: golang.org/x/net
-  subpackages:
-  - context
 testImport:
 - package: github.com/stretchr/testify
   subpackages:
