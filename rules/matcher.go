@@ -65,14 +65,13 @@ func (m *regexKeyMatch) Format(pattern string) string {
 }
 func formatWithAttributes(pattern string, m Attributes) string {
 	paths := strings.Split(pattern, "/")
-	colon := ":"[0]
 	result := ""
 	for _, path := range paths {
 		if len(path) == 0 {
 			continue
 		}
 		result = result + "/"
-		if path[0] == colon {
+		if strings.HasPrefix(path, ":") {
 			attr := m.GetAttribute(path[1:])
 			if attr == nil {
 				s := "XXX"
@@ -111,7 +110,6 @@ func newRegexKeyMatcher(pattern string) (*regexKeyMatcher, error) {
 
 func parsePath(pattern string) (map[string]int, string) {
 	paths := strings.Split(pattern, "/")
-	colon := ":"[0]
 	regex := ""
 	fields := make(map[string]int)
 	fieldIndex := 1
@@ -120,7 +118,7 @@ func parsePath(pattern string) (map[string]int, string) {
 			continue
 		}
 		regex = regex + "/"
-		if path[0] == colon {
+		if strings.HasPrefix(path, ":") {
 			regex = regex + "([^\\/:]+)"
 			fields[path[1:]] = fieldIndex
 			fieldIndex++
