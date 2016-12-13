@@ -1,7 +1,6 @@
 package rules
 
 import (
-	"errors"
 	"testing"
 
 	"github.com/coreos/etcd/client"
@@ -10,27 +9,23 @@ import (
 )
 
 func TestCrawler(t *testing.T) {
-	child := client.Node{
-		Key:   "/root/child",
-		Value: "val1",
+	cfg := client.Config{
+		Endpoints: []string{"http://127.0.0.1:2379"},
 	}
-	children := []*client.Node{&child}
-	nodes := map[string]client.Node{
-		"/root": client.Node{
-			Dir:   true,
-			Key:   "/root",
-			Nodes: children,
-		},
-		"/root/child": child,
-	}
-	kapi := testKeyAPI{
-		nodes: nodes,
-	}
+
+	c, _ := client.New(cfg)
+
+	kapi := client.NewKeysAPI(c)
+
+	kapi.Delete(context.Background(), "/", &client.DeleteOptions{Recursive: true})
+	kapi.Set(context.Background(), "/root", "", &client.SetOptions{Dir: true})
+	kapi.Set(context.Background(), "/root/child", "val1", nil)
+
 	kp := testKeyProcessor{
 		keys: []string{},
 	}
 	cr := etcdCrawler{
-		kapi:   &kapi,
+		kapi:   kapi,
 		kp:     &kp,
 		logger: getTestLogger(),
 		prefix: "/root",
@@ -41,9 +36,7 @@ func TestCrawler(t *testing.T) {
 	cr.singleRun()
 
 	_, err := newCrawler(
-		client.Config{
-			Endpoints: []string{"http://192.168.1.204:4001"},
-		},
+		cfg,
 		getTestLogger(),
 		"/root",
 		5,
@@ -58,38 +51,4 @@ func TestCrawler(t *testing.T) {
 		&kp,
 	)
 	assert.Error(t, err)
-}
-
-type testKeyAPI struct {
-	nodes map[string]client.Node
-}
-
-func (tka *testKeyAPI) Get(ctx context.Context, key string, opts *client.GetOptions) (*client.Response, error) {
-	node, ok := tka.nodes[key]
-	if !ok {
-		return nil, errors.New("100 Not found")
-	}
-	resp := client.Response{
-		Node: &node,
-	}
-	return &resp, nil
-}
-
-func (tka *testKeyAPI) Set(ctx context.Context, key string, value string, opts *client.SetOptions) (*client.Response, error) {
-	return nil, nil
-}
-func (tka *testKeyAPI) Delete(ctx context.Context, key string, opts *client.DeleteOptions) (*client.Response, error) {
-	return nil, nil
-}
-func (tka *testKeyAPI) Create(ctx context.Context, key string, value string) (*client.Response, error) {
-	return nil, nil
-}
-func (tka *testKeyAPI) CreateInOrder(ctx context.Context, key string, value string, opts *client.CreateInOrderOptions) (*client.Response, error) {
-	return nil, nil
-}
-func (tka *testKeyAPI) Update(ctx context.Context, key string, value string) (*client.Response, error) {
-	return nil, nil
-}
-func (tka *testKeyAPI) Watcher(key string, opts *client.WatcherOptions) client.Watcher {
-	return nil
 }
