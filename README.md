@@ -81,14 +81,14 @@ func pollServer(task *rules.RuleTask) {
 	api := client.NewKeysAPI(c)
 	ip, _ := api.Get(context.Background(), task.Attr.Format("/servers/:serverid/ip"), nil)
 	var status string
-	if ping(ip) {
+	if ping(ip.Node.Value) {
 		status = "ok"
 	} else {
 		status = "down"
 	}
-	api.Set(context.Background(), task.Attr.Format("/servers/:serverid/status", status, nil))
+	api.Set(context.Background(), task.Attr.Format("/servers/:serverid/status"), status, nil)
 	// Add new poll delay
-	opts := client.SetOptions{TTL: time.Duration(5) * time.Minute}
-	api.Set(context.Background(), task.Attr.Format("/servers/internal/:serverid/poll_delay", opts)
+	opts := client.SetOptions{TTL: time.Duration(5) * time.Second}
+	api.Set(context.Background(), task.Attr.Format("/servers/internal/:serverid/poll_delay"), "", &opts)
 }
 ```
