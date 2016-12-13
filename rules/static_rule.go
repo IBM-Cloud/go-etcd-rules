@@ -113,7 +113,6 @@ type andStaticRule struct {
 	compoundStaticRule
 }
 
-
 func (asr *andStaticRule) satisfied(api readAPI) (bool, error) {
 	for _, rule := range asr.nestedRules {
 		satisfied, err := rule.satisfied(api)
