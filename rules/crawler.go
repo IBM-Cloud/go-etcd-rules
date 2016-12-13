@@ -39,14 +39,14 @@ func newCrawler(
 	return &c, nil
 }
 
-type clientKeysAPI interface {
-	Get(ctx context.Context, key string, opts *client.GetOptions) (*client.Response, error)
-}
+//type clientKeysAPI interface {
+//	Get(ctx context.Context, key string, opts *client.GetOptions) (*client.Response, error)
+//}
 
 type etcdCrawler struct {
 	api      readAPI
 	interval int
-	kapi     clientKeysAPI
+	kapi     client.KeysAPI
 	kp       kProcessor
 	logger   zap.Logger
 	prefix   string

@@ -74,3 +74,22 @@ func (tka *testKeyAPI) Get(ctx context.Context, key string, opts *client.GetOpti
 	}
 	return &resp, nil
 }
+
+func (tka *testKeyAPI) Set(ctx context.Context, key string, value string, opts *client.SetOptions) (*client.Response, error) {
+	return nil, nil
+}
+func (tka *testKeyAPI) Delete(ctx context.Context, key string, opts *client.DeleteOptions) (*client.Response, error) {
+	return nil, nil
+}
+func (tka *testKeyAPI) Create(ctx context.Context, key string, value string) (*client.Response, error) {
+	return nil, nil
+}
+func (tka *testKeyAPI) CreateInOrder(ctx context.Context, key string, value string, opts *client.CreateInOrderOptions) (*client.Response, error) {
+	return nil, nil
+}
+func (tka *testKeyAPI) Update(ctx context.Context, key string, value string) (*client.Response, error) {
+	return nil, nil
+}
+func (tka *testKeyAPI) Watcher(key string, opts *client.WatcherOptions) client.Watcher {
+	return nil
+}
