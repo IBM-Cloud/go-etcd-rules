@@ -2,6 +2,7 @@ etcd-rules
 ==========
 
 [![Build Status](https://travis-ci.org/IBM-Bluemix/go-etcd-rules.svg?branch=master)](https://travis-ci.org/IBM-Bluemix/go-etcd-rules)
+[![Coverage Status](https://coveralls.io/repos/github/IBM-Bluemix/go-etcd-rules/badge.svg?branch=master)](https://coveralls.io/github/IBM-Bluemix/go-etcd-rules?branch=master)
 
 This is a rules engine for use with etcd.  Simple dynamic rules allow the specification
 of keys based on the gin attribute syntax and the comparison to literals or other
