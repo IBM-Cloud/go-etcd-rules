@@ -53,7 +53,7 @@ type etcdCrawler struct {
 }
 
 func (ec *etcdCrawler) run() {
-	for true {
+	for {
 		ec.logger.Info("Starting crawler run")
 		ec.singleRun()
 		ec.logger.Info("Crawler run complete")

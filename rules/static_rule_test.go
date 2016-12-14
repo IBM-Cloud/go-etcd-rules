@@ -39,11 +39,11 @@ type errorReadAPI struct {
 }
 
 func (era *errorReadAPI) get(key string) (*string, error) {
-	return nil, apiError
+	return nil, errAPI
 }
 
 var errorAPI = errorReadAPI{}
-var apiError = errors.New("API Error")
+var errAPI = errors.New("API Error")
 
 type dummyRule struct {
 	baseRule
@@ -99,7 +99,7 @@ func TestEqualsLiteralError(t *testing.T) {
 	factory := newEqualsLiteralRuleFactory(&ruleValue)
 	rule := factory.newRule([]string{"/prefix/mykey"}, getTestAttributes())
 	_, err := rule.satisfied(&errorAPI)
-	assert.Equal(t, apiError, err)
+	assert.Equal(t, errAPI, err)
 }
 
 func TestEqualsLiteralEqualsNil(t *testing.T) {
@@ -158,7 +158,7 @@ func (ma *mapAttributes) Format(s string) string {
 
 func TestEqualsLiteralFactory(t *testing.T) {
 	value := "val1"
-	factory := EqualsLiteralRuleFactory{
+	factory := equalsLiteralRuleFactory{
 		value: &value,
 	}
 	attr := mapAttributes{
@@ -368,7 +368,7 @@ func TestNotStaticRule(t *testing.T) {
 	assert.False(t, sat)
 	assert.NoError(t, err)
 	keyMatchError := dummyRule{
-		err: apiError,
+		err: errAPI,
 	}
 	rule.nested = &keyMatchError
 	_, err = rule.satisfied(api)

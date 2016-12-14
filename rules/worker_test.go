@@ -21,7 +21,7 @@ func TestWorkerSingleRun(t *testing.T) {
 		engine:   &e,
 		locker:   &locker,
 		api:      &api,
-		workerId: "testworker",
+		workerID: "testworker",
 	}
 	attrMap := map[string]string{}
 	attr := mapAttributes{
@@ -40,14 +40,14 @@ func TestWorkerSingleRun(t *testing.T) {
 	rule := dummyRule{
 		satisfiedResponse: true,
 	}
-	ruleWork := ruleWork{
+	rw := ruleWork{
 		ruleTask:         task,
 		ruleTaskCallback: callback.callback,
 		lockKey:          "key",
 		rule:             &rule,
 	}
 	go w.singleRun()
-	channel <- ruleWork
+	channel <- rw
 	assert.True(t, <-cbChannel)
 	assert.True(t, <-lockChannel)
 
@@ -57,7 +57,7 @@ func TestWorkerSingleRun(t *testing.T) {
 	callChannel := make(chan bool)
 
 	go channelWriteAfterCall(callChannel, w.singleRun)
-	channel <- ruleWork
+	channel <- rw
 	assert.True(t, <-callChannel)
 	assert.Equal(t, 0, len(cbChannel))
 	assert.Equal(t, 0, len(lockChannel))
@@ -66,7 +66,7 @@ func TestWorkerSingleRun(t *testing.T) {
 		satisfiedResponse: false,
 	}
 	go channelWriteAfterCall(callChannel, w.singleRun)
-	channel <- ruleWork
+	channel <- rw
 	assert.True(t, <-callChannel)
 	assert.Equal(t, 0, len(cbChannel))
 	assert.Equal(t, 0, len(lockChannel))

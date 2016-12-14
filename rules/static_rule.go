@@ -30,18 +30,18 @@ type equalsLiteralRule struct {
 	value *string
 }
 
-type EqualsLiteralRuleFactory struct {
+type equalsLiteralRuleFactory struct {
 	value *string
 }
 
 func newEqualsLiteralRuleFactory(value *string) ruleFactory {
-	factory := EqualsLiteralRuleFactory{
+	factory := equalsLiteralRuleFactory{
 		value: value,
 	}
 	return &factory
 }
 
-func (elrf *EqualsLiteralRuleFactory) newRule(keys []string, attr Attributes) staticRule {
+func (elrf *equalsLiteralRuleFactory) newRule(keys []string, attr Attributes) staticRule {
 	br := baseRule{
 		attr: attr,
 	}
@@ -58,10 +58,7 @@ func (elr *equalsLiteralRule) satisfiable(key string, value *string) bool {
 		return false
 	}
 	if value == nil {
-		if elr.value == nil {
-			return true
-		}
-		return false
+		return elr.value == nil
 	}
 	if elr.value == nil {
 		return false
@@ -100,8 +97,8 @@ func (csr *compoundStaticRule) satisfiable(key string, value *string) bool {
 	return anySatisfiable
 }
 
-func (crs *compoundStaticRule) keyMatch(key string) bool {
-	for _, rule := range crs.nestedRules {
+func (csr *compoundStaticRule) keyMatch(key string) bool {
+	for _, rule := range csr.nestedRules {
 		if rule.keyMatch(key) {
 			return true
 		}

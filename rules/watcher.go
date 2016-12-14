@@ -32,7 +32,7 @@ type watcher struct {
 }
 
 func (w *watcher) run() {
-	for true {
+	for {
 		w.singleRun()
 	}
 }

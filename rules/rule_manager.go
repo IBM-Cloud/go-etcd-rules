@@ -58,7 +58,7 @@ func reducePrefixes(prefixes map[string]string) map[string]string {
 	sorted := sortPrefixesByLength(prefixes)
 	for _, prefix := range sorted {
 		add := true
-		for addedPrefix, _ := range out {
+		for addedPrefix := range out {
 			if strings.HasPrefix(addedPrefix, prefix) {
 				add = false
 			}
@@ -72,7 +72,7 @@ func reducePrefixes(prefixes map[string]string) map[string]string {
 
 func sortPrefixesByLength(prefixes map[string]string) []string {
 	out := []string{}
-	for prefix, _ := range prefixes {
+	for prefix := range prefixes {
 		out = append(out, prefix)
 	}
 	for i := 1; i < len(out); i++ {

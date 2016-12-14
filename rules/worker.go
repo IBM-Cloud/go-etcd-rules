@@ -10,10 +10,10 @@ type worker struct {
 	engine   *engine
 	locker   lock.Locker
 	api      readAPI
-	workerId string
+	workerID string
 }
 
-func newWorker(workerId string, engine *engine, config client.Config) (worker, error) {
+func newWorker(workerID string, engine *engine, config client.Config) (worker, error) {
 	c, err := client.New(config)
 	if err != nil {
 		return worker{}, err
@@ -26,25 +26,25 @@ func newWorker(workerId string, engine *engine, config client.Config) (worker, e
 		engine:   engine,
 		api:      &api,
 		locker:   locker,
-		workerId: workerId,
+		workerID: workerID,
 	}
 	return w, nil
 }
 
 func (w *worker) run() {
-	for true {
+	for {
 		w.singleRun()
 	}
 }
 
 func (w *worker) singleRun() {
-	worker := *w
-	work := <-worker.engine.workChannel
+	wrkr := *w
+	work := <-wrkr.engine.workChannel
 	task := work.ruleTask
 	logger := task.Logger
-	logger = logger.With(zap.String("worker", w.workerId))
+	logger = logger.With(zap.String("worker", w.workerID))
 	task.Logger = logger
-	sat, err1 := work.rule.satisfied(worker.api)
+	sat, err1 := work.rule.satisfied(wrkr.api)
 	if err1 != nil {
 		logger.Error("Error checking rule", zap.Error(err1))
 		return
@@ -52,7 +52,7 @@ func (w *worker) singleRun() {
 	if !sat {
 		return
 	}
-	l, err2 := worker.locker.Acquire(work.lockKey, worker.engine.getLockTTLForRule(work.ruleIndex))
+	l, err2 := wrkr.locker.Acquire(work.lockKey, wrkr.engine.getLockTTLForRule(work.ruleIndex))
 	if err2 != nil {
 		logger.Error("Failed to acquire lock", zap.String("lock_key", work.lockKey), zap.Error(err2))
 		return
@@ -60,7 +60,7 @@ func (w *worker) singleRun() {
 	defer l.Release()
 	// Check for a second time, since checking and locking
 	// are not atomic.
-	sat, err1 = work.rule.satisfied(worker.api)
+	sat, err1 = work.rule.satisfied(wrkr.api)
 	if err1 != nil {
 		logger.Error("Error checking rule", zap.Error(err1))
 		return
