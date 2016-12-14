@@ -57,6 +57,6 @@ func (ekw *etcdKeyWatcher) next() (string, *string, error) {
 	return node.Key, &node.Value, nil
 }
 
-func (edra *etcdKeyWatcher) getContext() context.Context {
+func (ekw *etcdKeyWatcher) getContext() context.Context {
 	return context.Background()
 }

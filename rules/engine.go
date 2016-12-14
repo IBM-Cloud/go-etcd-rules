@@ -17,6 +17,7 @@ type engine struct {
 	workChannel  chan ruleWork
 }
 
+// Engine defines the interactions with a rule engine instance.
 type Engine interface {
 	AddRule(rule DynamicRule,
 		lockPattern string,
@@ -25,6 +26,7 @@ type Engine interface {
 	Run()
 }
 
+// NewEngine creates a new Engine instance.
 func NewEngine(config client.Config, logger zap.Logger, options ...EngineOption) Engine {
 	eng := newEngine(config, logger, options...)
 	return &eng
@@ -65,7 +67,7 @@ func (e *engine) Run() {
 	prefixes := e.ruleMgr.prefixes
 
 	// This is a map; used to ensure there are no duplicates
-	for prefix, _ := range prefixes {
+	for prefix := range prefixes {
 		logger := e.logger.With(zap.String("prefix", prefix))
 
 		c, err1 := newCrawler(

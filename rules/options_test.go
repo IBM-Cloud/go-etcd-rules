@@ -8,7 +8,7 @@ import (
 
 func TestRuleOptions(t *testing.T) {
 	opts := makeRuleOptions()
-	var defaultLockTimeout uint64 = 0
+	var defaultLockTimeout uint64
 	assert.Equal(t, defaultLockTimeout, opts.lockTimeout)
 	opts = makeRuleOptions(RuleLockTimeout(300))
 	var threeHundred uint64 = 300

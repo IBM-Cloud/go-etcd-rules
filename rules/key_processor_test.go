@@ -12,15 +12,15 @@ func TestKeyProcessor(t *testing.T) {
 	value := "value"
 	rule, err := NewEqualsLiteralRule("/test/:key", &value)
 	assert.NoError(t, err)
-	ruleManager := newRuleManager()
-	ruleManager.addRule(rule)
+	rm := newRuleManager()
+	rm.addRule(rule)
 	api := newMapReadAPI()
 	api.put("/test/key", value)
 	callbacks := map[int]RuleTaskCallback{0: dummyCallback}
 	lockKeyPatterns := map[int]string{0: "/test/lock/:key"}
 	channel := make(chan ruleWork)
 	kp := keyProcessor{
-		rm:              &ruleManager,
+		rm:              &rm,
 		channel:         channel,
 		callbacks:       callbacks,
 		lockKeyPatterns: lockKeyPatterns,

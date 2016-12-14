@@ -2,6 +2,8 @@ package rules
 
 import ()
 
+// DynamicRule defines rules that have dynamic key paths so that classes of keys can be
+// referenced in rules.
 type DynamicRule interface {
 	makeStaticRule(key string, value *string) (staticRule, Attributes, bool)
 	staticRuleFromAttributes(attr Attributes) staticRule
@@ -75,6 +77,9 @@ func (krp *dynamicRule) staticRuleFromAttributes(attr Attributes) staticRule {
 	return sr
 }
 
+// NewEqualsLiteralRule creates a rule that compares the provided string value with the
+// value of a node whose key matches the provided key pattern. A nil value indicates that
+// there is no node with the given key.
 func NewEqualsLiteralRule(pattern string, value *string) (DynamicRule, error) {
 	f := newEqualsLiteralRuleFactory(value)
 	return newDynamicRule(f, []string{pattern})
@@ -121,8 +126,8 @@ func (cdr *compoundDynamicRule) staticRuleFromAttributes(validAttr Attributes) *
 }
 
 func newCompoundDynamicRule(rules []DynamicRule) compoundDynamicRule {
-	patterns := make([]string, 0)
-	prefixes := make([]string, 0)
+	var patterns []string
+	var prefixes []string
 	for _, rule := range rules {
 		patterns = append(patterns, rule.getPatterns()...)
 		prefixes = append(prefixes, rule.getPrefixes()...)
@@ -163,7 +168,9 @@ func (adr *andDynamicRule) staticRuleFromAttributes(attr Attributes) staticRule 
 		compoundStaticRule: *cdr,
 	}
 }
-
+// NewAndRule allows two or more dynamic rules to be combined into a single rule
+// such that every nested rule must be satisfied in order for the overall rule to be
+// satisfied.
 func NewAndRule(rules ...DynamicRule) DynamicRule {
 	cdr := newCompoundDynamicRule(rules)
 	rule := andDynamicRule{
@@ -192,7 +199,9 @@ func (odr *orDynamicRule) staticRuleFromAttributes(attr Attributes) staticRule {
 		compoundStaticRule: *cdr,
 	}
 }
-
+// NewOrRule allows two or more dynamic rules to be combined into a single rule
+// such that at least one nested rule must be satisfied in order for the overall rule to be
+// satisfied.
 func NewOrRule(rules ...DynamicRule) DynamicRule {
 	cdr := newCompoundDynamicRule(rules)
 	rule := orDynamicRule{
@@ -227,7 +236,11 @@ func (ndr *notDynamicRule) getPatterns() []string {
 func (ndr *notDynamicRule) getPrefixes() []string {
 	return ndr.nestedRule.getPrefixes()
 }
-
+// NewNotRule allows a rule to be negated such that if the
+// nested rule's key matches but the rule is otherwise not
+// satisfied, the not rule is satisfied. This is to enable
+// capabilities such as checking whether a given key is
+// set, i.e. its value is not nil.
 func NewNotRule(nestedRule DynamicRule) (DynamicRule, bool) {
 	ndr := notDynamicRule{
 		nestedRule: nestedRule,
@@ -235,6 +248,8 @@ func NewNotRule(nestedRule DynamicRule) (DynamicRule, bool) {
 	return &ndr, true
 }
 
+// NewEqualsRule enables the comparison of two or more node
+// values with the specified key patterns.
 func NewEqualsRule(pattern []string) (DynamicRule, error) {
 	f := newEqualsRuleFactory()
 	return newDynamicRule(f, pattern)

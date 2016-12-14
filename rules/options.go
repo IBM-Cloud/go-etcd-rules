@@ -21,6 +21,9 @@ func makeEngineOptions(options ...EngineOption) engineOptions {
 	return opts
 }
 
+// EngineOption instances control the overall behavior of an Engine
+// instance.  Behavior for individual rules can be controlled via
+// RuleOption instances.
 type EngineOption interface {
 	apply(*engineOptions)
 }
@@ -31,6 +34,7 @@ func (f engineOptionFunction) apply(o *engineOptions) {
 	f(o)
 }
 
+// EngineLockTimeout controls the TTL of a lock in seconds.
 func EngineLockTimeout(lockTimeout uint64) EngineOption {
 	return engineOptionFunction(func(o *engineOptions) {
 		o.lockTimeout = lockTimeout
@@ -51,6 +55,7 @@ func makeRuleOptions(options ...RuleOption) ruleOptions {
 	return opts
 }
 
+// RuleOption instances control the behavior of individual rules.
 type RuleOption interface {
 	apply(*ruleOptions)
 }
@@ -61,6 +66,8 @@ func (f ruleOptionFunction) apply(o *ruleOptions) {
 	f(o)
 }
 
+// RuleLockTimeout controls the TTL of the locks associated
+// with the rule, in seconds.
 func RuleLockTimeout(lockTimeout uint64) RuleOption {
 	return ruleOptionFunction(func(o *ruleOptions) {
 		o.lockTimeout = lockTimeout
