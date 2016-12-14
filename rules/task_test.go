@@ -1,8 +1,6 @@
 package rules
 
-import (
-
-)
+import ()
 
 func dummyCallback(task *RuleTask) {
 }

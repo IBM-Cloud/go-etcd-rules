@@ -168,6 +168,7 @@ func (adr *andDynamicRule) staticRuleFromAttributes(attr Attributes) staticRule 
 		compoundStaticRule: *cdr,
 	}
 }
+
 // NewAndRule allows two or more dynamic rules to be combined into a single rule
 // such that every nested rule must be satisfied in order for the overall rule to be
 // satisfied.
@@ -199,6 +200,7 @@ func (odr *orDynamicRule) staticRuleFromAttributes(attr Attributes) staticRule {
 		compoundStaticRule: *cdr,
 	}
 }
+
 // NewOrRule allows two or more dynamic rules to be combined into a single rule
 // such that at least one nested rule must be satisfied in order for the overall rule to be
 // satisfied.
@@ -236,6 +238,7 @@ func (ndr *notDynamicRule) getPatterns() []string {
 func (ndr *notDynamicRule) getPrefixes() []string {
 	return ndr.nestedRule.getPrefixes()
 }
+
 // NewNotRule allows a rule to be negated such that if the
 // nested rule's key matches but the rule is otherwise not
 // satisfied, the not rule is satisfied. This is to enable

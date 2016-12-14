@@ -4,6 +4,7 @@ import (
 	"github.com/coreos/etcd/client"
 	"github.com/uber-go/zap"
 )
+
 // Attributes provide access to the key/value pairs associated
 // with dynamic keys.  For instance, a dynamic key "/static/:dynamic"
 // that is matched against "/static/value1" would contain an yield
