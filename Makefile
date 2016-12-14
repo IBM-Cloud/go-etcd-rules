@@ -7,6 +7,7 @@ all: deps fmt vet test
 .PHONY: deps
 deps:
 	glide install
+	go get github.com/mattn/goveralls
 
 .PHONY: fmt
 fmt:
