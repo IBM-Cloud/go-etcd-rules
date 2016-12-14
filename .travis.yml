@@ -3,6 +3,11 @@ language: go
 go:
   - 1.7.1
   - tip
+  
+matrix:
+  fast_finish: true
+  allow_failures:
+  - go: tip
 
 sudo: true
 
@@ -20,3 +25,6 @@ script:
   - make test
   - make vet
   - make fmt
+
+after_success:
+    - 'if [ "$TRAVIS_PULL_REQUEST" = "false" ]; then goveralls -coverprofile=coverage.out -service=travis-ci -repotoken $COVERALLS_TOKEN; fi'

@@ -7,6 +7,7 @@ all: deps fmt vet test
 .PHONY: deps
 deps:
 	glide install
+	go get github.com/mattn/goveralls
 
 .PHONY: fmt
 fmt:
@@ -14,7 +15,7 @@ fmt:
 
 .PHONY: test
 test:
-	go test -v -race ${GOPACKAGES}
+	go test -v -race -coverprofile=coverage.out ${GOPACKAGES}
 
 .PHONY: vet
 vet:
