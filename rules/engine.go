@@ -52,6 +52,20 @@ func (e *engine) AddRule(rule DynamicRule,
 	lockPattern string,
 	callback RuleTaskCallback,
 	options ...RuleOption) {
+	if len(e.options.keyExpansion) > 0 {
+		rules, _ := rule.expand(e.options.keyExpansion)
+		for _, expRule := range rules {
+			e.addRule(expRule, lockPattern, callback, options...)
+		}
+	} else {
+		e.addRule(rule, lockPattern, callback, options...)
+	}
+}
+
+func (e *engine) addRule(rule DynamicRule,
+	lockPattern string,
+	callback RuleTaskCallback,
+	options ...RuleOption) {
 	ruleIndex := e.ruleMgr.addRule(rule)
 	opts := makeRuleOptions(options...)
 	ttl := e.options.lockTimeout

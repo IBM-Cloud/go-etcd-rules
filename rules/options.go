@@ -5,6 +5,7 @@ import ()
 type engineOptions struct {
 	concurrency, syncGetTimeout, syncInterval, watchTimeout int
 	lockTimeout                                             uint64
+	keyExpansion                                            map[string][]string
 }
 
 func makeEngineOptions(options ...EngineOption) engineOptions {
@@ -38,6 +39,12 @@ func (f engineOptionFunction) apply(o *engineOptions) {
 func EngineLockTimeout(lockTimeout uint64) EngineOption {
 	return engineOptionFunction(func(o *engineOptions) {
 		o.lockTimeout = lockTimeout
+	})
+}
+
+func KeyExpansion(keyExpansion map[string][]string) EngineOption {
+	return engineOptionFunction(func(o *engineOptions) {
+		o.keyExpansion = keyExpansion
 	})
 }
 

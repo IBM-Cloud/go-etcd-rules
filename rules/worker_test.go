@@ -25,7 +25,7 @@ func TestWorkerSingleRun(t *testing.T) {
 	}
 	attrMap := map[string]string{}
 	attr := mapAttributes{
-		attr: attrMap,
+		values: attrMap,
 	}
 	conf := client.Config{}
 	task := RuleTask{

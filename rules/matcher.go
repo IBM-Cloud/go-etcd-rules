@@ -74,7 +74,7 @@ func formatWithAttributes(pattern string, m Attributes) string {
 		if strings.HasPrefix(path, ":") {
 			attr := m.GetAttribute(path[1:])
 			if attr == nil {
-				s := "XXX"
+				s := path
 				attr = &s
 			}
 			result = result + *attr
@@ -106,6 +106,22 @@ func newRegexKeyMatcher(pattern string) (*regexKeyMatcher, error) {
 		fieldMap: fields,
 		pattern:  pattern,
 	}, nil
+}
+
+type mapAttributes struct {
+	values map[string]string
+}
+
+func (ma *mapAttributes) GetAttribute(key string) *string {
+	value, ok := ma.values[key]
+	if !ok {
+		return nil
+	}
+	return &value
+}
+
+func (ma *mapAttributes) Format(path string) string {
+	return formatWithAttributes(path, ma)
 }
 
 func parsePath(pattern string) (map[string]int, string) {
