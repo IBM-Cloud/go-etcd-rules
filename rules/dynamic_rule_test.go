@@ -6,6 +6,12 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+var (
+	expansionMap       = map[string][]string{"a": {"first", "second"}, "b": {"third", "fourth"}, "c": {"x", "y"}}
+	expansionPatterns1 = []string{"/first/third/a/attr1", "/first/fourth/b/attr1", "/second/third/c/attr1", "/second/fourth/d/attr1"}
+	expansionPatterns2 = []string{"/first/third/a/attr2", "/first/fourth/b/attr2", "/second/third/c/attr2", "/second/fourth/d/attr2"}
+)
+
 type dummyRuleTrueFactory struct {
 }
 
@@ -26,6 +32,22 @@ func TestEqualsLiteralRule(t *testing.T) {
 	_, err = NewEqualsLiteralRule("/:region/actual/clusters/:clusterid/[workers/:workerid", nil)
 	assert.Error(t, err)
 	assert.Equal(t, "/:region/actual/clusters/:clusterid/workers/:workerid", r.getPatterns()[0])
+	r, err = NewEqualsLiteralRule("/:a/:b/:var/attr1", nil)
+	expanded, exp := r.expand(expansionMap)
+	assert.True(t, exp)
+	assert.Equal(t, 4, len(expanded))
+
+	staticRuleOks := []bool{false, false, false, false}
+
+	for i, pattern := range expansionPatterns1 {
+		for _, expandedRule := range expanded {
+			_, _, ok := expandedRule.makeStaticRule(pattern, nil)
+			staticRuleOks[i] = staticRuleOks[i] || ok
+		}
+	}
+	for i, staticRuleOk := range staticRuleOks {
+		assert.True(t, staticRuleOk, "%s pattern did not match", expansionPatterns1[i])
+	}
 }
 
 func TestAndRule(t *testing.T) {
@@ -56,6 +78,27 @@ func TestAndRule(t *testing.T) {
 	assert.False(t, sat)
 	_, _, ok = a1.makeStaticRule("/us-south/desired/clusters/armada-9b93c18d/workers/worker3/state", nil)
 	assert.False(t, ok)
+
+	e1, _ := NewEqualsLiteralRule("/:a/:b/:var/attr1", nil)
+	e2, _ := NewEqualsLiteralRule("/:a/:b/:var/attr2", nil)
+
+	eAnd := NewAndRule([]DynamicRule{e1, e2}...)
+	expanded, exp := eAnd.expand(expansionMap)
+	assert.True(t, exp)
+	assert.Equal(t, 4, len(expanded))
+
+	staticRuleOks := []bool{false, false, false, false}
+
+	for i, pattern := range expansionPatterns1 {
+		for _, expandedRule := range expanded {
+			_, _, ok := expandedRule.makeStaticRule(pattern, nil)
+			staticRuleOks[i] = staticRuleOks[i] || ok
+		}
+	}
+	for i, staticRuleOk := range staticRuleOks {
+		assert.True(t, staticRuleOk, "%s pattern did not match", expansionPatterns1[i])
+	}
+
 }
 
 func TestOrRule(t *testing.T) {
@@ -88,9 +131,7 @@ func TestOrRule(t *testing.T) {
 
 func TestNotRule(t *testing.T) {
 	workerPathMissing, _ := NewEqualsLiteralRule("/:region/actual/clusters/:clusterid/workers/:workerid", nil)
-	test := notDynamicRule{
-		nestedRule: workerPathMissing,
-	}
+	test := NewNotRule(workerPathMissing)
 	value := "value"
 	notRule, attr, ok := test.makeStaticRule("/us-south/actual/clusters/armada-9b93c18d/workers/worker3", &value)
 	assert.True(t, ok)

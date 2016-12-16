@@ -52,6 +52,13 @@ func (e *engine) AddRule(rule DynamicRule,
 	lockPattern string,
 	callback RuleTaskCallback,
 	options ...RuleOption) {
+	e.addRule(rule, lockPattern, callback, options...)
+}
+
+func (e *engine) addRule(rule DynamicRule,
+	lockPattern string,
+	callback RuleTaskCallback,
+	options ...RuleOption) {
 	ruleIndex := e.ruleMgr.addRule(rule)
 	opts := makeRuleOptions(options...)
 	ttl := e.options.lockTimeout

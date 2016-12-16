@@ -32,7 +32,7 @@ func TestBasic(t *testing.T) {
 		t.Fail()
 	}
 	format = match.Format("/test/:asdf")
-	assert.Equal(t, "/test/XXX", format)
+	assert.Equal(t, "/test/:asdf", format)
 }
 
 func TestNoParms(t *testing.T) {

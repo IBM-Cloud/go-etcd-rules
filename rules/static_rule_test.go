@@ -74,7 +74,7 @@ func getTestAttributes() Attributes {
 		"testkey": "testvalue",
 	}
 	attr := mapAttributes{
-		attr: attributeMap,
+		values: attributeMap,
 	}
 	return &attr
 }
@@ -143,18 +143,18 @@ func TestEqualsLiteralOnlyQueryNil(t *testing.T) {
 	assert.False(t, result)
 }
 
-type mapAttributes struct {
-	attr map[string]string
-}
-
-func (ma *mapAttributes) GetAttribute(key string) *string {
-	value, _ := ma.attr[key]
-	return &value
-}
-
-func (ma *mapAttributes) Format(s string) string {
-	return formatWithAttributes(s, ma)
-}
+//type mapAttributes struct {
+//	attr map[string]string
+//}
+//
+//func (ma *mapAttributes) GetAttribute(key string) *string {
+//	value, _ := ma.attr[key]
+//	return &value
+//}
+//
+//func (ma *mapAttributes) Format(s string) string {
+//	return formatWithAttributes(s, ma)
+//}
 
 func TestEqualsLiteralFactory(t *testing.T) {
 	value := "val1"
@@ -162,7 +162,7 @@ func TestEqualsLiteralFactory(t *testing.T) {
 		value: &value,
 	}
 	attr := mapAttributes{
-		attr: make(map[string]string),
+		values: make(map[string]string),
 	}
 	rule := factory.newRule([]string{"/prefix/mykey"}, &attr)
 	assert.True(t, rule.satisfiable("/prefix/mykey", &value))

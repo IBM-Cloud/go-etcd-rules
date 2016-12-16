@@ -9,6 +9,7 @@ type DynamicRule interface {
 	staticRuleFromAttributes(attr Attributes) staticRule
 	getPatterns() []string
 	getPrefixes() []string
+	expand(map[string][]string) ([]DynamicRule, bool)
 }
 
 func newDynamicRule(factory ruleFactory, patterns []string) (DynamicRule, error) {
@@ -36,6 +37,46 @@ type dynamicRule struct {
 	matchers []keyMatcher
 	patterns []string
 	prefixes []string
+}
+
+func (krp *dynamicRule) expand(valueMap map[string][]string) ([]DynamicRule, bool) {
+	params := map[string]string{}
+	for _, pattern := range krp.patterns {
+		fieldsToParms, _ := parsePath(pattern)
+		for parm, _ := range fieldsToParms {
+			params[parm] = ""
+		}
+	}
+	expanded := false
+	out := []DynamicRule{}
+	// Iterate through all parameters in the rule's key patterns
+	for param, _ := range params {
+		// See if the parameter is in the provided value map
+		values, ok := valueMap[param]
+		if ok {
+			expanded = true
+			// Iterate through all values for the parameter in the value map
+			for _, value := range values {
+				newPatterns := []string{}
+				attrs := mapAttributes{values: map[string]string{param: value}}
+				for _, pattern := range krp.patterns {
+					newPatterns = append(newPatterns, formatWithAttributes(pattern, &attrs))
+				}
+				// Create a new rule instance for each value in the value map
+				rule, err := newDynamicRule(krp.factory, newPatterns)
+				// Expand the new rule instance
+				if err == nil {
+					exp, _ := rule.expand(valueMap)
+					out = append(out, exp...)
+				}
+			}
+			break
+		}
+	}
+	if !expanded {
+		out = append(out, krp)
+	}
+	return out, expanded
 }
 
 func (krp *dynamicRule) getPatterns() []string {
@@ -148,6 +189,43 @@ func (cdr *compoundDynamicRule) getPrefixes() []string {
 	return cdr.prefixes
 }
 
+type newCompoundDynamicRuleFunc func(...DynamicRule) DynamicRule
+
+func (odr *compoundDynamicRule) expand(valueMap map[string][]string,
+	constructor newCompoundDynamicRuleFunc,
+	dr DynamicRule) ([]DynamicRule, bool) {
+	expanded := false
+	out := []DynamicRule{}
+	for key, values := range valueMap {
+		keyExpansion := false
+		newRules := []DynamicRule{}
+		for _, value := range values {
+			attr := map[string][]string{key: {value}}
+			newNested := []DynamicRule{}
+			for _, nested := range odr.nestedDynamicRules {
+				expandedRule, gotExpanded := nested.expand(attr)
+				if gotExpanded {
+					keyExpansion = true
+				}
+				newNested = append(newNested, expandedRule[0])
+			}
+			newRules = append(newRules, constructor(newNested...))
+		}
+		if keyExpansion {
+			expanded = true
+			for _, rule := range newRules {
+				expandedRules, _ := rule.expand(valueMap)
+				out = append(out, expandedRules...)
+			}
+			break
+		}
+	}
+	if !expanded {
+		out = append(out, dr)
+	}
+	return out, expanded
+}
+
 type andDynamicRule struct {
 	compoundDynamicRule
 }
@@ -169,6 +247,10 @@ func (adr *andDynamicRule) staticRuleFromAttributes(attr Attributes) staticRule 
 	}
 }
 
+func (adr *andDynamicRule) expand(valueMap map[string][]string) ([]DynamicRule, bool) {
+	return adr.compoundDynamicRule.expand(valueMap, NewAndRule, adr)
+}
+
 // NewAndRule allows two or more dynamic rules to be combined into a single rule
 // such that every nested rule must be satisfied in order for the overall rule to be
 // satisfied.
@@ -182,6 +264,10 @@ func NewAndRule(rules ...DynamicRule) DynamicRule {
 
 type orDynamicRule struct {
 	compoundDynamicRule
+}
+
+func (odr *orDynamicRule) expand(valueMap map[string][]string) ([]DynamicRule, bool) {
+	return odr.compoundDynamicRule.expand(valueMap, NewOrRule, odr)
 }
 
 func (odr *orDynamicRule) makeStaticRule(key string, value *string) (staticRule, Attributes, bool) {
@@ -213,11 +299,23 @@ func NewOrRule(rules ...DynamicRule) DynamicRule {
 }
 
 type notDynamicRule struct {
-	nestedRule DynamicRule
+	compoundDynamicRule
+}
+
+func (ndr *notDynamicRule) expand(valueMap map[string][]string) ([]DynamicRule, bool) {
+	return ndr.compoundDynamicRule.expand(valueMap, newNotRule, ndr)
+}
+
+func newNotRule(rules ...DynamicRule) DynamicRule {
+	cdr := newCompoundDynamicRule(rules)
+	rule := notDynamicRule{
+		compoundDynamicRule: cdr,
+	}
+	return &rule
 }
 
 func (ndr *notDynamicRule) makeStaticRule(key string, value *string) (staticRule, Attributes, bool) {
-	ns, attr, ok := ndr.nestedRule.makeStaticRule(key, value)
+	ns, attr, ok := ndr.nestedDynamicRules[0].makeStaticRule(key, value)
 	nsr := notStaticRule{
 		nested: ns,
 	}
@@ -226,17 +324,17 @@ func (ndr *notDynamicRule) makeStaticRule(key string, value *string) (staticRule
 
 func (ndr *notDynamicRule) staticRuleFromAttributes(attr Attributes) staticRule {
 	nsr := notStaticRule{
-		nested: ndr.nestedRule.staticRuleFromAttributes(attr),
+		nested: ndr.nestedDynamicRules[0].staticRuleFromAttributes(attr),
 	}
 	return &nsr
 }
 
 func (ndr *notDynamicRule) getPatterns() []string {
-	return ndr.nestedRule.getPatterns()
+	return ndr.nestedDynamicRules[0].getPatterns()
 }
 
 func (ndr *notDynamicRule) getPrefixes() []string {
-	return ndr.nestedRule.getPrefixes()
+	return ndr.nestedDynamicRules[0].getPrefixes()
 }
 
 // NewNotRule allows a rule to be negated such that if the
@@ -244,11 +342,14 @@ func (ndr *notDynamicRule) getPrefixes() []string {
 // satisfied, the not rule is satisfied. This is to enable
 // capabilities such as checking whether a given key is
 // set, i.e. its value is not nil.
-func NewNotRule(nestedRule DynamicRule) (DynamicRule, bool) {
+func NewNotRule(nestedRule DynamicRule) DynamicRule {
+	r := []DynamicRule{nestedRule}
+	cdr := newCompoundDynamicRule(r)
+
 	ndr := notDynamicRule{
-		nestedRule: nestedRule,
+		compoundDynamicRule: cdr,
 	}
-	return &ndr, true
+	return &ndr
 }
 
 // NewEqualsRule enables the comparison of two or more node
