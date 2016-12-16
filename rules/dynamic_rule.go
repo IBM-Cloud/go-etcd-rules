@@ -12,7 +12,7 @@ type DynamicRule interface {
 	expand(map[string][]string) ([]DynamicRule, bool)
 }
 
-func newDynamicRule(factory ruleFactory, patterns []string) (DynamicRule, error) {
+func newDynamicRule(factory ruleFactory, patterns []string, attributes ...attributeInstance) (DynamicRule, error) {
 	matchers := make([]keyMatcher, len(patterns))
 	prefixes := make([]string, len(patterns))
 	for i, v := range patterns {
@@ -24,19 +24,21 @@ func newDynamicRule(factory ruleFactory, patterns []string) (DynamicRule, error)
 		prefixes[i] = matcher.getPrefix()
 	}
 	pattern := dynamicRule{
-		factory:  factory,
-		matchers: matchers,
-		patterns: patterns,
-		prefixes: prefixes,
+		factory:    factory,
+		matchers:   matchers,
+		patterns:   patterns,
+		prefixes:   prefixes,
+		attributes: attributes,
 	}
 	return &pattern, nil
 }
 
 type dynamicRule struct {
-	factory  ruleFactory
-	matchers []keyMatcher
-	patterns []string
-	prefixes []string
+	factory    ruleFactory
+	matchers   []keyMatcher
+	patterns   []string
+	prefixes   []string
+	attributes []attributeInstance
 }
 
 func (krp *dynamicRule) expand(valueMap map[string][]string) ([]DynamicRule, bool) {
@@ -63,7 +65,13 @@ func (krp *dynamicRule) expand(valueMap map[string][]string) ([]DynamicRule, boo
 					newPatterns = append(newPatterns, formatWithAttributes(pattern, &attrs))
 				}
 				// Create a new rule instance for each value in the value map
-				rule, err := newDynamicRule(krp.factory, newPatterns)
+				newAttributes := []attributeInstance{}
+				newAttributes = append(newAttributes, krp.attributes...)
+				// Need a new variable because the value memory location is reused during
+				// each loop iteration
+				valref := value
+				newAttributes = append(newAttributes, attributeInstance{key: param, value: &valref})
+				rule, err := newDynamicRule(krp.factory, newPatterns, newAttributes...)
 				// Expand the new rule instance
 				if err == nil {
 					exp, _ := rule.expand(valueMap)
@@ -87,6 +95,29 @@ func (krp *dynamicRule) getPrefixes() []string {
 	return krp.prefixes
 }
 
+type attributeInstance struct {
+	key   string
+	value *string
+}
+
+type nestingAttributes struct {
+	nested Attributes
+	attrs  []attributeInstance
+}
+
+func (na *nestingAttributes) GetAttribute(key string) *string {
+	for _, attribute := range na.attrs {
+		if attribute.key == key {
+			return attribute.value
+		}
+	}
+	return na.nested.GetAttribute(key)
+}
+
+func (na *nestingAttributes) Format(pattern string) string {
+	return formatWithAttributes(pattern, na)
+}
+
 func (krp *dynamicRule) makeStaticRule(key string, value *string) (staticRule, Attributes, bool) {
 	var match keyMatch
 	anyMatch := false
@@ -103,8 +134,9 @@ func (krp *dynamicRule) makeStaticRule(key string, value *string) (staticRule, A
 		for i, matcher := range krp.matchers {
 			keys[i] = match.Format(matcher.getPattern())
 		}
-		sr := krp.factory.newRule(keys, match)
-		return sr, match, true
+		attr := nestingAttributes{attrs: krp.attributes, nested: match}
+		sr := krp.factory.newRule(keys, &attr)
+		return sr, &attr, true
 	}
 	return nil, nil, false
 }

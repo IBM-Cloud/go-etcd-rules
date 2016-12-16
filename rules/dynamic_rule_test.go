@@ -1,15 +1,17 @@
 package rules
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
 
 var (
-	expansionMap       = map[string][]string{"a": {"first", "second"}, "b": {"third", "fourth"}, "c": {"x", "y"}}
-	expansionPatterns1 = []string{"/first/third/a/attr1", "/first/fourth/b/attr1", "/second/third/c/attr1", "/second/fourth/d/attr1"}
-	expansionPatterns2 = []string{"/first/third/a/attr2", "/first/fourth/b/attr2", "/second/third/c/attr2", "/second/fourth/d/attr2"}
+	expansionMap        = map[string][]string{"a": {"first", "second"}, "b": {"third", "fourth"}, "c": {"x", "y"}}
+	expansionPatterns1  = []string{"/first/third/a/attr1", "/first/fourth/b/attr1", "/second/third/c/attr1", "/second/fourth/d/attr1"}
+	expansionPatterns2  = []string{"/first/third/a/attr2", "/first/fourth/b/attr2", "/second/third/c/attr2", "/second/fourth/d/attr2"}
+	expansionAttributes = []map[string]string{{"a": "first", "b": "third"}, {"a": "first", "b": "fourth"}, {"a": "second", "b": "third"}, {"a": "second", "b": "fourth"}}
 )
 
 type dummyRuleTrueFactory struct {
@@ -20,6 +22,14 @@ func (drtf *dummyRuleTrueFactory) newRule(keys []string) staticRule {
 		satisfiableResponse: true,
 		satisfiedResponse:   true,
 	}
+}
+
+func (a attributeInstance) String() string {
+	value := "<nil>"
+	if a.value != nil {
+		value = *a.value
+	}
+	return fmt.Sprintf("key: %s value: %s", a.key, value)
 }
 
 func TestEqualsLiteralRule(t *testing.T) {
@@ -41,8 +51,17 @@ func TestEqualsLiteralRule(t *testing.T) {
 
 	for i, pattern := range expansionPatterns1 {
 		for _, expandedRule := range expanded {
-			_, _, ok := expandedRule.makeStaticRule(pattern, nil)
+			_, attr, ok := expandedRule.makeStaticRule(pattern, nil)
 			staticRuleOks[i] = staticRuleOks[i] || ok
+			if ok {
+				for key, value := range expansionAttributes[i] {
+					attrValue := attr.GetAttribute(key)
+					assert.NotNil(t, attrValue)
+					if attrValue != nil {
+						assert.Equal(t, value, *attrValue)
+					}
+				}
+			}
 		}
 	}
 	for i, staticRuleOk := range staticRuleOks {
@@ -91,8 +110,18 @@ func TestAndRule(t *testing.T) {
 
 	for i, pattern := range expansionPatterns1 {
 		for _, expandedRule := range expanded {
-			_, _, ok := expandedRule.makeStaticRule(pattern, nil)
+			_, attr1, ok := expandedRule.makeStaticRule(pattern, nil)
 			staticRuleOks[i] = staticRuleOks[i] || ok
+			if ok {
+				for key, value := range expansionAttributes[i] {
+					attrValue := attr1.GetAttribute(key)
+					assert.NotNil(t, attrValue)
+					if attrValue != nil {
+						assert.Equal(t, value, *attrValue)
+					}
+				}
+				assert.Equal(t, pattern, attr1.Format("/:a/:b/:var/attr1"))
+			}
 		}
 	}
 	for i, staticRuleOk := range staticRuleOks {
