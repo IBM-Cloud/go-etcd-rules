@@ -23,7 +23,6 @@ func TestLazyClient(t *testing.T) {
 	}
 	nodes, err2 := lc.List("/b", nil)
 	assert.NoError(t, err2)
-	p(nodes)
 	assert.Equal(t, 1, len(nodes))
 
 	badCfg := client.Config{}
