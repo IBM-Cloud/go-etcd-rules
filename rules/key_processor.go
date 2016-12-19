@@ -29,6 +29,7 @@ func newKeyProcessor(channel chan ruleWork, config client.Config, rm *ruleManage
 }
 
 func (kp *keyProcessor) processKey(key string, value *string, api readAPI, logger zap.Logger) {
+	logger.Debug("Processing key", zap.String("key", key))
 	rules := kp.rm.getStaticRules(key, value)
 	for rule, index := range rules {
 		satisfied, _ := rule.satisfied(api)

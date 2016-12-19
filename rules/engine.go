@@ -2,9 +2,12 @@ package rules
 
 import (
 	"fmt"
+	"strings"
+	"time"
 
 	"github.com/coreos/etcd/client"
 	"github.com/uber-go/zap"
+	"golang.org/x/net/context"
 )
 
 type engine struct {
@@ -23,6 +26,10 @@ type Engine interface {
 		lockPattern string,
 		callback RuleTaskCallback,
 		options ...RuleOption)
+	AddPolling(namespacePattern string,
+		preconditions DynamicRule,
+		ttl int,
+		callback RuleTaskCallback) error
 	Run()
 }
 
@@ -62,6 +69,25 @@ func (e *engine) AddRule(rule DynamicRule,
 	}
 }
 
+func (e *engine) AddPolling(namespacePattern string, preconditions DynamicRule, ttl int, callback RuleTaskCallback) error {
+	if !strings.HasSuffix(namespacePattern, "/") {
+		namespacePattern = namespacePattern + "/"
+	}
+	ttlPathPattern := namespacePattern + "ttl"
+	ttlRule, err := NewEqualsLiteralRule(ttlPathPattern, nil)
+	if err != nil {
+		return err
+	}
+	rule := NewAndRule(preconditions, ttlRule)
+	cbw := callbackWrapper{
+		callback:       callback,
+		ttl:            ttl,
+		ttlPathPattern: ttlPathPattern,
+	}
+	e.AddRule(rule, namespacePattern+"lock", cbw.doRule)
+	return nil
+}
+
 func (e *engine) addRule(rule DynamicRule,
 	lockPattern string,
 	callback RuleTaskCallback,
@@ -96,7 +122,7 @@ func (e *engine) Run() {
 		}
 		go c.run()
 
-		w, err := newWatcher(e.config, prefix, logger, &e.keyProc)
+		w, err := newWatcher(e.config, prefix, logger, &e.keyProc, e.options.watchTimeout)
 		if err != nil {
 			e.logger.Fatal("Failed to initialize watcher", zap.String("prefix", prefix))
 		}
@@ -116,4 +142,32 @@ func (e *engine) Run() {
 
 func (e *engine) getLockTTLForRule(index int) uint64 {
 	return e.ruleLockTTLs[index]
+}
+
+type callbackWrapper struct {
+	ttlPathPattern string
+	callback       RuleTaskCallback
+	ttl            int
+}
+
+func (cbw *callbackWrapper) doRule(task *RuleTask) {
+	logger := task.Logger
+	cbw.callback(task)
+	c, err := client.New(task.Conf)
+	if err != nil {
+		logger.Error("Error obtaining client", zap.Error(err))
+		return
+	}
+	kapi := client.NewKeysAPI(c)
+	path := task.Attr.Format(cbw.ttlPathPattern)
+	logger.Debug("Setting polling TTL", zap.String("path", path))
+	_, setErr := kapi.Set(
+		context.Background(),
+		path,
+		"",
+		&client.SetOptions{TTL: time.Duration(cbw.ttl) * time.Second},
+	)
+	if setErr != nil {
+		logger.Error("Error setting polling TTL", zap.Error(setErr), zap.String("path", path))
+	}
 }
