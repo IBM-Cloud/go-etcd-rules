@@ -47,7 +47,7 @@ func TestEtcdReadAPI(t *testing.T) {
 
 func TestEctdWatcher(t *testing.T) {
 	_, _, kapi := initEtcd()
-	watcher := newEtcdKeyWatcher(kapi, "/pre", time.Duration(1)*time.Second)
+	watcher := newEtcdKeyWatcher(kapi, "/pre", time.Duration(30)*time.Second)
 	done := make(chan bool)
 	go checkWatcher1(done, t, watcher)
 	kapi.Set(context.Background(), "/pre/test", "value", nil)
