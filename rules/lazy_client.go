@@ -5,7 +5,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/IBM-Bluemix/go-etcd-rules/rules"
 	"github.com/coreos/etcd/client"
 	"golang.org/x/net/context"
 )
@@ -18,14 +17,14 @@ type LazyClient interface {
 
 type lazyClient struct {
 	api        client.KeysAPI
-	attr       rules.Attributes
+	attr       Attributes
 	cancelFunc context.CancelFunc
 	config     *client.Config
 	client     client.Client
 	timeout    time.Duration
 }
 
-func NewLazyClient(config *client.Config, attr rules.Attributes, timeout time.Duration) LazyClient {
+func NewLazyClient(config *client.Config, attr Attributes, timeout time.Duration) LazyClient {
 	return &lazyClient{
 		config:  config,
 		attr:    attr,
