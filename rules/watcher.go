@@ -1,12 +1,14 @@
 package rules
 
 import (
+	"time"
+
 	"github.com/coreos/etcd/client"
 	"github.com/uber-go/zap"
 	"golang.org/x/net/context"
 )
 
-func newWatcher(config client.Config, prefix string, logger zap.Logger, proc kProcessor) (watcher, error) {
+func newWatcher(config client.Config, prefix string, logger zap.Logger, proc kProcessor, watchTimeout int) (watcher, error) {
 	ec, err := client.New(config)
 	if err != nil {
 		return watcher{}, err
@@ -15,7 +17,7 @@ func newWatcher(config client.Config, prefix string, logger zap.Logger, proc kPr
 	api := etcdReadAPI{
 		kAPI: ea,
 	}
-	ew := newEtcdKeyWatcher(ea, prefix)
+	ew := newEtcdKeyWatcher(ea, prefix, time.Duration(watchTimeout)*time.Second)
 	return watcher{
 		api:    &api,
 		kw:     ew,

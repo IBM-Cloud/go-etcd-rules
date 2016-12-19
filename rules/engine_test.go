@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/IBM-Bluemix/go-etcd-lock/lock"
-	"github.com/coreos/etcd/client"
+	"github.com/stretchr/testify/assert"
 )
 
 func channelWriteAfterCall(channel chan bool, f func()) {
@@ -58,12 +58,32 @@ func (tl *testLock) Release() error {
 }
 
 func TestEngineConstructor(t *testing.T) {
-	eng := NewEngine(client.Config{
-		// This does not need to be a real endpoint
-		Endpoints: []string{"http://10.0.0.1:4001"},
-	}, getTestLogger())
+	cfg, _, _ := initEtcd()
+	eng := NewEngine(cfg, getTestLogger())
 	value := "val"
 	rule, _ := NewEqualsLiteralRule("/key", &value)
 	eng.AddRule(rule, "/lock", dummyCallback)
+	eng.AddPolling("/polling", rule, 30, dummyCallback)
 	eng.Run()
+	eng = NewEngine(cfg, getTestLogger(), KeyExpansion(map[string][]string{"a:": {"b"}}))
+	eng.AddRule(rule, "/lock", dummyCallback, RuleLockTimeout(30))
+	eng.AddPolling("/polling", rule, 30, dummyCallback)
+	err := eng.AddPolling("/polling[", rule, 30, dummyCallback)
+	assert.Error(t, err)
+	eng.Run()
+}
+
+func TestCallbackWrapper(t *testing.T) {
+	cfg, _, _ := initEtcd()
+	task := RuleTask{
+		Attr:   &mapAttributes{values: map[string]string{"a": "b"}},
+		Conf:   cfg,
+		Logger: getTestLogger(),
+	}
+	cbw := callbackWrapper{
+		callback:       dummyCallback,
+		ttl:            30,
+		ttlPathPattern: "/:a/ttl",
+	}
+	cbw.doRule(&task)
 }

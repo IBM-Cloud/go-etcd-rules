@@ -42,6 +42,23 @@ func EngineLockTimeout(lockTimeout uint64) EngineOption {
 	})
 }
 
+// EngineWatchTimeout controls the timeout of a watch operation in seconds.
+func EngineWatchTimeout(watchTimeout int) EngineOption {
+	return engineOptionFunction(func(o *engineOptions) {
+		o.watchTimeout = watchTimeout
+	})
+}
+
+// KeyExpansion enables attributes in rules to be fixed at run time
+// while allowing the rule declarations to continue to use the
+// attribute placeholders.  For instance, an application may
+// use a root directory "/:geo" to hold data for a given geography.
+// Passing map[string][]string{"geo":{"na"}} into the KeyExpansion
+// option will cause all rules with the "/:geo/" prefix to be rendered
+// as "/na/..." but all paths rendered with attributes from realized
+// rules will still correctly resolve ":geo" to "na".  This allows
+// the placeholder values to be set as application configuration
+// settings while minimizing the scope of the watchers.
 func KeyExpansion(keyExpansion map[string][]string) EngineOption {
 	return engineOptionFunction(func(o *engineOptions) {
 		o.keyExpansion = keyExpansion
