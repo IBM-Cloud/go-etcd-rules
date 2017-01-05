@@ -18,7 +18,7 @@ func newWorker(workerID string, engine *engine, config client.Config) (worker, e
 	if err != nil {
 		return worker{}, err
 	}
-	locker := lock.NewEtcdLocker(c, true)
+	locker := lock.NewEtcdLocker(c, false)
 	api := etcdReadAPI{
 		kAPI: client.NewKeysAPI(c),
 	}
