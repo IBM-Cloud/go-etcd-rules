@@ -1,24 +1,43 @@
 hash: 176622f0dfd2b821a043c60eeb0ec782905a34e0cf1f35a55a1f72ed97658dc7
-updated: 2016-12-13T13:33:48.713274162-05:00
+updated: 2017-01-16T15:00:43.238324396-05:00
 imports:
 - name: github.com/coreos/etcd
   version: fd17c9101d94703f6f4c3d8d6cfb72b62b894cd7
   subpackages:
+  - Godeps/_workspace/src/github.com/gogo/protobuf/proto
+  - Godeps/_workspace/src/github.com/golang/protobuf/proto
   - Godeps/_workspace/src/github.com/ugorji/go/codec
   - Godeps/_workspace/src/golang.org/x/net/context
+  - Godeps/_workspace/src/golang.org/x/net/http2
+  - Godeps/_workspace/src/golang.org/x/net/http2/hpack
+  - Godeps/_workspace/src/golang.org/x/net/internal/timeseries
+  - Godeps/_workspace/src/golang.org/x/net/trace
+  - Godeps/_workspace/src/google.golang.org/grpc
+  - Godeps/_workspace/src/google.golang.org/grpc/codes
+  - Godeps/_workspace/src/google.golang.org/grpc/credentials
+  - Godeps/_workspace/src/google.golang.org/grpc/grpclog
+  - Godeps/_workspace/src/google.golang.org/grpc/metadata
+  - Godeps/_workspace/src/google.golang.org/grpc/naming
+  - Godeps/_workspace/src/google.golang.org/grpc/peer
+  - Godeps/_workspace/src/google.golang.org/grpc/transport
   - client
+  - clientv3
+  - clientv3/concurrency
+  - etcdserver/api/v3rpc/rpctypes
+  - etcdserver/etcdserverpb
   - pkg/pathutil
   - pkg/types
+  - storage/storagepb
 - name: github.com/IBM-Bluemix/go-etcd-lock
   version: e68b955af9b1939edd2918d9409ab7ece1b35528
   subpackages:
   - lock
 - name: github.com/uber-go/atomic
-  version: 6c2817a9ef3b9315f7d237a652f2ab0dac2aee96
+  version: 9e99152552a6ce13fa3b2ce4a9c4fb117cca4506
 - name: github.com/uber-go/zap
-  version: c4939d1166b2220bb45338e21506623b4bbdec50
+  version: 35cd7966cc81adc0449c91b3f6b1939812be73aa
 - name: golang.org/x/net
-  version: f315505cf3349909cdf013ea56690da34e96a451
+  version: 6acef71eb69611914f7a30939ea9f6e194c78172
   subpackages:
   - context
 - name: gopkg.in/errgo.v1
