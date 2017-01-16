@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/coreos/etcd/client"
+	"github.com/coreos/etcd/clientv3"
 	"github.com/stretchr/testify/assert"
 	"github.com/uber-go/zap"
 )
@@ -20,11 +21,13 @@ func TestKeyProcessor(t *testing.T) {
 	lockKeyPatterns := map[int]string{0: "/test/lock/:key"}
 	channel := make(chan ruleWork)
 	kp := keyProcessor{
-		rm:              &rm,
-		channel:         channel,
-		callbacks:       callbacks,
-		lockKeyPatterns: lockKeyPatterns,
-		config:          client.Config{},
+		baseKeyProcessor: baseKeyProcessor{
+			rm:              &rm,
+			lockKeyPatterns: lockKeyPatterns,
+		},
+		callbacks: callbacks,
+		channel:   channel,
+		config:    client.Config{},
 	}
 	logger := getTestLogger()
 	go kp.processKey("/test/key", &value, api, logger)
@@ -51,4 +54,30 @@ func (tkp *testKeyProcessor) processKey(key string,
 
 func getTestLogger() zap.Logger {
 	return zap.New(zap.NewTextEncoder())
+}
+
+func TestV3KeyProcessor(t *testing.T) {
+	value := "value"
+	rule, err := NewEqualsLiteralRule("/test/:key", &value)
+	assert.NoError(t, err)
+	rm := newRuleManager()
+	rm.addRule(rule)
+	api := newMapReadAPI()
+	api.put("/test/key", value)
+	callbacks := map[int]V3RuleTaskCallback{0: v3DummyCallback}
+	lockKeyPatterns := map[int]string{0: "/test/lock/:key"}
+	channel := make(chan v3RuleWork)
+	kp := v3KeyProcessor{
+		baseKeyProcessor: baseKeyProcessor{
+			rm:              &rm,
+			lockKeyPatterns: lockKeyPatterns,
+		},
+		callbacks: callbacks,
+		channel:   channel,
+		config:    &clientv3.Config{},
+	}
+	logger := getTestLogger()
+	go kp.processKey("/test/key", &value, api, logger)
+	work := <-channel
+	assert.Equal(t, "/test/lock/key", work.lockKey)
 }

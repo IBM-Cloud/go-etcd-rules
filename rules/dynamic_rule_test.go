@@ -43,6 +43,7 @@ func TestEqualsLiteralRule(t *testing.T) {
 	assert.Error(t, err)
 	assert.Equal(t, "/:region/actual/clusters/:clusterid/workers/:workerid", r.getPatterns()[0])
 	r, err = NewEqualsLiteralRule("/:a/:b/:var/attr1", nil)
+	assert.NoError(t, err)
 	expanded, exp := r.expand(expansionMap)
 	assert.True(t, exp)
 	assert.Equal(t, 4, len(expanded))

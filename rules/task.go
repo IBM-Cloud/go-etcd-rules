@@ -2,6 +2,7 @@ package rules
 
 import (
 	"github.com/coreos/etcd/client"
+	"github.com/coreos/etcd/clientv3"
 	"github.com/uber-go/zap"
 )
 
@@ -22,14 +23,42 @@ type RuleTask struct {
 	Logger zap.Logger
 }
 
+// V3RuleTask instances contain contextual object instances and metadata
+// for use by rule callbacks.
+type V3RuleTask struct {
+	Attr   Attributes
+	Conf   *clientv3.Config
+	Logger zap.Logger
+}
+
 // RuleTaskCallback is the function type for functions that are called
 // as a result of a specified rule being satisfied.
 type RuleTaskCallback func(task *RuleTask)
 
+// V3RuleTaskCallback is the function type for functions that are called
+// as a reulst of a specified rule being satisfied using the etcd v3
+// API.
+type V3RuleTaskCallback func(task *V3RuleTask)
+
+//type baseWork struct {
+//	attr Attributes
+//	logger zap.Logger
+//}
+
 type ruleWork struct {
+	//	baseWork
+	rule             staticRule
 	ruleTask         RuleTask
 	ruleTaskCallback RuleTaskCallback
 	ruleIndex        int
 	lockKey          string
+}
+
+type v3RuleWork struct {
+	//	baseWork
 	rule             staticRule
+	ruleTask         V3RuleTask
+	ruleTaskCallback V3RuleTaskCallback
+	ruleIndex        int
+	lockKey          string
 }

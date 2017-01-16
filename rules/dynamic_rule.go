@@ -45,14 +45,14 @@ func (krp *dynamicRule) expand(valueMap map[string][]string) ([]DynamicRule, boo
 	params := map[string]string{}
 	for _, pattern := range krp.patterns {
 		fieldsToParms, _ := parsePath(pattern)
-		for parm, _ := range fieldsToParms {
+		for parm := range fieldsToParms {
 			params[parm] = ""
 		}
 	}
 	expanded := false
 	out := []DynamicRule{}
 	// Iterate through all parameters in the rule's key patterns
-	for param, _ := range params {
+	for param := range params {
 		// See if the parameter is in the provided value map
 		values, ok := valueMap[param]
 		if ok {
@@ -223,7 +223,7 @@ func (cdr *compoundDynamicRule) getPrefixes() []string {
 
 type newCompoundDynamicRuleFunc func(...DynamicRule) DynamicRule
 
-func (odr *compoundDynamicRule) expand(valueMap map[string][]string,
+func (cdr *compoundDynamicRule) expand(valueMap map[string][]string,
 	constructor newCompoundDynamicRuleFunc,
 	dr DynamicRule) ([]DynamicRule, bool) {
 	expanded := false
@@ -234,7 +234,7 @@ func (odr *compoundDynamicRule) expand(valueMap map[string][]string,
 		for _, value := range values {
 			attr := map[string][]string{key: {value}}
 			newNested := []DynamicRule{}
-			for _, nested := range odr.nestedDynamicRules {
+			for _, nested := range cdr.nestedDynamicRules {
 				expandedRule, gotExpanded := nested.expand(attr)
 				if gotExpanded {
 					keyExpansion = true
