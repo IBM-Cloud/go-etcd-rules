@@ -25,10 +25,12 @@ func TestCrawler(t *testing.T) {
 		keys: []string{},
 	}
 	cr := etcdCrawler{
-		kapi:   kapi,
-		kp:     &kp,
-		logger: getTestLogger(),
-		prefix: "/root",
+		baseCrawler: baseCrawler{
+			kp:     &kp,
+			logger: getTestLogger(),
+			prefix: "/root",
+		},
+		kapi: kapi,
 	}
 	cr.singleRun()
 	assert.Equal(t, "/root/child", kp.keys[0])

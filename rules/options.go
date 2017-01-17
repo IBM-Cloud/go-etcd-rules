@@ -4,7 +4,7 @@ import ()
 
 type engineOptions struct {
 	concurrency, syncGetTimeout, syncInterval, watchTimeout int
-	lockTimeout                                             uint64
+	lockTimeout                                             int
 	keyExpansion                                            map[string][]string
 }
 
@@ -36,7 +36,7 @@ func (f engineOptionFunction) apply(o *engineOptions) {
 }
 
 // EngineLockTimeout controls the TTL of a lock in seconds.
-func EngineLockTimeout(lockTimeout uint64) EngineOption {
+func EngineLockTimeout(lockTimeout int) EngineOption {
 	return engineOptionFunction(func(o *engineOptions) {
 		o.lockTimeout = lockTimeout
 	})
@@ -66,7 +66,7 @@ func KeyExpansion(keyExpansion map[string][]string) EngineOption {
 }
 
 type ruleOptions struct {
-	lockTimeout uint64
+	lockTimeout int
 }
 
 func makeRuleOptions(options ...RuleOption) ruleOptions {
@@ -92,7 +92,7 @@ func (f ruleOptionFunction) apply(o *ruleOptions) {
 
 // RuleLockTimeout controls the TTL of the locks associated
 // with the rule, in seconds.
-func RuleLockTimeout(lockTimeout uint64) RuleOption {
+func RuleLockTimeout(lockTimeout int) RuleOption {
 	return ruleOptionFunction(func(o *ruleOptions) {
 		o.lockTimeout = lockTimeout
 	})

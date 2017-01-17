@@ -7,6 +7,7 @@ import:
   subpackages:
   - lock
 - package: github.com/coreos/etcd
+  version: master
   subpackages:
   - client
 - package: github.com/uber-go/zap

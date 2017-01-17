@@ -4,7 +4,8 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/IBM-Bluemix/go-etcd-lock/lock"
+	"github.com/coreos/etcd/client"
+	"github.com/coreos/etcd/clientv3"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -26,35 +27,22 @@ type testLocker struct {
 	errorMsg *string
 }
 
-func (tlkr *testLocker) Acquire(key string, ttl uint64) (lock.Lock, error) {
+func (tlkr *testLocker) lock(key string, ttl int) (ruleLock, error) {
 	if tlkr.errorMsg != nil {
 		return nil, errors.New(*tlkr.errorMsg)
 	}
-	lock := testLock{
+	tLock := testLock{
 		channel: tlkr.channel,
 	}
-	return &lock, nil
-}
-
-func (tlkr *testLocker) Wait(key string) error {
-	return nil
-}
-
-func (tlkr *testLocker) WaitAcquire(key string, ttl uint64) (lock.Lock, error) {
-	err := tlkr.Wait(key)
-	if err != nil {
-		return nil, err
-	}
-	return tlkr.Acquire(key, ttl)
+	return &tLock, nil
 }
 
 type testLock struct {
 	channel chan bool
 }
 
-func (tl *testLock) Release() error {
+func (tl *testLock) unlock() {
 	tl.channel <- true
-	return nil
 }
 
 func TestEngineConstructor(t *testing.T) {
@@ -73,6 +61,22 @@ func TestEngineConstructor(t *testing.T) {
 	eng.Run()
 }
 
+func TestV3EngineConstructor(t *testing.T) {
+	cfg, _ := initV3Etcd()
+	eng := NewV3Engine(cfg, getTestLogger())
+	value := "val"
+	rule, _ := NewEqualsLiteralRule("/key", &value)
+	eng.AddRule(rule, "/lock", v3DummyCallback)
+	eng.AddPolling("/polling", rule, 30, v3DummyCallback)
+	eng.Run()
+	eng = NewV3Engine(cfg, getTestLogger(), KeyExpansion(map[string][]string{"a:": {"b"}}))
+	eng.AddRule(rule, "/lock", v3DummyCallback, RuleLockTimeout(30))
+	eng.AddPolling("/polling", rule, 30, v3DummyCallback)
+	err := eng.AddPolling("/polling[", rule, 30, v3DummyCallback)
+	assert.Error(t, err)
+	eng.Run()
+}
+
 func TestCallbackWrapper(t *testing.T) {
 	cfg, _, _ := initEtcd()
 	task := RuleTask{
@@ -85,5 +89,59 @@ func TestCallbackWrapper(t *testing.T) {
 		ttl:            30,
 		ttlPathPattern: "/:a/ttl",
 	}
+	cbw.doRule(&task)
+	// Bad configuration resulting in error creating client
+	cfg = client.Config{}
+	task = RuleTask{
+		Attr:   &mapAttributes{},
+		Conf:   cfg,
+		Logger: getTestLogger(),
+	}
+	cbw.doRule(&task)
+	// Bad configuration resulting in HTTP error
+	cfg = client.Config{
+		Endpoints: []string{"http://500.0.0.1:0"},
+	}
+	task = RuleTask{
+		Attr:   &mapAttributes{},
+		Conf:   cfg,
+		Logger: getTestLogger(),
+	}
+	cbw.doRule(&task)
+}
+
+func TestV3CallbackWrapper(t *testing.T) {
+	cfg, _ := initV3Etcd()
+	task := V3RuleTask{
+		Attr:   &mapAttributes{values: map[string]string{"a": "b"}},
+		Conf:   &cfg,
+		Logger: getTestLogger(),
+	}
+	cbw := v3CallbackWrapper{
+		callback:       v3DummyCallback,
+		ttl:            30,
+		ttlPathPattern: "/:a/ttl",
+	}
+	t.Log("Testing valid rule")
+	cbw.doRule(&task)
+	// Bad configuration resulting in error creating client
+	cfg = clientv3.Config{}
+	task = V3RuleTask{
+		Attr:   &mapAttributes{},
+		Conf:   &cfg,
+		Logger: getTestLogger(),
+	}
+	t.Log("Testing invalid configuration--no endpoints")
+	cbw.doRule(&task)
+	// Bad configuration resulting in HTTP error
+	cfg = clientv3.Config{
+		Endpoints: []string{"xyz://500.0.0.1:0"},
+	}
+	task = V3RuleTask{
+		Attr:   &mapAttributes{},
+		Conf:   &cfg,
+		Logger: getTestLogger(),
+	}
+	t.Log("Testing invalid configuration--invalid host")
 	cbw.doRule(&task)
 }

@@ -9,6 +9,8 @@ import (
 	"golang.org/x/net/context"
 )
 
+// LazyClient instances will set values only if the target value differs from the original value.
+// This helps to prevent unnecessary watch events to be triggered.
 type LazyClient interface {
 	LazySet(key, value string) error
 	LazyGet(pattern string) (*string, error)
@@ -24,6 +26,7 @@ type lazyClient struct {
 	timeout    time.Duration
 }
 
+// NewLazyClient creates new LazyClient instances
 func NewLazyClient(config *client.Config, attr Attributes, timeout time.Duration) LazyClient {
 	return &lazyClient{
 		config:  config,

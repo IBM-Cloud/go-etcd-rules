@@ -4,13 +4,14 @@ import (
 	"testing"
 
 	"github.com/coreos/etcd/client"
+	"github.com/coreos/etcd/clientv3"
 	"github.com/stretchr/testify/assert"
 	"github.com/uber-go/zap"
 )
 
 func TestWorkerSingleRun(t *testing.T) {
 	assert.True(t, true)
-	e := newEngine(client.Config{}, getTestLogger(), EngineLockTimeout(300))
+	e := newEngine(client.Config{}, clientv3.Config{}, false, getTestLogger(), EngineLockTimeout(300))
 	channel := e.workChannel
 	lockChannel := make(chan bool)
 	locker := testLocker{
@@ -18,10 +19,12 @@ func TestWorkerSingleRun(t *testing.T) {
 	}
 	api := mapReadAPI{}
 	w := worker{
-		engine:   &e,
-		locker:   &locker,
-		api:      &api,
-		workerID: "testworker",
+		baseWorker: baseWorker{
+			api:      &api,
+			locker:   &locker,
+			workerID: "testworker",
+		},
+		engine: &e,
 	}
 	attrMap := map[string]string{}
 	attr := mapAttributes{
@@ -41,10 +44,10 @@ func TestWorkerSingleRun(t *testing.T) {
 		satisfiedResponse: true,
 	}
 	rw := ruleWork{
+		rule:             &rule,
 		ruleTask:         task,
 		ruleTaskCallback: callback.callback,
 		lockKey:          "key",
-		rule:             &rule,
 	}
 	go w.singleRun()
 	channel <- rw
