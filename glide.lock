@@ -1,47 +1,93 @@
-hash: 176622f0dfd2b821a043c60eeb0ec782905a34e0cf1f35a55a1f72ed97658dc7
-updated: 2017-01-16T15:00:43.238324396-05:00
+hash: e4a810cc6f6ec0e52c322689e5ff836dbac8296221bc863802d7c77267027063
+updated: 2017-01-17T14:40:54.701213613-05:00
 imports:
-- name: github.com/coreos/etcd
-  version: fd17c9101d94703f6f4c3d8d6cfb72b62b894cd7
+- name: github.com/beorn7/perks
+  version: 4c0e84591b9aa9e6dcfdf3e020114cd81f89d5f9
   subpackages:
-  - Godeps/_workspace/src/github.com/gogo/protobuf/proto
-  - Godeps/_workspace/src/github.com/golang/protobuf/proto
-  - Godeps/_workspace/src/github.com/ugorji/go/codec
-  - Godeps/_workspace/src/golang.org/x/net/context
-  - Godeps/_workspace/src/golang.org/x/net/http2
-  - Godeps/_workspace/src/golang.org/x/net/http2/hpack
-  - Godeps/_workspace/src/golang.org/x/net/internal/timeseries
-  - Godeps/_workspace/src/golang.org/x/net/trace
-  - Godeps/_workspace/src/google.golang.org/grpc
-  - Godeps/_workspace/src/google.golang.org/grpc/codes
-  - Godeps/_workspace/src/google.golang.org/grpc/credentials
-  - Godeps/_workspace/src/google.golang.org/grpc/grpclog
-  - Godeps/_workspace/src/google.golang.org/grpc/metadata
-  - Godeps/_workspace/src/google.golang.org/grpc/naming
-  - Godeps/_workspace/src/google.golang.org/grpc/peer
-  - Godeps/_workspace/src/google.golang.org/grpc/transport
+  - quantile
+- name: github.com/coreos/etcd
+  version: 2db9d3b70236f620c3c507c6bf7013da5e78a9f7
+  subpackages:
+  - auth/authpb
   - client
   - clientv3
   - clientv3/concurrency
   - etcdserver/api/v3rpc/rpctypes
   - etcdserver/etcdserverpb
+  - mvcc/mvccpb
   - pkg/pathutil
+  - pkg/tlsutil
   - pkg/types
-  - storage/storagepb
+- name: github.com/ghodss/yaml
+  version: 73d445a93680fa1a78ae23a5839bad48f32ba1ee
+- name: github.com/golang/protobuf
+  version: 4bd1920723d7b7c925de087aa32e2187708897f7
+  subpackages:
+  - jsonpb
+  - proto
+- name: github.com/grpc-ecosystem/go-grpc-prometheus
+  version: 6b7015e65d366bf3f19b2b2a000a831940f0f7e0
+- name: github.com/grpc-ecosystem/grpc-gateway
+  version: 84398b94e188ee336f307779b57b3aa91af7063c
+  subpackages:
+  - runtime
+  - runtime/internal
+  - utilities
 - name: github.com/IBM-Bluemix/go-etcd-lock
-  version: e68b955af9b1939edd2918d9409ab7ece1b35528
+  version: 0445a1f78d4b4e9cdadc83d2e721bb949f95d70f
   subpackages:
   - lock
+- name: github.com/matttproud/golang_protobuf_extensions
+  version: c12348ce28de40eed0136aa2b644d0ee0650e56c
+  subpackages:
+  - pbutil
+- name: github.com/prometheus/client_golang
+  version: c5b7fccd204277076155f10851dad72b76a49317
+  subpackages:
+  - prometheus
+- name: github.com/prometheus/client_model
+  version: fa8ad6fec33561be4280a8f0514318c79d7f6cb6
+  subpackages:
+  - go
+- name: github.com/prometheus/common
+  version: dd2f054febf4a6c00f2343686efb775948a8bff4
+  subpackages:
+  - expfmt
+  - internal/bitbucket.org/ww/goautoneg
+  - model
+- name: github.com/prometheus/procfs
+  version: fcdb11ccb4389efb1b210b7ffb623ab71c5fdd60
 - name: github.com/uber-go/atomic
-  version: 9e99152552a6ce13fa3b2ce4a9c4fb117cca4506
+  version: 3b8db5e93c4c02efbc313e17b2e796b0914a01fb
 - name: github.com/uber-go/zap
-  version: 35cd7966cc81adc0449c91b3f6b1939812be73aa
+  version: a5783ee4b216a927da8f839c45cfbf9d694e1467
+- name: github.com/ugorji/go
+  version: ded73eae5db7e7a0ef6f55aace87a2873c5d2b74
+  subpackages:
+  - codec
 - name: golang.org/x/net
   version: 6acef71eb69611914f7a30939ea9f6e194c78172
   subpackages:
   - context
+  - http2
+  - http2/hpack
+  - internal/timeseries
+  - trace
+- name: google.golang.org/grpc
+  version: 777daa17ff9b5daef1cfdf915088a2ada3332bf0
+  subpackages:
+  - codes
+  - credentials
+  - grpclog
+  - internal
+  - metadata
+  - naming
+  - peer
+  - transport
 - name: gopkg.in/errgo.v1
-  version: 66cb46252b94c1f3d65646f54ee8043ab38d766c
+  version: 442357a80af5c6bf9b6d51ae791a39c3421004f3
+- name: gopkg.in/yaml.v2
+  version: 53feefa2559fb8dfa8d81baad31be332c97d6c77
 testImports:
 - name: github.com/davecgh/go-spew
   version: 04cdfd42973bb9c8589fd6a731800cf222fde1a9
@@ -52,6 +98,6 @@ testImports:
   subpackages:
   - difflib
 - name: github.com/stretchr/testify
-  version: 18a02ba4a312f95da08ff4cfc0055750ce50ae9e
+  version: 2402e8e7a02fc811447d11f881aa9746cdc57983
   subpackages:
   - assert
