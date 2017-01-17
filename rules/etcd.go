@@ -10,10 +10,17 @@ import (
 )
 
 type baseReadAPI struct {
+	cancelFunc context.CancelFunc
 }
 
 func (bra *baseReadAPI) getContext() context.Context {
-	return context.Background()
+	var ctx context.Context
+	ctx, bra.cancelFunc = context.WithTimeout(context.Background(), time.Duration(60) * time.Second)
+	return ctx
+}
+
+func (bra *baseReadAPI) cancel() {
+	bra.cancelFunc()
 }
 
 type etcdReadAPI struct {
@@ -23,6 +30,7 @@ type etcdReadAPI struct {
 
 func (edra *etcdReadAPI) get(key string) (*string, error) {
 	ctx := edra.getContext()
+	defer edra.cancel()
 	resp, err := edra.keysAPI.Get(ctx, key, nil)
 	if err != nil {
 		if !strings.HasPrefix(err.Error(), "100") {
@@ -40,6 +48,7 @@ type etcdV3ReadAPI struct {
 
 func (edv3ra *etcdV3ReadAPI) get(key string) (*string, error) {
 	ctx := edv3ra.baseReadAPI.getContext()
+	defer edv3ra.cancel()
 	resp, err := edv3ra.kV.Get(ctx, key)
 	if err != nil {
 		return nil, err
