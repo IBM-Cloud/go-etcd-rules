@@ -73,7 +73,7 @@ func NewV3Engine(configV3 clientv3.Config, logger zap.Logger, options ...EngineO
 
 func newEngine(config client.Config, configV3 clientv3.Config, useV3 bool, logger zap.Logger, options ...EngineOption) engine {
 	opts := makeEngineOptions(options...)
-	ruleMgr := newRuleManager()
+	ruleMgr := newRuleManager(map[string]constraint{})
 	channel := make(chan ruleWork)
 	keyProc := newKeyProcessor(channel, config, &ruleMgr)
 	eng := engine{
@@ -94,7 +94,7 @@ func newEngine(config client.Config, configV3 clientv3.Config, useV3 bool, logge
 
 func newV3Engine(config client.Config, configV3 clientv3.Config, useV3 bool, logger zap.Logger, options ...EngineOption) v3Engine {
 	opts := makeEngineOptions(options...)
-	ruleMgr := newRuleManager()
+	ruleMgr := newRuleManager(opts.constraints)
 	channel := make(chan v3RuleWork)
 	keyProc := newV3KeyProcessor(channel, &configV3, &ruleMgr)
 	eng := v3Engine{

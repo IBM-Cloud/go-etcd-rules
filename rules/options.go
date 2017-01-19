@@ -4,6 +4,7 @@ import ()
 
 type engineOptions struct {
 	concurrency, syncGetTimeout, syncInterval, watchTimeout int
+	constraints                                             map[string]constraint
 	lockTimeout                                             int
 	keyExpansion                                            map[string][]string
 }
@@ -11,6 +12,7 @@ type engineOptions struct {
 func makeEngineOptions(options ...EngineOption) engineOptions {
 	opts := engineOptions{
 		concurrency:    5,
+		constraints:    map[string]constraint{},
 		lockTimeout:    30,
 		syncInterval:   300,
 		syncGetTimeout: 0,
@@ -62,6 +64,17 @@ func EngineWatchTimeout(watchTimeout int) EngineOption {
 func KeyExpansion(keyExpansion map[string][]string) EngineOption {
 	return engineOptionFunction(func(o *engineOptions) {
 		o.keyExpansion = keyExpansion
+	})
+}
+
+// KeyConstraint enables multiple query prefixes to be generated for a specific
+// attribute as a way to limit the scope of a query for a prefix query.
+func KeyConstraint(attribute string, prefix string, chars [][]rune) EngineOption {
+	return engineOptionFunction(func(o *engineOptions) {
+		o.constraints[attribute] = constraint{
+			chars:  chars,
+			prefix: prefix,
+		}
 	})
 }
 

@@ -7,7 +7,7 @@ import (
 )
 
 func TestRuleManager(t *testing.T) {
-	rm := newRuleManager()
+	rm := newRuleManager(map[string]constraint{})
 	rule1, err1 := NewEqualsLiteralRule("/this/is/:a/rule", nil)
 	assert.NoError(t, err1)
 	rm.addRule(rule1)

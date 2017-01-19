@@ -5,15 +5,17 @@ import (
 )
 
 type ruleManager struct {
+	constraints       map[string]constraint
+	currentIndex      int
 	rulesBySlashCount map[int]map[DynamicRule]int
 	prefixes          map[string]string
-	currentIndex      int
 }
 
-func newRuleManager() ruleManager {
+func newRuleManager(constraints map[string]constraint) ruleManager {
 	rm := ruleManager{
 		rulesBySlashCount: map[int]map[DynamicRule]int{},
 		prefixes:          map[string]string{},
+		constraints:       constraints,
 		currentIndex:      0,
 	}
 	return rm
@@ -44,7 +46,7 @@ func (rm *ruleManager) addRule(rule DynamicRule) int {
 		}
 		rules[rule] = rm.currentIndex
 	}
-	for _, prefix := range rule.getPrefixes() {
+	for _, prefix := range rule.getPrefixesWithConstraints(rm.constraints) {
 		rm.prefixes[prefix] = ""
 	}
 	rm.prefixes = reducePrefixes(rm.prefixes)

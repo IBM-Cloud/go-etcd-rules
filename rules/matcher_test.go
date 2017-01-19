@@ -7,10 +7,10 @@ import (
 )
 
 func TestBasic(t *testing.T) {
-	test := "/user/:name"
+	test := "/user/:name/state"
 
 	km, _ := newRegexKeyMatcher(test)
-	match, ok := km.match("/user/john")
+	match, ok := km.match("/user/john/state")
 	assert.True(t, ok)
 	value := *match.GetAttribute("name")
 	if value != "john" {
@@ -31,6 +31,17 @@ func TestBasic(t *testing.T) {
 		t.Logf("Incorrect prefix: %s", prefix)
 		t.Fail()
 	}
+	prefixes := km.getPrefixesWithConstraints(map[string]constraint{
+		"name": constraint{
+			prefix: "xy",
+			chars:  [][]rune{{'a', 'b'}, {'a', 'b'}},
+		},
+	})
+	assert.Equal(t, 4, len(prefixes))
+	assert.Equal(t, "/user/xyaa", prefixes[0])
+	assert.Equal(t, "/user/xyab", prefixes[1])
+	assert.Equal(t, "/user/xyba", prefixes[2])
+	assert.Equal(t, "/user/xybb", prefixes[3])
 	format = match.Format("/test/:asdf")
 	assert.Equal(t, "/test/:asdf", format)
 }
