@@ -9,6 +9,7 @@ type keyMatcher interface {
 	getPrefix() string
 	match(string) (keyMatch, bool)
 	getPattern() string
+	getPrefixesWithConstraints(constraints map[string]constraint) []string
 }
 
 type regexKeyMatcher struct {
@@ -28,6 +29,47 @@ func (rkm *regexKeyMatcher) getPrefix() string {
 		end = len(rkm.pattern)
 	}
 	return rkm.pattern[0:end]
+}
+
+func (rkm *regexKeyMatcher) getPrefixesWithConstraints(constraints map[string]constraint) []string {
+	out := []string{}
+	firstColon := strings.Index(rkm.pattern, ":")
+	if firstColon == -1 {
+		out = append(out, rkm.getPrefix())
+	} else {
+		end := strings.Index(rkm.pattern[firstColon:], "/")
+		if end == -1 {
+			end = len(rkm.pattern)
+		} else {
+			end = firstColon + end
+		}
+		attrName := rkm.pattern[firstColon+1 : end]
+		constr, ok := constraints[attrName]
+		if !ok {
+			out = append(out, rkm.getPrefix())
+		} else {
+			outPtr := &out
+			buildPrefixesFromConstraint(rkm.pattern[:firstColon]+constr.prefix, 0, constr, outPtr)
+			out = *outPtr
+		}
+	}
+	return out
+}
+
+func buildPrefixesFromConstraint(base string, index int, constr constraint, prefixes *[]string) {
+	myChars := constr.chars[index]
+	if index+1 == len(constr.chars) {
+		// Last set
+		for _, char := range myChars {
+			newPrefixes := append(*prefixes, base+string(char))
+			*prefixes = newPrefixes
+		}
+	} else {
+		for _, char := range myChars {
+			newBase := base + string(char)
+			buildPrefixesFromConstraint(newBase, index+1, constr, prefixes)
+		}
+	}
 }
 
 func (rkm *regexKeyMatcher) getPattern() string {

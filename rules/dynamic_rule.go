@@ -9,6 +9,7 @@ type DynamicRule interface {
 	staticRuleFromAttributes(attr Attributes) staticRule
 	getPatterns() []string
 	getPrefixes() []string
+	getPrefixesWithConstraints(constraints map[string]constraint) []string
 	expand(map[string][]string) ([]DynamicRule, bool)
 }
 
@@ -93,6 +94,15 @@ func (krp *dynamicRule) getPatterns() []string {
 
 func (krp *dynamicRule) getPrefixes() []string {
 	return krp.prefixes
+}
+
+func (krp *dynamicRule) getPrefixesWithConstraints(constraints map[string]constraint) []string {
+	prefixes := []string{}
+	for _, km := range krp.matchers {
+		matchPrefixes := km.getPrefixesWithConstraints(constraints)
+		prefixes = append(prefixes, matchPrefixes...)
+	}
+	return prefixes
 }
 
 type attributeInstance struct {
@@ -222,6 +232,14 @@ func (cdr *compoundDynamicRule) getPrefixes() []string {
 }
 
 type newCompoundDynamicRuleFunc func(...DynamicRule) DynamicRule
+
+func (cdr *compoundDynamicRule) getPrefixesWithConstraints(constraints map[string]constraint) []string {
+	prefixes := []string{}
+	for _, nested := range cdr.nestedDynamicRules {
+		prefixes = append(prefixes, nested.getPrefixesWithConstraints(constraints)...)
+	}
+	return prefixes
+}
 
 func (cdr *compoundDynamicRule) expand(valueMap map[string][]string,
 	constructor newCompoundDynamicRuleFunc,
