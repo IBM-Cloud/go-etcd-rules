@@ -14,3 +14,9 @@ func TestRuleOptions(t *testing.T) {
 	var threeHundred = 300
 	assert.Equal(t, threeHundred, opts.lockTimeout)
 }
+
+func TestEngineOptions(t *testing.T) {
+	opts := makeEngineOptions(EngineSyncInterval(5))
+	assert.Equal(t, 5, opts.syncInterval)
+
+}
