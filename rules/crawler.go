@@ -86,9 +86,9 @@ type etcdCrawler struct {
 
 func (ec *etcdCrawler) run() {
 	for {
-		ec.logger.Info("Starting crawler run")
+		ec.logger.Debug("Starting crawler run")
 		ec.singleRun()
-		ec.logger.Info("Crawler run complete")
+		ec.logger.Debug("Crawler run complete")
 		time.Sleep(time.Duration(ec.interval) * time.Second)
 	}
 }
@@ -120,9 +120,9 @@ type v3EtcdCrawler struct {
 
 func (v3ec *v3EtcdCrawler) run() {
 	for {
-		v3ec.logger.Info("Starting crawler run")
+		v3ec.logger.Debug("Starting crawler run")
 		v3ec.singleRun()
-		v3ec.logger.Info("Crawler run complete")
+		v3ec.logger.Debug("Crawler run complete")
 		time.Sleep(time.Duration(v3ec.interval) * time.Second)
 	}
 }

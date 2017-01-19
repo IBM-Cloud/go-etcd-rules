@@ -78,6 +78,12 @@ func KeyConstraint(attribute string, prefix string, chars [][]rune) EngineOption
 	})
 }
 
+func EngineSyncInterval(interval int) EngineOption {
+	return engineOptionFunction(func(o *engineOptions) {
+		o.syncInterval = interval
+	})
+}
+
 type ruleOptions struct {
 	lockTimeout int
 }
