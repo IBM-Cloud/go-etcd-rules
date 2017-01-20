@@ -313,14 +313,16 @@ func (cbw *v3CallbackWrapper) doRule(task *V3RuleTask) {
 	logger.Debug("Setting polling TTL", zap.String("path", path))
 	lease := clientv3.NewLease(c)
 	ctx, cancelFunc := context.WithTimeout(context.Background(), time.Duration(5)*time.Second)
+	defer cancelFunc()
 	resp, leaseErr := lease.Grant(ctx, int64(cbw.ttl))
 	if leaseErr != nil {
 		logger.Error("Error obtaining lease", zap.Error(leaseErr), zap.String("path", path))
-		cancelFunc()
 		return
 	}
+	ctx1, cancelFunc1 := context.WithTimeout(context.Background(), time.Duration(5)*time.Second)
+	defer cancelFunc1()
 	_, setErr := kv.Put(
-		context.Background(),
+		ctx1,
 		path,
 		"",
 		clientv3.WithLease(resp.ID),

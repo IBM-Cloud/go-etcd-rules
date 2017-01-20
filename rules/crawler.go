@@ -128,8 +128,9 @@ func (v3ec *v3EtcdCrawler) run() {
 }
 
 func (v3ec *v3EtcdCrawler) singleRun() {
-	// This won't scale
-	resp, err := v3ec.kv.Get(context.Background(), v3ec.prefix, clientv3.WithPrefix())
+	ctx, cancelFunc := context.WithTimeout(context.Background(), time.Duration(1)*time.Minute)
+	defer cancelFunc()
+	resp, err := v3ec.kv.Get(ctx, v3ec.prefix, clientv3.WithPrefix())
 	if err != nil {
 		return
 	}

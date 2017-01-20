@@ -78,6 +78,8 @@ func KeyConstraint(attribute string, prefix string, chars [][]rune) EngineOption
 	})
 }
 
+// EngineSyncInterval enables the interval between sync or crawler runs to be configured.
+// The interval is in seconds.
 func EngineSyncInterval(interval int) EngineOption {
 	return engineOptionFunction(func(o *engineOptions) {
 		o.syncInterval = interval
