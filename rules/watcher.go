@@ -6,7 +6,6 @@ import (
 	"github.com/coreos/etcd/client"
 	"github.com/coreos/etcd/clientv3"
 	"github.com/uber-go/zap"
-	"golang.org/x/net/context"
 )
 
 func newWatcher(config client.Config, prefix string, logger zap.Logger, proc keyProc, watchTimeout int) (watcher, error) {
@@ -66,8 +65,4 @@ func (w *watcher) singleRun() {
 		return
 	}
 	w.kp.processKey(key, value, w.api, w.logger)
-}
-
-func (w *watcher) getContext() context.Context {
-	return context.Background()
 }

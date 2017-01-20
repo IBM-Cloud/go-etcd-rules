@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"golang.org/x/net/context"
+	//	"golang.org/x/net/context"
 )
 
 func TestWatcher(t *testing.T) {
@@ -26,7 +26,7 @@ func TestWatcher(t *testing.T) {
 	w.singleRun()
 	assert.Equal(t, "key1", kp.keys[0])
 	assert.Equal(t, &value1, kp.values[0])
-	assert.Equal(t, context.Background(), w.getContext())
+	//	assert.Equal(t, context.Background(), w.getContext())
 	w.singleRun()
 }
 
