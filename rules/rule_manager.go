@@ -54,6 +54,7 @@ func (rm *ruleManager) addRule(rule DynamicRule) int {
 	rm.currentIndex = rm.currentIndex + 1
 	return lastIndex
 }
+
 // Removes any path prefixes that have other path prefixes as
 // string prefixes
 func reducePrefixes(prefixes map[string]string) map[string]string {
@@ -72,6 +73,7 @@ func reducePrefixes(prefixes map[string]string) map[string]string {
 	}
 	return out
 }
+
 // Sorts prefixes shortest to longest
 func sortPrefixesByLength(prefixes map[string]string) []string {
 	out := []string{}

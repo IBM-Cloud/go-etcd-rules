@@ -78,6 +78,7 @@ type v3Lock struct {
 func (v3l *v3Lock) unlock() {
 	ctx, canfunc := context.WithTimeout(context.Background(), time.Duration(5)*time.Second)
 	err := v3l.mutex.Unlock(ctx)
-	if err != nil {}
+	if err != nil {
+	}
 	canfunc()
 }
