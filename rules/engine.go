@@ -171,7 +171,7 @@ func (e *v3Engine) AddPolling(namespacePattern string, preconditions DynamicRule
 		ttl:            ttl,
 		ttlPathPattern: ttlPathPattern,
 	}
-	e.AddRule(rule, namespacePattern+"lock", cbw.doRule)
+	e.AddRule(rule, "/rule_locks"+namespacePattern+"lock", cbw.doRule)
 	return nil
 }
 
@@ -229,9 +229,9 @@ func (e *engine) Run() {
 
 func (e *v3Engine) Run() {
 	prefixes := e.ruleMgr.prefixes
-
 	// This is a map; used to ensure there are no duplicates
 	for prefix := range prefixes {
+		e.logger.Debug("Adding crawler", zap.String("prefix", prefix))
 		logger := e.logger.With(zap.String("prefix", prefix))
 		c, err1 := newV3Crawler(
 			e.configV3,

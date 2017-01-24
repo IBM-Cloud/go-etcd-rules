@@ -56,7 +56,7 @@ func (edv3ra *etcdV3ReadAPI) get(key string) (*string, error) {
 	if resp.Count == 0 {
 		return nil, nil
 	}
-	val := string(resp.Kvs[0].Value[:])
+	val := string(resp.Kvs[0].Value)
 	return &val, nil
 }
 
