@@ -32,12 +32,13 @@ func TestReducePrefixes(t *testing.T) {
 	prefixes = reducePrefixes(prefixes)
 	assert.Equal(t, 1, len(prefixes))
 	assert.Equal(t, "", prefixes["/servers"])
+
 }
 
 func TestSortPrefixesByLength(t *testing.T) {
 	prefixes := map[string]string{"/servers/internal": "", "/servers/internal/states": "", "/servers": ""}
 	sorted := sortPrefixesByLength(prefixes)
-	assert.Equal(t, "/servers/internal/states", sorted[0])
+	assert.Equal(t, "/servers/internal/states", sorted[2])
 	assert.Equal(t, "/servers/internal", sorted[1])
-	assert.Equal(t, "/servers", sorted[2])
+	assert.Equal(t, "/servers", sorted[0])
 }

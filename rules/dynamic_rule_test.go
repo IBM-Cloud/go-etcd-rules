@@ -68,6 +68,11 @@ func TestEqualsLiteralRule(t *testing.T) {
 	for i, staticRuleOk := range staticRuleOks {
 		assert.True(t, staticRuleOk, "%s pattern did not match", expansionPatterns1[i])
 	}
+	val := "val"
+	simple, _ := NewEqualsLiteralRule("/testpolling/:value", &val)
+	prefixes := simple.getPrefixes()
+	assert.Equal(t, len(prefixes), 1)
+	assert.Equal(t, "/testpolling/", prefixes[0])
 }
 
 func TestAndRule(t *testing.T) {
