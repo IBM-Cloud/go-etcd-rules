@@ -2,6 +2,7 @@ package rules
 
 import (
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/coreos/etcd/client"
@@ -90,13 +91,16 @@ func newEtcdV3KeyWatcher(watcher clientv3.Watcher, prefix string, timeout time.D
 }
 
 type baseKeyWatcher struct {
-	cancelFunc context.CancelFunc
-	timeout    time.Duration
-	stopping   bool
+	cancelFunc  context.CancelFunc
+	cancelMutex sync.Mutex
+	timeout     time.Duration
+	stopping    uint32
 }
 
 func (bkw *baseKeyWatcher) getContext() context.Context {
 	ctx := context.Background()
+	bkw.cancelMutex.Lock()
+	defer bkw.cancelMutex.Unlock()
 	if bkw.timeout > 0 {
 		ctx, bkw.cancelFunc = context.WithTimeout(ctx, bkw.timeout)
 	} else {
@@ -124,7 +128,9 @@ func (ekw *etcdKeyWatcher) next() (string, *string, error) {
 }
 
 func (bkw *baseKeyWatcher) cancel() {
-	bkw.stopping = true
+	atomicSet(&bkw.stopping, true)
+	bkw.cancelMutex.Lock()
+	defer bkw.cancelMutex.Unlock()
 	if bkw.cancelFunc != nil {
 		bkw.cancelFunc()
 		bkw.cancelFunc = nil
@@ -141,7 +147,7 @@ type etcdV3KeyWatcher struct {
 }
 
 func (ev3kw *etcdV3KeyWatcher) next() (string, *string, error) {
-	if ev3kw.stopping {
+	if is(&ev3kw.stopping) {
 		return "", nil, nil
 	}
 	if ev3kw.ch == nil {

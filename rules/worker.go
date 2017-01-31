@@ -11,8 +11,8 @@ type baseWorker struct {
 	locker   ruleLocker
 	api      readAPI
 	workerID string
-	stopping bool
-	stopped  bool
+	stopping uint32
+	stopped  uint32
 }
 
 type worker struct {
@@ -71,29 +71,29 @@ func newV3Worker(workerID string, engine *v3Engine) (v3Worker, error) {
 }
 
 func (w *worker) run() {
-	w.stopped = false
-	for !w.stopping {
+	atomicSet(&w.stopped, false)
+	for !is(&w.stopping) {
 		w.singleRun()
 	}
-	w.stopped = true
+	atomicSet(&w.stopped, true)
 }
 
 func (w *v3Worker) run() {
-	w.stopped = false
-	for !w.stopping {
+	atomicSet(&w.stopped, false)
+	for !is(&w.stopping) {
 		w.singleRun()
 	}
-	w.stopped = true
+	atomicSet(&w.stopped, true)
 }
 
 type workCallback func()
 
 func (bw *baseWorker) stop() {
-	bw.stopping = true
+	atomicSet(&bw.stopping, true)
 }
 
 func (bw *baseWorker) isStopped() bool {
-	return bw.stopped
+	return is(&bw.stopped)
 }
 
 func (bw *baseWorker) doWork(loggerPtr *zap.Logger,
@@ -106,7 +106,7 @@ func (bw *baseWorker) doWork(loggerPtr *zap.Logger,
 		logger.Error("Error checking rule", zap.Error(err1))
 		return
 	}
-	if !sat || bw.stopping {
+	if !sat || is(&bw.stopping) {
 		return
 	}
 	l, err2 := bw.locker.lock(lockKey, lockTTL)
@@ -122,7 +122,7 @@ func (bw *baseWorker) doWork(loggerPtr *zap.Logger,
 		logger.Error("Error checking rule", zap.Error(err1))
 		return
 	}
-	if sat || !bw.stopping {
+	if sat || !is(&bw.stopping) {
 		callback()
 	}
 }
@@ -130,7 +130,7 @@ func (bw *baseWorker) doWork(loggerPtr *zap.Logger,
 func (w *worker) singleRun() {
 	work := <-w.engine.workChannel
 	task := work.ruleTask
-	if w.stopping {
+	if is(&w.stopping) {
 		return
 	}
 	task.Logger = task.Logger.With(zap.String("worker", w.workerID))
@@ -140,7 +140,7 @@ func (w *worker) singleRun() {
 func (w *v3Worker) singleRun() {
 	work := <-w.engine.workChannel
 	task := work.ruleTask
-	if w.stopping {
+	if is(&w.stopping) {
 		return
 	}
 	task.Logger = task.Logger.With(zap.String("worker", w.workerID))

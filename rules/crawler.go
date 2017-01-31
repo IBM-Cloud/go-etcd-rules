@@ -1,6 +1,7 @@
 package rules
 
 import (
+	"sync"
 	"time"
 
 	"github.com/coreos/etcd/client"
@@ -74,25 +75,32 @@ func newV3Crawler(
 }
 
 type baseCrawler struct {
-	api        readAPI
-	interval   int
-	kp         keyProc
-	logger     zap.Logger
-	prefix     string
-	stopping   bool
-	stopped    bool
-	cancelFunc context.CancelFunc
+	api         readAPI
+	cancelFunc  context.CancelFunc
+	cancelMutex sync.Mutex
+	interval    int
+	kp          keyProc
+	logger      zap.Logger
+	prefix      string
+	stopping    uint32
+	stopped     uint32
+}
+
+func (bc *baseCrawler) isStopping() bool {
+	return is(&bc.stopping)
 }
 
 func (bc *baseCrawler) stop() {
-	bc.stopping = true
+	atomicSet(&bc.stopping, true)
+	bc.cancelMutex.Lock()
+	defer bc.cancelMutex.Unlock()
 	if bc.cancelFunc != nil {
 		bc.cancelFunc()
 	}
 }
 
 func (bc *baseCrawler) isStopped() bool {
-	return bc.stopped
+	return is(&bc.stopped)
 }
 
 type etcdCrawler struct {
@@ -101,19 +109,19 @@ type etcdCrawler struct {
 }
 
 func (ec *etcdCrawler) run() {
-	ec.stopped = false
-	for !ec.stopping {
+	atomicSet(&ec.stopped, false)
+	for !ec.isStopping() {
 		ec.logger.Debug("Starting crawler run")
 		ec.singleRun()
 		ec.logger.Debug("Crawler run complete")
 		for i := 0; i < ec.interval; i++ {
 			time.Sleep(time.Second)
-			if ec.stopping {
+			if ec.isStopping() {
 				break
 			}
 		}
 	}
-	ec.stopped = true
+	atomicSet(&ec.stopped, true)
 }
 
 func (ec *etcdCrawler) singleRun() {
@@ -121,7 +129,7 @@ func (ec *etcdCrawler) singleRun() {
 }
 
 func (ec *etcdCrawler) crawlPath(path string) {
-	if ec.stopping {
+	if ec.isStopping() {
 		return
 	}
 	resp, err := ec.kapi.Get(context.Background(), path, nil)
@@ -145,35 +153,36 @@ type v3EtcdCrawler struct {
 }
 
 func (v3ec *v3EtcdCrawler) run() {
-	v3ec.stopped = false
-	for !v3ec.stopping {
+	atomicSet(&v3ec.stopped, false)
+	for !v3ec.isStopping() {
 		v3ec.logger.Debug("Starting crawler run")
 		v3ec.singleRun()
 		v3ec.logger.Debug("Crawler run complete")
 		for i := 0; i < v3ec.interval; i++ {
 			time.Sleep(time.Second)
-			if v3ec.stopping {
+			if v3ec.isStopping() {
 				break
 			}
 		}
 	}
-	v3ec.stopped = true
+	atomicSet(&v3ec.stopped, true)
 }
 
 func (v3ec *v3EtcdCrawler) singleRun() {
-	if v3ec.stopping {
+	if v3ec.isStopping() {
 		return
 	}
 	ctx, cancelFunc := context.WithTimeout(context.Background(), time.Duration(1)*time.Minute)
+	v3ec.cancelMutex.Lock()
 	v3ec.cancelFunc = cancelFunc
-	defer cancelFunc()
+	v3ec.cancelMutex.Unlock()
 	resp, err := v3ec.kv.Get(ctx, v3ec.prefix, clientv3.WithPrefix())
 	if err != nil {
 		return
 	}
 	logger := v3ec.logger.With(zap.String("source", "crawler"))
 	for _, kv := range resp.Kvs {
-		if v3ec.stopping {
+		if v3ec.isStopping() {
 			return
 		}
 		value := string(kv.Value[:])

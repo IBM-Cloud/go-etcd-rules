@@ -50,25 +50,25 @@ type watcher struct {
 	kw       keyWatcher
 	kp       keyProc
 	logger   zap.Logger
-	stopping bool
-	stopped  bool
+	stopping uint32
+	stopped  uint32
 }
 
 func (w *watcher) run() {
-	w.stopped = false
-	for !w.stopping {
+	atomicSet(&w.stopped, false)
+	for !is(&w.stopping) {
 		w.singleRun()
 	}
-	w.stopped = true
+	atomicSet(&w.stopped, true)
 }
 
 func (w *watcher) stop() {
-	w.stopping = true
+	atomicSet(&w.stopping, true)
 	w.kw.cancel()
 }
 
 func (w *watcher) isStopped() bool {
-	return w.stopped
+	return is(&w.stopped)
 }
 
 func (w *watcher) singleRun() {

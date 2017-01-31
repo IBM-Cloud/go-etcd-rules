@@ -29,7 +29,7 @@ type baseEngine struct {
 	options      engineOptions
 	ruleLockTTLs map[int]int
 	ruleMgr      ruleManager
-	stopped      bool
+	stopped      uint32
 	crawlers     []stopable
 	watchers     []stopable
 	workers      []stopable
@@ -169,7 +169,7 @@ func (e *baseEngine) stop() {
 	// that is idempotent.  The workers' "stop" method must be called before
 	// the channel is closed in order to avoid nil pointer dereference panics.
 	stopStopables(e.workers)
-	e.stopped = true
+	atomicSet(&e.stopped, true)
 	e.logger.Info("Engine stopped")
 }
 
@@ -187,7 +187,7 @@ func stopStopables(stopables []stopable) {
 }
 
 func (e *baseEngine) IsStopped() bool {
-	return e.stopped
+	return is(&e.stopped)
 }
 
 func (e *baseEngine) addRuleWithIface(rule DynamicRule, lockPattern string, callback interface{}, options ...RuleOption) {
