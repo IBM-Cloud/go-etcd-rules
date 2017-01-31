@@ -11,13 +11,31 @@ import (
 	"golang.org/x/net/context"
 )
 
+type stopable interface {
+	stop()
+	isStopped() bool
+}
+
+type BaseEngine interface {
+	Run()
+	Stop()
+	IsStopped() bool
+}
+
 type baseEngine struct {
+	cCloser      channelCloser
 	keyProc      setableKeyProcessor
 	logger       zap.Logger
 	options      engineOptions
 	ruleLockTTLs map[int]int
 	ruleMgr      ruleManager
+	stopped      uint32
+	crawlers     []stopable
+	watchers     []stopable
+	workers      []stopable
 }
+
+type channelCloser func()
 
 type engine struct {
 	baseEngine
@@ -35,6 +53,7 @@ type v3Engine struct {
 
 // Engine defines the interactions with a rule engine instance.
 type Engine interface {
+	BaseEngine
 	AddRule(rule DynamicRule,
 		lockPattern string,
 		callback RuleTaskCallback,
@@ -43,11 +62,11 @@ type Engine interface {
 		preconditions DynamicRule,
 		ttl int,
 		callback RuleTaskCallback) error
-	Run()
 }
 
 // V3Engine defines the interactions with a rule engine instance communicating with etcd v3.
 type V3Engine interface {
+	BaseEngine
 	AddRule(rule DynamicRule,
 		lockPattern string,
 		callback V3RuleTaskCallback,
@@ -56,7 +75,6 @@ type V3Engine interface {
 		preconditions DynamicRule,
 		ttl int,
 		callback V3RuleTaskCallback) error
-	Run()
 }
 
 // NewEngine creates a new Engine instance.
@@ -78,7 +96,9 @@ func newEngine(config client.Config, configV3 clientv3.Config, useV3 bool, logge
 	keyProc := newKeyProcessor(channel, config, &ruleMgr)
 	eng := engine{
 		baseEngine: baseEngine{
-			//			configV3:     configV3,
+			cCloser: func() {
+				close(channel)
+			},
 			keyProc:      &keyProc,
 			logger:       logger,
 			options:      opts,
@@ -99,6 +119,9 @@ func newV3Engine(config client.Config, configV3 clientv3.Config, useV3 bool, log
 	keyProc := newV3KeyProcessor(channel, &configV3, &ruleMgr)
 	eng := v3Engine{
 		baseEngine: baseEngine{
+			cCloser: func() {
+				close(channel)
+			},
 			keyProc:      &keyProc,
 			logger:       logger,
 			options:      opts,
@@ -124,6 +147,47 @@ func (e *v3Engine) AddRule(rule DynamicRule,
 	callback V3RuleTaskCallback,
 	options ...RuleOption) {
 	e.addRuleWithIface(rule, lockPattern, callback, options...)
+}
+
+func (e *baseEngine) Stop() {
+	e.logger.Info("Stopping engine")
+	go e.stop()
+}
+
+func (e *baseEngine) stop() {
+	e.logger.Debug("Stopping crawlers")
+	stopStopables(e.crawlers)
+	e.logger.Debug("Stopping watchers")
+	stopStopables(e.watchers)
+	e.logger.Debug("Stopping workers")
+	for _, worker := range e.workers {
+		worker.stop()
+	}
+	e.logger.Debug("Closing work channel")
+	e.cCloser()
+	// Ensure workers are stopped; the "stop" method is called again, but
+	// that is idempotent.  The workers' "stop" method must be called before
+	// the channel is closed in order to avoid nil pointer dereference panics.
+	stopStopables(e.workers)
+	atomicSet(&e.stopped, true)
+	e.logger.Info("Engine stopped")
+}
+
+func stopStopables(stopables []stopable) {
+	for _, s := range stopables {
+		s.stop()
+	}
+	allStopped := false
+	for !allStopped {
+		allStopped = true
+		for _, s := range stopables {
+			allStopped = allStopped && s.isStopped()
+		}
+	}
+}
+
+func (e *baseEngine) IsStopped() bool {
+	return is(&e.stopped)
 }
 
 func (e *baseEngine) addRuleWithIface(rule DynamicRule, lockPattern string, callback interface{}, options ...RuleOption) {
@@ -206,14 +270,14 @@ func (e *engine) Run() {
 		if err1 != nil {
 			e.logger.Fatal("Failed to initialize crawler", zap.String("prefix", prefix), zap.Error(err1))
 		}
+		e.crawlers = append(e.crawlers, c)
 		go c.run()
-		var kw watcher
 		w, err := newWatcher(e.config, prefix, logger, e.baseEngine.keyProc, e.options.watchTimeout)
 		if err != nil {
 			e.logger.Fatal("Failed to initialize watcher", zap.String("prefix", prefix))
 		}
-		kw = w
-		go kw.run()
+		e.watchers = append(e.watchers, &w)
+		go w.run()
 	}
 
 	for i := 0; i < e.options.concurrency; i++ {
@@ -222,6 +286,7 @@ func (e *engine) Run() {
 		if err != nil {
 			e.logger.Fatal("Failed to start worker", zap.String("worker", id), zap.Error(err))
 		}
+		e.workers = append(e.workers, &w)
 		go w.run()
 	}
 
@@ -243,11 +308,13 @@ func (e *v3Engine) Run() {
 		if err1 != nil {
 			e.logger.Fatal("Failed to initialize crawler", zap.String("prefix", prefix), zap.Error(err1))
 		}
+		e.crawlers = append(e.crawlers, c)
 		go c.run()
 		w, err := newV3Watcher(e.configV3, prefix, logger, e.baseEngine.keyProc, e.options.watchTimeout)
 		if err != nil {
 			e.logger.Fatal("Failed to initialize watcher", zap.String("prefix", prefix))
 		}
+		e.watchers = append(e.watchers, &w)
 		go w.run()
 	}
 
@@ -257,6 +324,7 @@ func (e *v3Engine) Run() {
 		if err != nil {
 			e.logger.Fatal("Failed to start worker", zap.String("worker", id), zap.Error(err))
 		}
+		e.workers = append(e.workers, &w)
 		go w.run()
 	}
 

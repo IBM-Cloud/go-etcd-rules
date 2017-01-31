@@ -3,6 +3,7 @@ package rules
 import (
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/coreos/etcd/client"
 	"github.com/coreos/etcd/clientv3"
@@ -59,6 +60,16 @@ func TestEngineConstructor(t *testing.T) {
 	err := eng.AddPolling("/polling[", rule, 30, dummyCallback)
 	assert.Error(t, err)
 	eng.Run()
+	eng.Stop()
+	stopped := false
+	for i := 0; i < 20; i++ {
+		stopped = eng.IsStopped()
+		if stopped {
+			break
+		}
+		time.Sleep(time.Second)
+	}
+	assert.True(t, stopped)
 }
 
 func TestV3EngineConstructor(t *testing.T) {
@@ -75,6 +86,16 @@ func TestV3EngineConstructor(t *testing.T) {
 	err := eng.AddPolling("/polling[", rule, 30, v3DummyCallback)
 	assert.Error(t, err)
 	eng.Run()
+	eng.Stop()
+	stopped := false
+	for i := 0; i < 20; i++ {
+		stopped = eng.IsStopped()
+		if stopped {
+			break
+		}
+		time.Sleep(time.Second)
+	}
+	assert.True(t, stopped)
 }
 
 func TestCallbackWrapper(t *testing.T) {

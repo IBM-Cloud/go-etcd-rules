@@ -2,6 +2,7 @@ package rules
 
 import (
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/coreos/etcd/client"
@@ -62,6 +63,7 @@ func (edv3ra *etcdV3ReadAPI) get(key string) (*string, error) {
 
 type keyWatcher interface {
 	next() (string, *string, error)
+	cancel()
 }
 
 func newEtcdKeyWatcher(api client.KeysAPI, prefix string, timeout time.Duration) keyWatcher {
@@ -77,7 +79,7 @@ func newEtcdKeyWatcher(api client.KeysAPI, prefix string, timeout time.Duration)
 	return &watcher
 }
 
-func newEtcdV3KeyWatcher(watcher clientv3.Watcher, prefix string, timeout time.Duration) keyWatcher {
+func newEtcdV3KeyWatcher(watcher clientv3.Watcher, prefix string, timeout time.Duration) *etcdV3KeyWatcher {
 	kw := etcdV3KeyWatcher{
 		baseKeyWatcher: baseKeyWatcher{
 			timeout: timeout,
@@ -89,14 +91,20 @@ func newEtcdV3KeyWatcher(watcher clientv3.Watcher, prefix string, timeout time.D
 }
 
 type baseKeyWatcher struct {
-	cancelFunc context.CancelFunc
-	timeout    time.Duration
+	cancelFunc  context.CancelFunc
+	cancelMutex sync.Mutex
+	timeout     time.Duration
+	stopping    uint32
 }
 
 func (bkw *baseKeyWatcher) getContext() context.Context {
 	ctx := context.Background()
+	bkw.cancelMutex.Lock()
+	defer bkw.cancelMutex.Unlock()
 	if bkw.timeout > 0 {
 		ctx, bkw.cancelFunc = context.WithTimeout(ctx, bkw.timeout)
+	} else {
+		ctx, bkw.cancelFunc = context.WithCancel(ctx)
 	}
 	return ctx
 }
@@ -112,7 +120,6 @@ func (ekw *etcdKeyWatcher) next() (string, *string, error) {
 	if err != nil {
 		return "", nil, err
 	}
-	ekw.cancelFunc = nil
 	node := resp.Node
 	if resp.Action == "delete" || resp.Action == "expire" {
 		return node.Key, nil, nil
@@ -121,6 +128,9 @@ func (ekw *etcdKeyWatcher) next() (string, *string, error) {
 }
 
 func (bkw *baseKeyWatcher) cancel() {
+	atomicSet(&bkw.stopping, true)
+	bkw.cancelMutex.Lock()
+	defer bkw.cancelMutex.Unlock()
 	if bkw.cancelFunc != nil {
 		bkw.cancelFunc()
 		bkw.cancelFunc = nil
@@ -137,7 +147,9 @@ type etcdV3KeyWatcher struct {
 }
 
 func (ev3kw *etcdV3KeyWatcher) next() (string, *string, error) {
-	defer ev3kw.cancel()
+	if is(&ev3kw.stopping) {
+		return "", nil, nil
+	}
 	if ev3kw.ch == nil {
 		ev3kw.ch = ev3kw.w.Watch(ev3kw.getContext(), ev3kw.prefix, clientv3.WithPrefix())
 	}

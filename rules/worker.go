@@ -11,6 +11,8 @@ type baseWorker struct {
 	locker   ruleLocker
 	api      readAPI
 	workerID string
+	stopping uint32
+	stopped  uint32
 }
 
 type worker struct {
@@ -69,18 +71,30 @@ func newV3Worker(workerID string, engine *v3Engine) (v3Worker, error) {
 }
 
 func (w *worker) run() {
-	for {
+	atomicSet(&w.stopped, false)
+	for !is(&w.stopping) {
 		w.singleRun()
 	}
+	atomicSet(&w.stopped, true)
 }
 
 func (w *v3Worker) run() {
-	for {
+	atomicSet(&w.stopped, false)
+	for !is(&w.stopping) {
 		w.singleRun()
 	}
+	atomicSet(&w.stopped, true)
 }
 
 type workCallback func()
+
+func (bw *baseWorker) stop() {
+	atomicSet(&bw.stopping, true)
+}
+
+func (bw *baseWorker) isStopped() bool {
+	return is(&bw.stopped)
+}
 
 func (bw *baseWorker) doWork(loggerPtr *zap.Logger,
 	rulePtr *staticRule, lockTTL int, callback workCallback,
@@ -92,7 +106,7 @@ func (bw *baseWorker) doWork(loggerPtr *zap.Logger,
 		logger.Error("Error checking rule", zap.Error(err1))
 		return
 	}
-	if !sat {
+	if !sat || is(&bw.stopping) {
 		return
 	}
 	l, err2 := bw.locker.lock(lockKey, lockTTL)
@@ -108,7 +122,7 @@ func (bw *baseWorker) doWork(loggerPtr *zap.Logger,
 		logger.Error("Error checking rule", zap.Error(err1))
 		return
 	}
-	if sat {
+	if sat || !is(&bw.stopping) {
 		callback()
 	}
 }
@@ -116,6 +130,9 @@ func (bw *baseWorker) doWork(loggerPtr *zap.Logger,
 func (w *worker) singleRun() {
 	work := <-w.engine.workChannel
 	task := work.ruleTask
+	if is(&w.stopping) {
+		return
+	}
 	task.Logger = task.Logger.With(zap.String("worker", w.workerID))
 	w.doWork(&task.Logger, &work.rule, w.engine.getLockTTLForRule(work.ruleIndex), func() { work.ruleTaskCallback(&task) }, work.lockKey)
 }
@@ -123,6 +140,9 @@ func (w *worker) singleRun() {
 func (w *v3Worker) singleRun() {
 	work := <-w.engine.workChannel
 	task := work.ruleTask
+	if is(&w.stopping) {
+		return
+	}
 	task.Logger = task.Logger.With(zap.String("worker", w.workerID))
 	w.doWork(&task.Logger, &work.rule, w.engine.getLockTTLForRule(work.ruleIndex), func() { work.ruleTaskCallback(&task) }, work.lockKey)
 }

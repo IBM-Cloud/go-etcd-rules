@@ -46,16 +46,29 @@ func newV3Watcher(config clientv3.Config, prefix string, logger zap.Logger, proc
 }
 
 type watcher struct {
-	api    readAPI
-	kw     keyWatcher
-	kp     keyProc
-	logger zap.Logger
+	api      readAPI
+	kw       keyWatcher
+	kp       keyProc
+	logger   zap.Logger
+	stopping uint32
+	stopped  uint32
 }
 
 func (w *watcher) run() {
-	for {
+	atomicSet(&w.stopped, false)
+	for !is(&w.stopping) {
 		w.singleRun()
 	}
+	atomicSet(&w.stopped, true)
+}
+
+func (w *watcher) stop() {
+	atomicSet(&w.stopping, true)
+	w.kw.cancel()
+}
+
+func (w *watcher) isStopped() bool {
+	return is(&w.stopped)
 }
 
 func (w *watcher) singleRun() {
