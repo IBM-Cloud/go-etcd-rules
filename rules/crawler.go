@@ -11,6 +11,8 @@ import (
 
 type crawler interface {
 	run()
+	stop()
+	isStopped() bool
 }
 
 func newCrawler(
@@ -72,11 +74,25 @@ func newV3Crawler(
 }
 
 type baseCrawler struct {
-	api      readAPI
-	interval int
-	kp       keyProc
-	logger   zap.Logger
-	prefix   string
+	api        readAPI
+	interval   int
+	kp         keyProc
+	logger     zap.Logger
+	prefix     string
+	stopping   bool
+	stopped    bool
+	cancelFunc context.CancelFunc
+}
+
+func (bc *baseCrawler) stop() {
+	bc.stopping = true
+	if bc.cancelFunc != nil {
+		bc.cancelFunc()
+	}
+}
+
+func (bc *baseCrawler) isStopped() bool {
+	return bc.stopped
 }
 
 type etcdCrawler struct {
@@ -85,12 +101,19 @@ type etcdCrawler struct {
 }
 
 func (ec *etcdCrawler) run() {
-	for {
+	ec.stopped = false
+	for !ec.stopping {
 		ec.logger.Debug("Starting crawler run")
 		ec.singleRun()
 		ec.logger.Debug("Crawler run complete")
-		time.Sleep(time.Duration(ec.interval) * time.Second)
+		for i:=0; i< ec.interval; i++ {
+			time.Sleep(time.Second)
+			if ec.stopping {
+				break
+			}
+		}
 	}
+	ec.stopped = true
 }
 
 func (ec *etcdCrawler) singleRun() {
@@ -98,6 +121,9 @@ func (ec *etcdCrawler) singleRun() {
 }
 
 func (ec *etcdCrawler) crawlPath(path string) {
+	if ec.stopping {
+		return
+	}
 	resp, err := ec.kapi.Get(context.Background(), path, nil)
 	if err != nil {
 		return
@@ -119,16 +145,27 @@ type v3EtcdCrawler struct {
 }
 
 func (v3ec *v3EtcdCrawler) run() {
-	for {
+	v3ec.stopped = false
+	for !v3ec.stopping {
 		v3ec.logger.Debug("Starting crawler run")
 		v3ec.singleRun()
 		v3ec.logger.Debug("Crawler run complete")
-		time.Sleep(time.Duration(v3ec.interval) * time.Second)
+		for i:=0; i< v3ec.interval; i++ {
+			time.Sleep(time.Second)
+			if v3ec.stopping {
+				break
+			}
+		}
 	}
+	v3ec.stopped = true
 }
 
 func (v3ec *v3EtcdCrawler) singleRun() {
+	if v3ec.stopping {
+		return
+	}
 	ctx, cancelFunc := context.WithTimeout(context.Background(), time.Duration(1)*time.Minute)
+	v3ec.cancelFunc = cancelFunc
 	defer cancelFunc()
 	resp, err := v3ec.kv.Get(ctx, v3ec.prefix, clientv3.WithPrefix())
 	if err != nil {
@@ -136,6 +173,9 @@ func (v3ec *v3EtcdCrawler) singleRun() {
 	}
 	logger := v3ec.logger.With(zap.String("source", "crawler"))
 	for _, kv := range resp.Kvs {
+		if v3ec.stopping {
+			return
+		}
 		value := string(kv.Value[:])
 		v3ec.kp.processKey(string(kv.Key[:]), &value, v3ec.api, logger)
 	}
