@@ -106,7 +106,7 @@ func (ec *etcdCrawler) run() {
 		ec.logger.Debug("Starting crawler run")
 		ec.singleRun()
 		ec.logger.Debug("Crawler run complete")
-		for i:=0; i< ec.interval; i++ {
+		for i := 0; i < ec.interval; i++ {
 			time.Sleep(time.Second)
 			if ec.stopping {
 				break
@@ -150,7 +150,7 @@ func (v3ec *v3EtcdCrawler) run() {
 		v3ec.logger.Debug("Starting crawler run")
 		v3ec.singleRun()
 		v3ec.logger.Debug("Crawler run complete")
-		for i:=0; i< v3ec.interval; i++ {
+		for i := 0; i < v3ec.interval; i++ {
 			time.Sleep(time.Second)
 			if v3ec.stopping {
 				break
