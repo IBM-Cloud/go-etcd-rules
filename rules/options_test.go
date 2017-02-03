@@ -18,5 +18,6 @@ func TestRuleOptions(t *testing.T) {
 func TestEngineOptions(t *testing.T) {
 	opts := makeEngineOptions(EngineSyncInterval(5))
 	assert.Equal(t, 5, opts.syncInterval)
-
+	opts = makeEngineOptions(EngineConcurrency(10))
+	assert.Equal(t, 10, opts.concurrency)
 }
