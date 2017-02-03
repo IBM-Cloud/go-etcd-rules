@@ -44,6 +44,14 @@ func EngineLockTimeout(lockTimeout int) EngineOption {
 	})
 }
 
+// EngineConcurrency controls the number of concurrent workers
+// processing rule tasks.
+func EngineConcurrency(workers int) EngineOption {
+	return engineOptionFunction(func(o *engineOptions) {
+		o.concurrency = workers
+	})
+}
+
 // EngineWatchTimeout controls the timeout of a watch operation in seconds.
 func EngineWatchTimeout(watchTimeout int) EngineOption {
 	return engineOptionFunction(func(o *engineOptions) {
