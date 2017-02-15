@@ -363,7 +363,6 @@ func TestNotStaticRule(t *testing.T) {
 	rule = notStaticRule{
 		nested: &keyMatchSatisfied,
 	}
-	assert.False(t, rule.satisfiable("key1", nil))
 	sat, err = rule.satisfied(api)
 	assert.False(t, sat)
 	assert.NoError(t, err)
@@ -373,6 +372,42 @@ func TestNotStaticRule(t *testing.T) {
 	rule.nested = &keyMatchError
 	_, err = rule.satisfied(api)
 	assert.Error(t, err)
+}
+
+func TestNotEquals(t *testing.T) {
+	nested := equalsRule{
+		keys: []string{"key1", "key2"},
+	}
+	rule := notStaticRule{
+		nested: &nested,
+	}
+	assert.True(t, rule.satisfiable("key1", sTP("whatever")))
+	assert.False(t, rule.satisfiable("key3", nil))
+	api := newMapReadAPI()
+	// Both values nil
+	{
+		sat, err := rule.satisfied(api)
+		assert.NoError(t, err)
+		assert.False(t, sat)
+	}
+	api.put("key1", "value")
+	// One value not nil, the other nil
+	{
+		sat, err := rule.satisfied(api)
+		assert.NoError(t, err)
+		assert.True(t, sat)
+	}
+	api.put("key2", "other_value")
+	// Both values not nil and different
+	{
+		sat, err := rule.satisfied(api)
+		assert.NoError(t, err)
+		assert.True(t, sat)
+	}
+}
+
+func sTP(str string) *string {
+	return &str
 }
 
 func TestEquals(t *testing.T) {
@@ -395,16 +430,25 @@ func TestEquals(t *testing.T) {
 	assert.True(t, rule.satisfiable("key1", nil))
 	assert.True(t, rule.satisfiable("key2", nil))
 
+	// Both nil
 	sat, _ = rule.satisfied(api)
 	assert.True(t, sat)
 	api.put("key2", anything)
+	// One nil, the other not
 	sat, _ = rule.satisfied(api)
 	assert.False(t, sat)
+	// Both not nil and same value
 	api.put("key1", anything)
 	sat, _ = rule.satisfied(api)
 	assert.True(t, sat)
+	// Both not nil and different values
+	api.put("key1", "anyting else")
+	sat, _ = rule.satisfied(api)
+	assert.False(t, sat)
+
 	api = newMapReadAPI()
 	api.put("key1", anything)
+	// One nil, the other not
 	sat, _ = rule.satisfied(api)
 	assert.False(t, sat)
 	_, err := rule.satisfied(&errorAPI)
@@ -412,4 +456,5 @@ func TestEquals(t *testing.T) {
 	api.put("key2", errorValue)
 	_, err = rule.satisfied(api)
 	assert.Error(t, err)
+
 }

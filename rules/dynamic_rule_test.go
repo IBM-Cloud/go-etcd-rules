@@ -171,7 +171,6 @@ func TestNotRule(t *testing.T) {
 	notRule, attr, ok := test.makeStaticRule("/us-south/actual/clusters/armada-9b93c18d/workers/worker3", &value)
 	assert.True(t, ok)
 	assert.True(t, notRule.satisfiable("/us-south/actual/clusters/armada-9b93c18d/workers/worker3", &value))
-	assert.False(t, notRule.satisfiable("/us-south/actual/clusters/armada-9b93c18d/workers/worker3", nil))
 	api := newMapReadAPI()
 	var sat bool
 	sat, _ = notRule.satisfied(api)
