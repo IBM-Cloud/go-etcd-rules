@@ -153,7 +153,7 @@ func (nsr *notStaticRule) keyMatch(key string) bool {
 }
 
 func (nsr *notStaticRule) satisfiable(key string, value *string) bool {
-	return nsr.nested.keyMatch(key) && !nsr.nested.satisfiable(key, value)
+	return nsr.nested.keyMatch(key)
 }
 
 func (nsr *notStaticRule) satisfied(api readAPI) (bool, error) {
@@ -190,20 +190,32 @@ func (er *equalsRule) satisfied(api readAPI) (bool, error) {
 		return true, nil
 	}
 	ref, err1 := api.get(er.keys[0])
+	// Failed to get reference value?
 	if err1 != nil {
 		return false, err1
 	}
-	for _, key := range er.keys {
+	for index, key := range er.keys {
+		if index == 0 {
+			continue
+		}
+		// Failed to get next value?
 		value, err2 := api.get(key)
 		if err2 != nil {
 			return false, err2
 		}
+		// Value is nil
 		if value == nil {
+			// Reference value isn't
 			if ref != nil {
 				return false, nil
 			}
 		} else {
+			// Value is not nil but reference is
 			if ref == nil {
+				return false, nil
+			}
+			// Neither is nil
+			if *ref != *value {
 				return false, nil
 			}
 		}
