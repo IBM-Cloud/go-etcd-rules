@@ -13,6 +13,7 @@ type keyProc interface {
 type setableKeyProcessor interface {
 	keyProc
 	setCallback(int, interface{})
+	setContextProvider(int, ContextProvider)
 	setLockKeyPattern(int, string)
 }
 
@@ -22,9 +23,10 @@ type workDispatcher interface {
 
 func (kp *keyProcessor) dispatchWork(index int, rule staticRule, logger zap.Logger, keyPattern string) {
 	task := RuleTask{
-		Attr:   rule.getAttributes(),
-		Conf:   kp.config,
-		Logger: logger,
+		Attr:    rule.getAttributes(),
+		Conf:    kp.config,
+		Logger:  logger,
+		Context: kp.contextProviders[index](),
 	}
 	work := ruleWork{
 		rule:             rule,
@@ -37,12 +39,17 @@ func (kp *keyProcessor) dispatchWork(index int, rule staticRule, logger zap.Logg
 }
 
 type baseKeyProcessor struct {
-	lockKeyPatterns map[int]string
-	rm              *ruleManager
+	contextProviders map[int]ContextProvider
+	lockKeyPatterns  map[int]string
+	rm               *ruleManager
 }
 
 func (bkp *baseKeyProcessor) setLockKeyPattern(index int, pattern string) {
 	bkp.lockKeyPatterns[index] = pattern
+}
+
+func (bkp *baseKeyProcessor) setContextProvider(index int, cp ContextProvider) {
+	bkp.contextProviders[index] = cp
 }
 
 type keyProcessor struct {
@@ -71,8 +78,9 @@ func (v3kp *v3KeyProcessor) dispatchWork(index int, rule staticRule, logger zap.
 	task := V3RuleTask{
 		Attr: rule.getAttributes(),
 		// This line is different
-		Conf:   v3kp.config,
-		Logger: logger,
+		Conf:    v3kp.config,
+		Logger:  logger,
+		Context: v3kp.contextProviders[index](),
 	}
 	work := v3RuleWork{
 		rule:      rule,
@@ -88,8 +96,9 @@ func (v3kp *v3KeyProcessor) dispatchWork(index int, rule staticRule, logger zap.
 func newKeyProcessor(channel chan ruleWork, config client.Config, rm *ruleManager) keyProcessor {
 	kp := keyProcessor{
 		baseKeyProcessor: baseKeyProcessor{
-			lockKeyPatterns: map[int]string{},
-			rm:              rm,
+			contextProviders: map[int]ContextProvider{},
+			lockKeyPatterns:  map[int]string{},
+			rm:               rm,
 		},
 		callbacks: map[int]RuleTaskCallback{},
 		channel:   channel,
@@ -101,8 +110,9 @@ func newKeyProcessor(channel chan ruleWork, config client.Config, rm *ruleManage
 func newV3KeyProcessor(channel chan v3RuleWork, config *clientv3.Config, rm *ruleManager) v3KeyProcessor {
 	kp := v3KeyProcessor{
 		baseKeyProcessor: baseKeyProcessor{
-			lockKeyPatterns: map[int]string{},
-			rm:              rm,
+			contextProviders: map[int]ContextProvider{},
+			lockKeyPatterns:  map[int]string{},
+			rm:               rm,
 		},
 		callbacks: map[int]V3RuleTaskCallback{},
 		channel:   channel,

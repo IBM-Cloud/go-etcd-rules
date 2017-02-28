@@ -4,6 +4,7 @@ import (
 	"github.com/coreos/etcd/client"
 	"github.com/coreos/etcd/clientv3"
 	"github.com/uber-go/zap"
+	"golang.org/x/net/context"
 )
 
 // Attributes provide access to the key/value pairs associated
@@ -18,17 +19,19 @@ type Attributes interface {
 // RuleTask instances contain contextual object instances and metadata
 // for use by rule callbacks.
 type RuleTask struct {
-	Attr   Attributes
-	Conf   client.Config
-	Logger zap.Logger
+	Attr    Attributes
+	Conf    client.Config
+	Logger  zap.Logger
+	Context context.Context
 }
 
 // V3RuleTask instances contain contextual object instances and metadata
 // for use by rule callbacks.
 type V3RuleTask struct {
-	Attr   Attributes
-	Conf   *clientv3.Config
-	Logger zap.Logger
+	Attr    Attributes
+	Conf    *clientv3.Config
+	Logger  zap.Logger
+	Context context.Context
 }
 
 // RuleTaskCallback is the function type for functions that are called
