@@ -19,11 +19,13 @@ func TestKeyProcessor(t *testing.T) {
 	api.put("/test/key", value)
 	callbacks := map[int]RuleTaskCallback{0: dummyCallback}
 	lockKeyPatterns := map[int]string{0: "/test/lock/:key"}
+	contextProviders := map[int]ContextProvider{0: defaultContextProvider}
 	channel := make(chan ruleWork)
 	kp := keyProcessor{
 		baseKeyProcessor: baseKeyProcessor{
-			rm:              &rm,
-			lockKeyPatterns: lockKeyPatterns,
+			rm:               &rm,
+			lockKeyPatterns:  lockKeyPatterns,
+			contextProviders: contextProviders,
 		},
 		callbacks: callbacks,
 		channel:   channel,
@@ -65,12 +67,14 @@ func TestV3KeyProcessor(t *testing.T) {
 	api := newMapReadAPI()
 	api.put("/test/key", value)
 	callbacks := map[int]V3RuleTaskCallback{0: v3DummyCallback}
+	contextProviders := map[int]ContextProvider{0: defaultContextProvider}
 	lockKeyPatterns := map[int]string{0: "/test/lock/:key"}
 	channel := make(chan v3RuleWork)
 	kp := v3KeyProcessor{
 		baseKeyProcessor: baseKeyProcessor{
-			rm:              &rm,
-			lockKeyPatterns: lockKeyPatterns,
+			contextProviders: contextProviders,
+			rm:               &rm,
+			lockKeyPatterns:  lockKeyPatterns,
 		},
 		callbacks: callbacks,
 		channel:   channel,

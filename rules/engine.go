@@ -249,9 +249,14 @@ func (e *baseEngine) addRule(rule DynamicRule,
 	if opts.lockTimeout > 0 {
 		ttl = opts.lockTimeout
 	}
+	contextProvider := opts.contextProvider
+	if contextProvider == nil {
+		contextProvider = e.options.contextProvider
+	}
 	e.ruleLockTTLs[ruleIndex] = ttl
 	e.keyProc.setCallback(ruleIndex, callback)
 	e.keyProc.setLockKeyPattern(ruleIndex, lockPattern)
+	e.keyProc.setContextProvider(ruleIndex, contextProvider)
 }
 
 func (e *engine) Run() {

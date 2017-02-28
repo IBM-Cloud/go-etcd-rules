@@ -1,22 +1,35 @@
 package rules
 
-import ()
+import (
+	"time"
+
+	"golang.org/x/net/context"
+)
+
+type ContextProvider func() context.Context
+
+func defaultContextProvider() context.Context {
+	c, _ := context.WithTimeout(context.Background(), time.Minute*5)
+	return c
+}
 
 type engineOptions struct {
 	concurrency, syncGetTimeout, syncInterval, watchTimeout int
 	constraints                                             map[string]constraint
+	contextProvider                                         ContextProvider
 	lockTimeout                                             int
 	keyExpansion                                            map[string][]string
 }
 
 func makeEngineOptions(options ...EngineOption) engineOptions {
 	opts := engineOptions{
-		concurrency:    5,
-		constraints:    map[string]constraint{},
-		lockTimeout:    30,
-		syncInterval:   300,
-		syncGetTimeout: 0,
-		watchTimeout:   0,
+		concurrency:     5,
+		constraints:     map[string]constraint{},
+		contextProvider: defaultContextProvider,
+		lockTimeout:     30,
+		syncInterval:    300,
+		syncGetTimeout:  0,
+		watchTimeout:    0,
 	}
 	for _, opt := range options {
 		opt.apply(&opts)
@@ -94,8 +107,17 @@ func EngineSyncInterval(interval int) EngineOption {
 	})
 }
 
+// EngineContextProvider sets a custom provider for generating context instances for use
+// by callbacks.
+func EngineContextProvider(cp ContextProvider) EngineOption {
+	return engineOptionFunction(func(o *engineOptions) {
+		o.contextProvider = cp
+	})
+}
+
 type ruleOptions struct {
-	lockTimeout int
+	lockTimeout     int
+	contextProvider ContextProvider
 }
 
 func makeRuleOptions(options ...RuleOption) ruleOptions {
@@ -124,5 +146,13 @@ func (f ruleOptionFunction) apply(o *ruleOptions) {
 func RuleLockTimeout(lockTimeout int) RuleOption {
 	return ruleOptionFunction(func(o *ruleOptions) {
 		o.lockTimeout = lockTimeout
+	})
+}
+
+// RuleContextProvider sets a custom provider for generating context instances for use
+// by a specific callback.
+func RuleContextProvider(cp ContextProvider) RuleOption {
+	return ruleOptionFunction(func(o *ruleOptions) {
+		o.contextProvider = cp
 	})
 }
