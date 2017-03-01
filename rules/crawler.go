@@ -144,7 +144,7 @@ func (ec *etcdCrawler) crawlPath(path string) {
 	}
 	node := resp.Node
 	logger := ec.logger.With(zap.String("source", "crawler"))
-	ec.kp.processKey(node.Key, &node.Value, ec.api, logger)
+	ec.kp.processKey(node.Key, &node.Value, ec.api, logger, map[string]string{"source": "crawler", "prefix": ec.prefix})
 }
 
 type v3EtcdCrawler struct {
@@ -186,6 +186,6 @@ func (v3ec *v3EtcdCrawler) singleRun() {
 			return
 		}
 		value := string(kv.Value[:])
-		v3ec.kp.processKey(string(kv.Key[:]), &value, v3ec.api, logger)
+		v3ec.kp.processKey(string(kv.Key[:]), &value, v3ec.api, logger, map[string]string{"source": "crawler", "prefix": v3ec.prefix})
 	}
 }

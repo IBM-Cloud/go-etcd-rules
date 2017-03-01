@@ -1,7 +1,6 @@
 package rules
 
 import (
-	//	"github.com/IBM-Bluemix/go-etcd-lock/lock"
 	"github.com/coreos/etcd/client"
 	"github.com/coreos/etcd/clientv3"
 	"github.com/uber-go/zap"
@@ -127,12 +126,17 @@ func (bw *baseWorker) doWork(loggerPtr *zap.Logger,
 	}
 }
 
+func (bw *baseWorker) addWorkerID(ruleContext map[string]string) {
+	ruleContext["rule_worker"] = bw.workerID
+}
+
 func (w *worker) singleRun() {
 	work := <-w.engine.workChannel
 	task := work.ruleTask
 	if is(&w.stopping) {
 		return
 	}
+	w.addWorkerID(task.Metadata)
 	task.Logger = task.Logger.With(zap.String("worker", w.workerID))
 	w.doWork(&task.Logger, &work.rule, w.engine.getLockTTLForRule(work.ruleIndex), func() { work.ruleTaskCallback(&task) }, work.lockKey)
 }
@@ -143,6 +147,7 @@ func (w *v3Worker) singleRun() {
 	if is(&w.stopping) {
 		return
 	}
+	w.addWorkerID(task.Metadata)
 	task.Logger = task.Logger.With(zap.String("worker", w.workerID))
 	w.doWork(&task.Logger, &work.rule, w.engine.getLockTTLForRule(work.ruleIndex), func() { work.ruleTaskCallback(&task) }, work.lockKey)
 }

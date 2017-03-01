@@ -19,19 +19,21 @@ type Attributes interface {
 // RuleTask instances contain contextual object instances and metadata
 // for use by rule callbacks.
 type RuleTask struct {
-	Attr    Attributes
-	Conf    client.Config
-	Logger  zap.Logger
-	Context context.Context
+	Attr     Attributes
+	Conf     client.Config
+	Logger   zap.Logger
+	Context  context.Context
+	Metadata map[string]string
 }
 
 // V3RuleTask instances contain contextual object instances and metadata
 // for use by rule callbacks.
 type V3RuleTask struct {
-	Attr    Attributes
-	Conf    *clientv3.Config
-	Logger  zap.Logger
-	Context context.Context
+	Attr     Attributes
+	Conf     *clientv3.Config
+	Logger   zap.Logger
+	Context  context.Context
+	Metadata map[string]string
 }
 
 // RuleTaskCallback is the function type for functions that are called
