@@ -32,9 +32,10 @@ func TestWorkerSingleRun(t *testing.T) {
 	}
 	conf := client.Config{}
 	task := RuleTask{
-		Attr:   &attr,
-		Conf:   conf,
-		Logger: zap.New(zap.NewTextEncoder()),
+		Attr:     &attr,
+		Conf:     conf,
+		Logger:   zap.New(zap.NewTextEncoder()),
+		Metadata: map[string]string{},
 	}
 	cbChannel := make(chan bool)
 	callback := testCallback{

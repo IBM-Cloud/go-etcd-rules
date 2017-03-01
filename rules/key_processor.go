@@ -7,7 +7,7 @@ import (
 )
 
 type keyProc interface {
-	processKey(key string, value *string, api readAPI, logger zap.Logger)
+	processKey(key string, value *string, api readAPI, logger zap.Logger, metadata map[string]string)
 }
 
 type setableKeyProcessor interface {
@@ -18,15 +18,16 @@ type setableKeyProcessor interface {
 }
 
 type workDispatcher interface {
-	dispatchWork(index int, rule staticRule, logger zap.Logger, keyPattern string)
+	dispatchWork(index int, rule staticRule, logger zap.Logger, keyPattern string, metadata map[string]string)
 }
 
-func (kp *keyProcessor) dispatchWork(index int, rule staticRule, logger zap.Logger, keyPattern string) {
+func (kp *keyProcessor) dispatchWork(index int, rule staticRule, logger zap.Logger, keyPattern string, metadata map[string]string) {
 	task := RuleTask{
-		Attr:    rule.getAttributes(),
-		Conf:    kp.config,
-		Logger:  logger,
-		Context: kp.contextProviders[index](),
+		Attr:     rule.getAttributes(),
+		Conf:     kp.config,
+		Logger:   logger,
+		Context:  kp.contextProviders[index](),
+		Metadata: metadata,
 	}
 	work := ruleWork{
 		rule:             rule,
@@ -74,13 +75,14 @@ func (v3kp *v3KeyProcessor) setCallback(index int, callback interface{}) {
 	v3kp.callbacks[index] = callback.(V3RuleTaskCallback)
 }
 
-func (v3kp *v3KeyProcessor) dispatchWork(index int, rule staticRule, logger zap.Logger, keyPattern string) {
+func (v3kp *v3KeyProcessor) dispatchWork(index int, rule staticRule, logger zap.Logger, keyPattern string, metadata map[string]string) {
 	task := V3RuleTask{
 		Attr: rule.getAttributes(),
 		// This line is different
-		Conf:    v3kp.config,
-		Logger:  logger,
-		Context: v3kp.contextProviders[index](),
+		Conf:     v3kp.config,
+		Logger:   logger,
+		Context:  v3kp.contextProviders[index](),
+		Metadata: metadata,
 	}
 	work := v3RuleWork{
 		rule:      rule,
@@ -121,15 +123,15 @@ func newV3KeyProcessor(channel chan v3RuleWork, config *clientv3.Config, rm *rul
 	return kp
 }
 
-func (kp *keyProcessor) processKey(key string, value *string, api readAPI, logger zap.Logger) {
-	kp.baseKeyProcessor.processKey(key, value, api, logger, kp)
+func (kp *keyProcessor) processKey(key string, value *string, api readAPI, logger zap.Logger, metadata map[string]string) {
+	kp.baseKeyProcessor.processKey(key, value, api, logger, kp, metadata)
 }
 
-func (v3kp *v3KeyProcessor) processKey(key string, value *string, api readAPI, logger zap.Logger) {
-	v3kp.baseKeyProcessor.processKey(key, value, api, logger, v3kp)
+func (v3kp *v3KeyProcessor) processKey(key string, value *string, api readAPI, logger zap.Logger, metadata map[string]string) {
+	v3kp.baseKeyProcessor.processKey(key, value, api, logger, v3kp, metadata)
 }
 
-func (bkp *baseKeyProcessor) processKey(key string, value *string, api readAPI, logger zap.Logger, dispatcher workDispatcher) {
+func (bkp *baseKeyProcessor) processKey(key string, value *string, api readAPI, logger zap.Logger, dispatcher workDispatcher, metadata map[string]string) {
 	logger.Debug("Processing key", zap.String("key", key))
 	rules := bkp.rm.getStaticRules(key, value)
 	for rule, index := range rules {
@@ -140,7 +142,7 @@ func (bkp *baseKeyProcessor) processKey(key string, value *string, api readAPI, 
 				logger.Error("Unable to find key pattern for rule", zap.Int("index", index))
 				continue
 			}
-			dispatcher.dispatchWork(index, rule, logger, keyPattern)
+			dispatcher.dispatchWork(index, rule, logger, keyPattern, metadata)
 		}
 	}
 }

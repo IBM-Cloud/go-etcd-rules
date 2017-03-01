@@ -1,6 +1,7 @@
 package rules
 
 import (
+	"strings"
 	"time"
 
 	"github.com/coreos/etcd/client"
@@ -75,7 +76,11 @@ func (w *watcher) singleRun() {
 	key, value, err := w.kw.next()
 	if err != nil {
 		w.logger.Error("Watcher error", zap.Error(err))
+		if strings.Contains(err.Error(), "connection refused") {
+			w.logger.Info("Cluster unavailable; waiting one minute to retry")
+			time.Sleep(time.Minute)
+		}
 		return
 	}
-	w.kp.processKey(key, value, w.api, w.logger)
+	w.kp.processKey(key, value, w.api, w.logger, map[string]string{})
 }

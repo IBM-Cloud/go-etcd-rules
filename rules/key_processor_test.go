@@ -32,7 +32,7 @@ func TestKeyProcessor(t *testing.T) {
 		config:    client.Config{},
 	}
 	logger := getTestLogger()
-	go kp.processKey("/test/key", &value, api, logger)
+	go kp.processKey("/test/key", &value, api, logger, map[string]string{})
 	work := <-channel
 	assert.Equal(t, "/test/lock/key", work.lockKey)
 }
@@ -47,7 +47,8 @@ type testKeyProcessor struct {
 func (tkp *testKeyProcessor) processKey(key string,
 	value *string,
 	api readAPI,
-	logger zap.Logger) {
+	logger zap.Logger,
+	metadata map[string]string) {
 	tkp.keys = append(tkp.keys, key)
 	tkp.values = append(tkp.values, value)
 	tkp.apis = append(tkp.apis, api)
@@ -81,7 +82,7 @@ func TestV3KeyProcessor(t *testing.T) {
 		config:    &clientv3.Config{},
 	}
 	logger := getTestLogger()
-	go kp.processKey("/test/key", &value, api, logger)
+	go kp.processKey("/test/key", &value, api, logger, map[string]string{})
 	work := <-channel
 	assert.Equal(t, "/test/lock/key", work.lockKey)
 }
