@@ -72,9 +72,11 @@ func newEtcdKeyWatcher(api client.KeysAPI, prefix string, timeout time.Duration)
 	})
 	watcher := etcdKeyWatcher{
 		baseKeyWatcher: baseKeyWatcher{
+			prefix:  prefix,
 			timeout: timeout,
 		},
-		w: w,
+		api: api,
+		w:   w,
 	}
 	return &watcher
 }
@@ -82,10 +84,10 @@ func newEtcdKeyWatcher(api client.KeysAPI, prefix string, timeout time.Duration)
 func newEtcdV3KeyWatcher(watcher clientv3.Watcher, prefix string, timeout time.Duration) *etcdV3KeyWatcher {
 	kw := etcdV3KeyWatcher{
 		baseKeyWatcher: baseKeyWatcher{
+			prefix:  prefix,
 			timeout: timeout,
 		},
-		prefix: prefix,
-		w:      watcher,
+		w: watcher,
 	}
 	return &kw
 }
@@ -93,6 +95,7 @@ func newEtcdV3KeyWatcher(watcher clientv3.Watcher, prefix string, timeout time.D
 type baseKeyWatcher struct {
 	cancelFunc  context.CancelFunc
 	cancelMutex sync.Mutex
+	prefix      string
 	timeout     time.Duration
 	stopping    uint32
 }
@@ -111,13 +114,17 @@ func (bkw *baseKeyWatcher) getContext() context.Context {
 
 type etcdKeyWatcher struct {
 	baseKeyWatcher
-	w client.Watcher
+	api client.KeysAPI
+	w   client.Watcher
 }
 
 func (ekw *etcdKeyWatcher) next() (string, *string, error) {
-	defer ekw.cancel()
 	resp, err := ekw.w.Next(ekw.getContext())
 	if err != nil {
+		// Get a new watcher to clear the event index
+		ekw.w = ekw.api.Watcher(ekw.prefix, &client.WatcherOptions{
+			Recursive: true,
+		})
 		return "", nil, err
 	}
 	node := resp.Node
@@ -142,7 +149,6 @@ type etcdV3KeyWatcher struct {
 	ch         clientv3.WatchChan
 	eventIndex int
 	events     []*clientv3.Event
-	prefix     string
 	w          clientv3.Watcher
 }
 
