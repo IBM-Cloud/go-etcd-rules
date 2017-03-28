@@ -47,10 +47,12 @@ func newCrawler(
 
 func newV3Crawler(
 	config clientv3.Config,
-	logger zap.Logger,
-	prefix string,
 	interval int,
 	kp keyProc,
+	logger zap.Logger,
+	mutex *string,
+	mutexTTL int,
+	prefix string,
 ) (crawler, error) {
 	blank := etcdCrawler{}
 	cl, err1 := clientv3.New(config)
@@ -67,8 +69,11 @@ func newV3Crawler(
 			interval: interval,
 			kp:       kp,
 			logger:   logger,
+			mutex:    mutex,
+			mutexTTL: mutexTTL,
 			prefix:   prefix,
 		},
+		cl: cl,
 		kv: kv,
 	}
 	return &c, nil
@@ -81,6 +86,8 @@ type baseCrawler struct {
 	interval    int
 	kp          keyProc
 	logger      zap.Logger
+	mutex       *string
+	mutexTTL    int
 	prefix      string
 	stopping    uint32
 	stopped     uint32
@@ -149,6 +156,7 @@ func (ec *etcdCrawler) crawlPath(path string) {
 
 type v3EtcdCrawler struct {
 	baseCrawler
+	cl *clientv3.Client
 	kv clientv3.KV
 }
 
@@ -156,7 +164,21 @@ func (v3ec *v3EtcdCrawler) run() {
 	atomicSet(&v3ec.stopped, false)
 	for !v3ec.isStopping() {
 		v3ec.logger.Debug("Starting crawler run")
-		v3ec.singleRun()
+		if v3ec.mutex == nil {
+			v3ec.singleRun()
+		} else {
+			mutex := "/crawler/" + *v3ec.mutex + v3ec.prefix
+			v3ec.logger.Debug("Attempting to obtain mutex",
+				zap.String("mutex", mutex), zap.Int("TTL", v3ec.mutexTTL))
+			locker := newV3Locker(v3ec.cl)
+			lock, err := locker.lock(mutex, v3ec.mutexTTL)
+			if err != nil {
+				v3ec.logger.Debug("Could not obtain mutex; skipping crawler run", zap.Error(err))
+			} else {
+				v3ec.singleRun()
+				lock.unlock()
+			}
+		}
 		v3ec.logger.Debug("Crawler run complete")
 		for i := 0; i < v3ec.interval; i++ {
 			time.Sleep(time.Second)

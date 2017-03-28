@@ -305,10 +305,12 @@ func (e *v3Engine) Run() {
 		logger := e.logger.With(zap.String("prefix", prefix))
 		c, err1 := newV3Crawler(
 			e.configV3,
-			logger,
-			prefix,
 			e.options.syncInterval,
 			e.baseEngine.keyProc,
+			logger,
+			e.options.crawlMutex,
+			e.options.crawlerTTL,
+			prefix,
 		)
 		if err1 != nil {
 			e.logger.Fatal("Failed to initialize crawler", zap.String("prefix", prefix), zap.Error(err1))
