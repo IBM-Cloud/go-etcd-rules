@@ -78,19 +78,23 @@ func TestV3Crawler(t *testing.T) {
 	cr.singleRun()
 	_, err := newV3Crawler(
 		cfg,
-		getTestLogger(),
-		"/root",
 		5,
 		&kp,
+		getTestLogger(),
+		nil,
+		0,
+		"/root",
 	)
 	assert.NoError(t, err)
 	cfg = clientv3.Config{}
 	_, err = newV3Crawler(
 		cfg,
-		getTestLogger(),
-		"/root",
 		5,
 		&kp,
+		getTestLogger(),
+		nil,
+		0,
+		"/root",
 	)
 	assert.Error(t, err)
 }

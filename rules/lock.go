@@ -57,28 +57,31 @@ func (v3l *v3Locker) lock(key string, ttl int) (ruleLock, error) {
 	return v3l.lockWithTimeout(key, ttl, 5)
 }
 func (v3l *v3Locker) lockWithTimeout(key string, ttl int, timeout int) (ruleLock, error) {
-	s, err1 := concurrency.NewSession(v3l.cl, concurrency.WithTTL(ttl))
-	if err1 != nil {
-		return nil, err1
+	s, err := concurrency.NewSession(v3l.cl, concurrency.WithTTL(ttl))
+	if err != nil {
+		return nil, err
 	}
 	m := concurrency.NewMutex(s, key)
-	ctx, canfunc := context.WithTimeout(context.Background(), time.Duration(timeout)*time.Second)
-	defer canfunc()
-	err2 := m.Lock(ctx)
-	if err2 != nil {
-		return nil, err2
+	ctx, _ := context.WithTimeout(context.Background(), time.Duration(timeout)*time.Second)
+	err = m.Lock(ctx)
+	if err != nil {
+		return nil, err
 	}
-	return &v3Lock{m}, nil
+	return &v3Lock{
+		mutex:   m,
+		session: s,
+	}, nil
 }
 
 type v3Lock struct {
-	mutex *concurrency.Mutex
+	mutex   *concurrency.Mutex
+	session *concurrency.Session
 }
 
 func (v3l *v3Lock) unlock() {
-	ctx, canfunc := context.WithTimeout(context.Background(), time.Duration(5)*time.Second)
+	ctx, _ := context.WithTimeout(context.Background(), time.Duration(5)*time.Second)
 	err := v3l.mutex.Unlock(ctx)
-	if err != nil {
+	if err == nil {
+		v3l.session.Close()
 	}
-	canfunc()
 }

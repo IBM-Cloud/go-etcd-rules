@@ -79,6 +79,9 @@ func (w *watcher) singleRun() {
 		if strings.Contains(err.Error(), "connection refused") {
 			w.logger.Info("Cluster unavailable; waiting one minute to retry")
 			time.Sleep(time.Minute)
+		} else {
+			// Maximum logging rate is 1 per second.
+			time.Sleep(time.Second)
 		}
 		return
 	}

@@ -14,11 +14,12 @@ func defaultContextProvider() context.Context {
 }
 
 type engineOptions struct {
-	concurrency, syncGetTimeout, syncInterval, watchTimeout int
-	constraints                                             map[string]constraint
-	contextProvider                                         ContextProvider
-	lockTimeout                                             int
-	keyExpansion                                            map[string][]string
+	concurrency, crawlerTTL, syncGetTimeout, syncInterval, watchTimeout int
+	constraints                                                         map[string]constraint
+	contextProvider                                                     ContextProvider
+	keyExpansion                                                        map[string][]string
+	lockTimeout                                                         int
+	crawlMutex                                                          *string
 }
 
 func makeEngineOptions(options ...EngineOption) engineOptions {
@@ -112,6 +113,22 @@ func EngineSyncInterval(interval int) EngineOption {
 func EngineContextProvider(cp ContextProvider) EngineOption {
 	return engineOptionFunction(func(o *engineOptions) {
 		o.contextProvider = cp
+	})
+}
+
+// EngineCrawlMutex sets an application identifier mutex and a TTL value for the mutex
+// to limit the number of instances of an application performing a crawl at any given
+// time to one.  mutexTTL refers to how long the mutex is in effect; if set too short,
+// multiple instances of an application may end up crawling simultaneously.  Note that this
+// functionality is only implemented in etcd v3 and that a mutex in etcd v3 is held
+// only while the app instance that created it is still active. This means that setting
+// a high value, such as 3600 seconds, does not expose one to the risk of no crawls
+// occuring for a maximum of one hour if an application instance terminates at the
+// beginning of a crawler run.
+func EngineCrawlMutex(mutex string, mutexTTL int) EngineOption {
+	return engineOptionFunction(func(o *engineOptions) {
+		o.crawlMutex = &mutex
+		o.crawlerTTL = mutexTTL
 	})
 }
 
