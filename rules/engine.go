@@ -78,18 +78,18 @@ type V3Engine interface {
 }
 
 // NewEngine creates a new Engine instance.
-func NewEngine(config client.Config, logger zap.Logger, options ...EngineOption) Engine {
+func NewEngine(config client.Config, logger *zap.Logger, options ...EngineOption) Engine {
 	eng := newEngine(config, clientv3.Config{}, false, logger, options...)
 	return &eng
 }
 
 // NewV3Engine creates a new V3Engine instance.
-func NewV3Engine(configV3 clientv3.Config, logger zap.Logger, options ...EngineOption) V3Engine {
+func NewV3Engine(configV3 clientv3.Config, logger *zap.Logger, options ...EngineOption) V3Engine {
 	eng := newV3Engine(client.Config{}, configV3, true, logger, options...)
 	return &eng
 }
 
-func newEngine(config client.Config, configV3 clientv3.Config, useV3 bool, logger zap.Logger, options ...EngineOption) engine {
+func newEngine(config client.Config, configV3 clientv3.Config, useV3 bool, logger *zap.Logger, options ...EngineOption) engine {
 	opts := makeEngineOptions(options...)
 	ruleMgr := newRuleManager(map[string]constraint{})
 	channel := make(chan ruleWork)
@@ -112,7 +112,7 @@ func newEngine(config client.Config, configV3 clientv3.Config, useV3 bool, logge
 	return eng
 }
 
-func newV3Engine(config client.Config, configV3 clientv3.Config, useV3 bool, logger zap.Logger, options ...EngineOption) v3Engine {
+func newV3Engine(config client.Config, configV3 clientv3.Config, useV3 bool, logger *zap.Logger, options ...EngineOption) v3Engine {
 	opts := makeEngineOptions(options...)
 	ruleMgr := newRuleManager(opts.constraints)
 	channel := make(chan v3RuleWork)
