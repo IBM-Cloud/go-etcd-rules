@@ -9,7 +9,7 @@ import (
 	"go.uber.org/zap"
 )
 
-func newWatcher(config client.Config, prefix string, logger zap.Logger, proc keyProc, watchTimeout int) (watcher, error) {
+func newWatcher(config client.Config, prefix string, logger *zap.Logger, proc keyProc, watchTimeout int) (watcher, error) {
 	ec, err := client.New(config)
 	if err != nil {
 		return watcher{}, err
@@ -28,7 +28,7 @@ func newWatcher(config client.Config, prefix string, logger zap.Logger, proc key
 	}, nil
 }
 
-func newV3Watcher(config clientv3.Config, prefix string, logger zap.Logger, proc keyProc, watchTimeout int) (watcher, error) {
+func newV3Watcher(config clientv3.Config, prefix string, logger *zap.Logger, proc keyProc, watchTimeout int) (watcher, error) {
 	ec, err := clientv3.New(config)
 	if err != nil {
 		return watcher{}, err
@@ -50,7 +50,7 @@ type watcher struct {
 	api      readAPI
 	kw       keyWatcher
 	kp       keyProc
-	logger   zap.Logger
+	logger   *zap.Logger
 	stopping uint32
 	stopped  uint32
 }

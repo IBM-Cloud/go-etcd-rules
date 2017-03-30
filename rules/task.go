@@ -21,7 +21,7 @@ type Attributes interface {
 type RuleTask struct {
 	Attr     Attributes
 	Conf     client.Config
-	Logger   zap.Logger
+	Logger   *zap.Logger
 	Context  context.Context
 	Metadata map[string]string
 }
@@ -31,7 +31,7 @@ type RuleTask struct {
 type V3RuleTask struct {
 	Attr     Attributes
 	Conf     *clientv3.Config
-	Logger   zap.Logger
+	Logger   *zap.Logger
 	Context  context.Context
 	Metadata map[string]string
 }

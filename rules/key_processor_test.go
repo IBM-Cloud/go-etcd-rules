@@ -47,7 +47,7 @@ type testKeyProcessor struct {
 func (tkp *testKeyProcessor) processKey(key string,
 	value *string,
 	api readAPI,
-	logger zap.Logger,
+	logger *zap.Logger,
 	metadata map[string]string) {
 	tkp.keys = append(tkp.keys, key)
 	tkp.values = append(tkp.values, value)

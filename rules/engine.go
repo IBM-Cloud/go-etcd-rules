@@ -25,7 +25,7 @@ type BaseEngine interface {
 type baseEngine struct {
 	cCloser      channelCloser
 	keyProc      setableKeyProcessor
-	logger       zap.Logger
+	logger       *zap.Logger
 	options      engineOptions
 	ruleLockTTLs map[int]int
 	ruleMgr      ruleManager
