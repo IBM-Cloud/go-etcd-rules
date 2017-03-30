@@ -3,7 +3,7 @@ package rules
 import (
 	"github.com/coreos/etcd/client"
 	"github.com/coreos/etcd/clientv3"
-	"github.com/uber-go/zap"
+	"go.uber.org/zap"
 	"golang.org/x/net/context"
 )
 

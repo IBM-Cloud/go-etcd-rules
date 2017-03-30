@@ -1,12 +1,8 @@
-hash: e4a810cc6f6ec0e52c322689e5ff836dbac8296221bc863802d7c77267027063
-updated: 2017-01-17T14:40:54.701213613-05:00
+hash: 687e226fa36a3193a97c8bed497a9da1f0e6a4a3e14b3aba53ace8323778577e
+updated: 2017-03-30T11:25:34.301338594+01:00
 imports:
-- name: github.com/beorn7/perks
-  version: 4c0e84591b9aa9e6dcfdf3e020114cd81f89d5f9
-  subpackages:
-  - quantile
 - name: github.com/coreos/etcd
-  version: 2db9d3b70236f620c3c507c6bf7013da5e78a9f7
+  version: 36735d52a4fde4d3d7e568d15c212d83970a7aab
   subpackages:
   - auth/authpb
   - client
@@ -16,17 +12,17 @@ imports:
   - etcdserver/etcdserverpb
   - mvcc/mvccpb
   - pkg/pathutil
-  - pkg/tlsutil
   - pkg/types
-- name: github.com/ghodss/yaml
-  version: 73d445a93680fa1a78ae23a5839bad48f32ba1ee
+  - version
+- name: github.com/coreos/go-semver
+  version: 568e959cd89871e61434c1143528d9162da89ef2
+  subpackages:
+  - semver
 - name: github.com/golang/protobuf
   version: 4bd1920723d7b7c925de087aa32e2187708897f7
   subpackages:
   - jsonpb
   - proto
-- name: github.com/grpc-ecosystem/go-grpc-prometheus
-  version: 6b7015e65d366bf3f19b2b2a000a831940f0f7e0
 - name: github.com/grpc-ecosystem/grpc-gateway
   version: 84398b94e188ee336f307779b57b3aa91af7063c
   subpackages:
@@ -34,44 +30,33 @@ imports:
   - runtime/internal
   - utilities
 - name: github.com/IBM-Bluemix/go-etcd-lock
-  version: 0445a1f78d4b4e9cdadc83d2e721bb949f95d70f
+  version: 5b2bceba5526ce1d039c115619da2238c47ee76b
   subpackages:
   - lock
-- name: github.com/matttproud/golang_protobuf_extensions
-  version: c12348ce28de40eed0136aa2b644d0ee0650e56c
-  subpackages:
-  - pbutil
-- name: github.com/prometheus/client_golang
-  version: c5b7fccd204277076155f10851dad72b76a49317
-  subpackages:
-  - prometheus
-- name: github.com/prometheus/client_model
-  version: fa8ad6fec33561be4280a8f0514318c79d7f6cb6
-  subpackages:
-  - go
-- name: github.com/prometheus/common
-  version: dd2f054febf4a6c00f2343686efb775948a8bff4
-  subpackages:
-  - expfmt
-  - internal/bitbucket.org/ww/goautoneg
-  - model
-- name: github.com/prometheus/procfs
-  version: fcdb11ccb4389efb1b210b7ffb623ab71c5fdd60
-- name: github.com/uber-go/atomic
-  version: 3b8db5e93c4c02efbc313e17b2e796b0914a01fb
-- name: github.com/uber-go/zap
-  version: a5783ee4b216a927da8f839c45cfbf9d694e1467
 - name: github.com/ugorji/go
   version: ded73eae5db7e7a0ef6f55aace87a2873c5d2b74
   subpackages:
   - codec
+- name: go.uber.org/atomic
+  version: 3b8db5e93c4c02efbc313e17b2e796b0914a01fb
+- name: go.uber.org/zap
+  version: 4257c7cf05477d92ec25c31cfd3d60e89575f18a
+  subpackages:
+  - buffer
+  - internal/bufferpool
+  - internal/color
+  - internal/exit
+  - internal/multierror
+  - zapcore
 - name: golang.org/x/net
-  version: 6acef71eb69611914f7a30939ea9f6e194c78172
+  version: f2499483f923065a842d38eb4c7f1927e6fc6e6d
   subpackages:
   - context
   - http2
   - http2/hpack
+  - idna
   - internal/timeseries
+  - lex/httplex
   - trace
 - name: google.golang.org/grpc
   version: 777daa17ff9b5daef1cfdf915088a2ada3332bf0
@@ -86,11 +71,9 @@ imports:
   - transport
 - name: gopkg.in/errgo.v1
   version: 442357a80af5c6bf9b6d51ae791a39c3421004f3
-- name: gopkg.in/yaml.v2
-  version: 53feefa2559fb8dfa8d81baad31be332c97d6c77
 testImports:
 - name: github.com/davecgh/go-spew
-  version: 04cdfd42973bb9c8589fd6a731800cf222fde1a9
+  version: 6d212800a42e8ab5c146b8ace3490ee17e5225f9
   subpackages:
   - spew
 - name: github.com/pmezard/go-difflib
@@ -98,6 +81,6 @@ testImports:
   subpackages:
   - difflib
 - name: github.com/stretchr/testify
-  version: 2402e8e7a02fc811447d11f881aa9746cdc57983
+  version: 69483b4bd14f5845b5a1e55bca19e954e827f1d0
   subpackages:
   - assert

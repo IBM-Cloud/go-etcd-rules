@@ -6,7 +6,7 @@ import (
 
 	"github.com/coreos/etcd/client"
 	"github.com/coreos/etcd/clientv3"
-	"github.com/uber-go/zap"
+	"go.uber.org/zap"
 )
 
 func newWatcher(config client.Config, prefix string, logger zap.Logger, proc keyProc, watchTimeout int) (watcher, error) {

@@ -39,7 +39,7 @@ import (
 
 	"github.com/IBM-Bluemix/go-etcd-rules/rules"
 	"github.com/coreos/etcd/client"
-	"github.com/uber-go/zap"
+	"go.uber.org/zap"
 	"golang.org/x/net/context"
 )
 
