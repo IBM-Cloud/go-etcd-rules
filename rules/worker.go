@@ -105,7 +105,6 @@ func (bw *baseWorker) doWork(loggerPtr *zap.Logger,
 		logger.Error("Error checking rule", zap.Error(err1))
 		return
 	}
-	logger.Debug("Rule satisfied", zap.Bool("satisfied", sat)
 	if !sat || is(&bw.stopping) {
 		return
 	}
