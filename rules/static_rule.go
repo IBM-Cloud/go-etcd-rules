@@ -54,16 +54,7 @@ func (elrf *equalsLiteralRuleFactory) newRule(keys []string, attr Attributes) st
 }
 
 func (elr *equalsLiteralRule) satisfiable(key string, value *string) bool {
-	if key != elr.key {
-		return false
-	}
-	if value == nil {
-		return elr.value == nil
-	}
-	if elr.value == nil {
-		return false
-	}
-	return *value == *elr.value
+	return key == elr.key
 }
 
 func (elr *equalsLiteralRule) satisfied(api readAPI) (bool, error) {
@@ -71,7 +62,13 @@ func (elr *equalsLiteralRule) satisfied(api readAPI) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	return elr.satisfiable(elr.key, value), nil
+	if value == nil {
+		return elr.value == nil, nil
+	}
+	if elr.value == nil {
+		return false, nil
+	}
+	return *value == *elr.value, nil
 }
 
 func (elr *equalsLiteralRule) keyMatch(key string) bool {
