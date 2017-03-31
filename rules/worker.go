@@ -121,7 +121,7 @@ func (bw *baseWorker) doWork(loggerPtr *zap.Logger,
 		logger.Error("Error checking rule", zap.Error(err1))
 		return
 	}
-	if sat || !is(&bw.stopping) {
+	if sat && !is(&bw.stopping) {
 		callback()
 	}
 }
