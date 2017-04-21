@@ -20,4 +20,8 @@ func TestEngineOptions(t *testing.T) {
 	assert.Equal(t, 5, opts.syncInterval)
 	opts = makeEngineOptions(EngineConcurrency(10))
 	assert.Equal(t, 10, opts.concurrency)
+	keyExp1 := KeyExpansion(map[string][]string{"key1": []string{"val1"}, "key2": []string{"val2"}})
+	keyExp2 := KeyExpansion(map[string][]string{"key2": []string{"val3"}, "key3": []string{"val4"}})
+	opts = makeEngineOptions(keyExp1, keyExp2)
+	assert.Equal(t, map[string][]string{"key1": []string{"val1"}, "key2": []string{"val3"}, "key3": []string{"val4"}}, opts.keyExpansion)
 }
