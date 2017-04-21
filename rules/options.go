@@ -85,6 +85,15 @@ func EngineWatchTimeout(watchTimeout int) EngineOption {
 // settings while minimizing the scope of the watchers.
 func KeyExpansion(keyExpansion map[string][]string) EngineOption {
 	return engineOptionFunction(func(o *engineOptions) {
+		// Combine existing pairings with additional pairings, with
+		// collisions resolved by having later values overwrite
+		// earlier ones, i.e. "last one wins"
+		if o.keyExpansion != nil {
+			for k, v := range keyExpansion {
+				o.keyExpansion[k] = v
+			}
+			return
+		}
 		o.keyExpansion = keyExpansion
 	})
 }
