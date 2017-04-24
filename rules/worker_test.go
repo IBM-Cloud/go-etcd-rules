@@ -30,11 +30,14 @@ func TestWorkerSingleRun(t *testing.T) {
 	attr := mapAttributes{
 		values: attrMap,
 	}
+
+	logger, _ := zap.NewProduction()
+
 	conf := client.Config{}
 	task := RuleTask{
 		Attr:     &attr,
 		Conf:     conf,
-		Logger:   zap.New(zap.NewTextEncoder()),
+		Logger:   logger,
 		Metadata: map[string]string{},
 	}
 	cbChannel := make(chan bool)

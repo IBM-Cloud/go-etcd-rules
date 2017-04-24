@@ -40,7 +40,7 @@ func TestKeyProcessor(t *testing.T) {
 type testKeyProcessor struct {
 	apis    []readAPI
 	keys    []string
-	loggers []zap.Logger
+	loggers []*zap.Logger
 	values  []*string
 }
 
@@ -55,8 +55,9 @@ func (tkp *testKeyProcessor) processKey(key string,
 	tkp.loggers = append(tkp.loggers, logger)
 }
 
-func getTestLogger() zap.Logger {
-	return zap.New(zap.NewTextEncoder())
+func getTestLogger() *zap.Logger {
+	logger, _ := zap.NewProduction()
+	return logger
 }
 
 func TestV3KeyProcessor(t *testing.T) {
