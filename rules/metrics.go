@@ -13,9 +13,9 @@ const (
 )
 
 type EtcdMetricsMetadata struct {
-	Action, Method string
-	Duration       time.Duration
-	Error          error
+	Method   string
+	Duration time.Duration
+	Error    error
 }
 
 func SetMethod(ctx context.Context, method string) context.Context {

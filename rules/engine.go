@@ -70,6 +70,7 @@ type Engine interface {
 // V3Engine defines the interactions with a rule engine instance communicating with etcd v3.
 type V3Engine interface {
 	BaseEngine
+	SetKVWrapper(WrapKV)
 	AddRule(rule DynamicRule,
 		lockPattern string,
 		callback V3RuleTaskCallback,
