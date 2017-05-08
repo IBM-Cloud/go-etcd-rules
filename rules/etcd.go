@@ -109,6 +109,7 @@ func (bkw *baseKeyWatcher) getContext() context.Context {
 	} else {
 		ctx, bkw.cancelFunc = context.WithCancel(ctx)
 	}
+	ctx = SetMethod(ctx, "watcher")
 	return ctx
 }
 
