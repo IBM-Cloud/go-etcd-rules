@@ -15,6 +15,7 @@ func defaultContextProvider() context.Context {
 
 type engineOptions struct {
 	concurrency, crawlerTTL, syncGetTimeout, syncInterval, watchTimeout int
+	syncDelay                                                           int
 	constraints                                                         map[string]constraint
 	contextProvider                                                     ContextProvider
 	keyExpansion                                                        map[string][]string
@@ -27,6 +28,7 @@ func makeEngineOptions(options ...EngineOption) engineOptions {
 		concurrency:     5,
 		constraints:     map[string]constraint{},
 		contextProvider: defaultContextProvider,
+		syncDelay:       1,
 		lockTimeout:     30,
 		syncInterval:    300,
 		syncGetTimeout:  0,
@@ -114,6 +116,14 @@ func KeyConstraint(attribute string, prefix string, chars [][]rune) EngineOption
 func EngineSyncInterval(interval int) EngineOption {
 	return engineOptionFunction(func(o *engineOptions) {
 		o.syncInterval = interval
+	})
+}
+
+// EngineSyncDelay enables the throttling of the crawlers by introducing a delay (in ms)
+// between queries to keep the crawlers from overwhelming etcd.
+func EngineSyncDelay(delay int) EngineOption {
+	return engineOptionFunction(func(o *engineOptions) {
+		o.syncDelay = delay
 	})
 }
 

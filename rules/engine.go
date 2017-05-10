@@ -286,6 +286,7 @@ func (e *engine) Run() {
 			e.options.syncInterval,
 			e.baseEngine.keyProc,
 			e.keysAPIWrapper,
+			e.options.syncDelay,
 		)
 		if err1 != nil {
 			e.logger.Fatal("Failed to initialize crawler", zap.String("prefix", prefix), zap.Error(err1))

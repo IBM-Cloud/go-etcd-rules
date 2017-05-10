@@ -45,6 +45,7 @@ func TestCrawler(t *testing.T) {
 		5,
 		&kp,
 		defaultWrapKeysAPI,
+		0,
 	)
 	assert.NoError(t, err)
 	_, err = newCrawler(
@@ -54,6 +55,7 @@ func TestCrawler(t *testing.T) {
 		5,
 		&kp,
 		defaultWrapKeysAPI,
+		10,
 	)
 	assert.Error(t, err)
 }
