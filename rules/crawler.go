@@ -23,6 +23,7 @@ func newCrawler(
 	interval int,
 	kp keyProc,
 	wrapKeysAPI WrapKeysAPI,
+	delay int,
 ) (crawler, error) {
 	blank := etcdCrawler{}
 	cl, err1 := client.New(config)
@@ -40,6 +41,7 @@ func newCrawler(
 			kp:       kp,
 			logger:   logger,
 			prefix:   prefix,
+			delay:    delay,
 		},
 		kapi: kapi,
 	}
@@ -86,6 +88,7 @@ type baseCrawler struct {
 	cancelFunc  context.CancelFunc
 	cancelMutex sync.Mutex
 	interval    int
+	delay       int
 	kp          keyProc
 	logger      zap.Logger
 	mutex       *string
@@ -143,6 +146,7 @@ func (ec *etcdCrawler) crawlPath(path string) {
 	}
 	ctx := context.Background()
 	ctx = SetMethod(ctx, "crawler")
+	time.Sleep(time.Millisecond * time.Duration(ec.delay))
 	resp, err := ec.kapi.Get(ctx, path, nil)
 	if err != nil {
 		return
