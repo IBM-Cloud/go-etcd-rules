@@ -314,26 +314,12 @@ func (e *engine) Run() {
 }
 
 func (e *v3Engine) Run() {
+	prefixSlice := []string{}
 	prefixes := e.ruleMgr.prefixes
 	// This is a map; used to ensure there are no duplicates
 	for prefix := range prefixes {
-		e.logger.Debug("Adding crawler", zap.String("prefix", prefix))
+		prefixSlice = append(prefixSlice, prefix)
 		logger := e.logger.With(zap.String("prefix", prefix))
-		c, err1 := newV3Crawler(
-			e.configV3,
-			e.options.syncInterval,
-			e.baseEngine.keyProc,
-			logger,
-			e.options.crawlMutex,
-			e.options.crawlerTTL,
-			prefix,
-			e.kvWrapper,
-		)
-		if err1 != nil {
-			e.logger.Fatal("Failed to initialize crawler", zap.String("prefix", prefix), zap.Error(err1))
-		}
-		e.crawlers = append(e.crawlers, c)
-		go c.run()
 		w, err := newV3Watcher(e.configV3, prefix, logger, e.baseEngine.keyProc, e.options.watchTimeout, e.kvWrapper)
 		if err != nil {
 			e.logger.Fatal("Failed to initialize watcher", zap.String("prefix", prefix))
@@ -341,6 +327,21 @@ func (e *v3Engine) Run() {
 		e.watchers = append(e.watchers, &w)
 		go w.run()
 	}
+	logger := e.logger
+	c, err := newIntCrawler(e.configV3,
+		e.options.syncInterval,
+		e.baseEngine.keyProc,
+		logger,
+		e.options.crawlMutex,
+		e.options.crawlerTTL,
+		prefixSlice,
+		e.kvWrapper,
+		e.options.syncDelay)
+	if err != nil {
+		e.logger.Fatal("Failed to initialize crawler", zap.Error(err))
+	}
+	e.crawlers = append(e.crawlers, c)
+	go c.run()
 
 	for i := 0; i < e.options.concurrency; i++ {
 		id := fmt.Sprintf("worker%d", i)
