@@ -42,6 +42,9 @@ func TestEngineOptions(t *testing.T) {
 		assert.Equal(t, "mutex", *opts.crawlMutex)
 	}
 	assert.Equal(t, 23, opts.crawlerTTL)
+	assert.Equal(t, 0, opts.ruleWorkBuffer)
+	opts = makeEngineOptions(EngineRuleWorkBuffer(10))
+	assert.Equal(t, 10, opts.ruleWorkBuffer)
 }
 
 func getTestContextProvider() ContextProvider {

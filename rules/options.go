@@ -21,6 +21,7 @@ type engineOptions struct {
 	keyExpansion                                                        map[string][]string
 	lockTimeout                                                         int
 	crawlMutex                                                          *string
+	ruleWorkBuffer                                                      int
 }
 
 func makeEngineOptions(options ...EngineOption) engineOptions {
@@ -148,6 +149,14 @@ func EngineCrawlMutex(mutex string, mutexTTL int) EngineOption {
 	return engineOptionFunction(func(o *engineOptions) {
 		o.crawlMutex = &mutex
 		o.crawlerTTL = mutexTTL
+	})
+}
+
+// EngineRuleWorkBuffer sets the limit on the number of ruleWork in the channel
+// without a receiving worker.
+func EngineRuleWorkBuffer(buffer int) EngineOption {
+	return engineOptionFunction(func(o *engineOptions) {
+		o.ruleWorkBuffer = buffer
 	})
 }
 

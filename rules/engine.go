@@ -96,7 +96,7 @@ func NewV3Engine(configV3 clientv3.Config, logger zap.Logger, options ...EngineO
 func newEngine(config client.Config, configV3 clientv3.Config, useV3 bool, logger zap.Logger, options ...EngineOption) engine {
 	opts := makeEngineOptions(options...)
 	ruleMgr := newRuleManager(map[string]constraint{})
-	channel := make(chan ruleWork)
+	channel := make(chan ruleWork, opts.ruleWorkBuffer)
 	keyProc := newKeyProcessor(channel, config, &ruleMgr)
 	eng := engine{
 		baseEngine: baseEngine{
