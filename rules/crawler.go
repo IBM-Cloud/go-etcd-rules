@@ -6,7 +6,7 @@ import (
 
 	"github.com/coreos/etcd/client"
 	"github.com/coreos/etcd/clientv3"
-	"github.com/uber-go/zap"
+	"go.uber.org/zap"
 	"golang.org/x/net/context"
 )
 
@@ -18,7 +18,7 @@ type crawler interface {
 
 func newCrawler(
 	config client.Config,
-	logger zap.Logger,
+	logger *zap.Logger,
 	prefix string,
 	interval int,
 	kp keyProc,
@@ -52,7 +52,7 @@ func newV3Crawler(
 	config clientv3.Config,
 	interval int,
 	kp keyProc,
-	logger zap.Logger,
+	logger *zap.Logger,
 	mutex *string,
 	mutexTTL int,
 	prefix string,
@@ -90,7 +90,7 @@ type baseCrawler struct {
 	interval    int
 	delay       int
 	kp          keyProc
-	logger      zap.Logger
+	logger      *zap.Logger
 	mutex       *string
 	mutexTTL    int
 	prefix      string

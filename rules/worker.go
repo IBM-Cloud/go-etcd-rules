@@ -3,7 +3,7 @@ package rules
 import (
 	"github.com/coreos/etcd/client"
 	"github.com/coreos/etcd/clientv3"
-	"github.com/uber-go/zap"
+	"go.uber.org/zap"
 )
 
 type baseWorker struct {
@@ -138,7 +138,7 @@ func (w *worker) singleRun() {
 	}
 	w.addWorkerID(task.Metadata)
 	task.Logger = task.Logger.With(zap.String("worker", w.workerID))
-	w.doWork(&task.Logger, &work.rule, w.engine.getLockTTLForRule(work.ruleIndex), func() { work.ruleTaskCallback(&task) }, work.lockKey)
+	w.doWork(task.Logger, &work.rule, w.engine.getLockTTLForRule(work.ruleIndex), func() { work.ruleTaskCallback(&task) }, work.lockKey)
 }
 
 func (w *v3Worker) singleRun() {
@@ -149,5 +149,5 @@ func (w *v3Worker) singleRun() {
 	}
 	w.addWorkerID(task.Metadata)
 	task.Logger = task.Logger.With(zap.String("worker", w.workerID))
-	w.doWork(&task.Logger, &work.rule, w.engine.getLockTTLForRule(work.ruleIndex), func() { work.ruleTaskCallback(&task) }, work.lockKey)
+	w.doWork(task.Logger, &work.rule, w.engine.getLockTTLForRule(work.ruleIndex), func() { work.ruleTaskCallback(&task) }, work.lockKey)
 }

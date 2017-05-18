@@ -6,7 +6,7 @@ import (
 	"github.com/coreos/etcd/client"
 	"github.com/coreos/etcd/clientv3"
 	"github.com/stretchr/testify/assert"
-	"github.com/uber-go/zap"
+	"go.uber.org/zap"
 )
 
 func TestWorkerSingleRun(t *testing.T) {
@@ -30,11 +30,14 @@ func TestWorkerSingleRun(t *testing.T) {
 	attr := mapAttributes{
 		values: attrMap,
 	}
+
+	logger, _ := zap.NewProduction()
+
 	conf := client.Config{}
 	task := RuleTask{
 		Attr:     &attr,
 		Conf:     conf,
-		Logger:   zap.New(zap.NewTextEncoder()),
+		Logger:   logger,
 		Metadata: map[string]string{},
 	}
 	cbChannel := make(chan bool)

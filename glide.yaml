@@ -10,7 +10,7 @@ import:
   version: master
   subpackages:
   - client
-- package: github.com/uber-go/zap
+- package: go.uber.org/zap
 testImport:
 - package: github.com/stretchr/testify
   subpackages:
