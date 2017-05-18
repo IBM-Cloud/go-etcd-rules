@@ -44,6 +44,8 @@ func TestCrawler(t *testing.T) {
 		"/root",
 		5,
 		&kp,
+		defaultWrapKeysAPI,
+		0,
 	)
 	assert.NoError(t, err)
 	_, err = newCrawler(
@@ -52,6 +54,8 @@ func TestCrawler(t *testing.T) {
 		"/root",
 		5,
 		&kp,
+		defaultWrapKeysAPI,
+		10,
 	)
 	assert.Error(t, err)
 }
@@ -84,6 +88,7 @@ func TestV3Crawler(t *testing.T) {
 		nil,
 		0,
 		"/root",
+		defaultWrapKV,
 	)
 	assert.NoError(t, err)
 	cfg = clientv3.Config{}
@@ -95,6 +100,7 @@ func TestV3Crawler(t *testing.T) {
 		nil,
 		0,
 		"/root",
+		defaultWrapKV,
 	)
 	assert.Error(t, err)
 }

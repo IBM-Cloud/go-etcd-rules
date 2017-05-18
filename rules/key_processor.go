@@ -11,7 +11,7 @@ type keyProc interface {
 }
 
 type setableKeyProcessor interface {
-	keyProc
+	extKeyProc
 	setCallback(int, interface{})
 	setContextProvider(int, ContextProvider)
 	setLockKeyPattern(int, string)
@@ -145,4 +145,15 @@ func (bkp *baseKeyProcessor) processKey(key string, value *string, api readAPI, 
 			dispatcher.dispatchWork(index, rule, logger, keyPattern, metadata)
 		}
 	}
+}
+
+func (bkp *baseKeyProcessor) isWork(key string, value *string, api readAPI) bool {
+	rules := bkp.rm.getStaticRules(key, value)
+	for rule, _ := range rules {
+		satisfied, _ := rule.satisfied(api)
+		if satisfied {
+			return true
+		}
+	}
+	return false
 }

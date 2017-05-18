@@ -77,4 +77,21 @@ func TestV3Locker(t *testing.T) {
 	assert.Error(t, err2)
 	rlck.unlock()
 
+	done1 := make(chan bool)
+	done2 := make(chan bool)
+
+	go func() {
+		lckr := newV3Locker(c)
+		lck, err := lckr.lock("test1", 10)
+		assert.NoError(t, err)
+		done1 <- true
+		<-done2
+		if lck != nil {
+			lck.unlock()
+		}
+	}()
+	<-done1
+	_, err = rlckr.lock("test1", 1)
+	assert.Error(t, err)
+	done2 <- true
 }

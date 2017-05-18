@@ -102,7 +102,7 @@ func TestAndRule(t *testing.T) {
 	sat, _ = s1.satisfied(api)
 	assert.False(t, sat)
 	_, _, ok = a1.makeStaticRule("/us-south/desired/clusters/armada-9b93c18d/workers/worker3/state", nil)
-	assert.False(t, ok)
+	assert.True(t, ok)
 
 	e1, _ := NewEqualsLiteralRule("/:a/:b/:var/attr1", nil)
 	e2, _ := NewEqualsLiteralRule("/:a/:b/:var/attr2", nil)
@@ -157,7 +157,7 @@ func TestOrRule(t *testing.T) {
 	sat, _ = s1.satisfied(api)
 	assert.True(t, sat)
 	_, _, ok = o1.makeStaticRule("/us-south/desired/clusters/armada-9b93c18d/workers/worker3/state", nil)
-	assert.False(t, ok)
+	assert.True(t, ok)
 	o2 := NewOrRule(workerPathMissing)
 	s2, _, _ := o2.makeStaticRule("/us-south/actual/clusters/armada-9b93c18d/workers/worker3", nil)
 	sat, _ = s2.satisfied(api)
@@ -203,5 +203,26 @@ func TestEqualsRule(t *testing.T) {
 	assert.False(t, sat)
 	api.put("/us-south/actual/clusters/armada-9b93c18d/workers/worker3/state", "deployed")
 	sat, _ = actual.satisfied(api)
+	assert.True(t, sat)
+}
+
+func TestRuleCombinations(t *testing.T) {
+	nilRule, err := NewEqualsLiteralRule("/:id/prop1", nil)
+	if !assert.NoError(t, err) {
+		return
+	}
+	andRule := NewAndRule(nilRule)
+	notRule := NewNotRule(andRule)
+	api := newMapReadAPI()
+	api.put("/id/prop1", "value")
+	value := "value"
+	stat, _, ok := notRule.makeStaticRule("/id/prop1", &value)
+	if !assert.True(t, ok) {
+		return
+	}
+	sat, err := stat.satisfied(api)
+	if !assert.NoError(t, err) {
+		return
+	}
 	assert.True(t, sat)
 }

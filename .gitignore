@@ -24,6 +24,7 @@ _testmain.go
 *.exe
 *.test
 *.prof
+cover.*
 
 .DS_Store
 

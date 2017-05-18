@@ -22,13 +22,15 @@ func newCrawler(
 	prefix string,
 	interval int,
 	kp keyProc,
+	wrapKeysAPI WrapKeysAPI,
+	delay int,
 ) (crawler, error) {
 	blank := etcdCrawler{}
 	cl, err1 := client.New(config)
 	if err1 != nil {
 		return &blank, err1
 	}
-	kapi := client.NewKeysAPI(cl)
+	kapi := wrapKeysAPI(client.NewKeysAPI(cl))
 	api := etcdReadAPI{
 		keysAPI: kapi,
 	}
@@ -39,6 +41,7 @@ func newCrawler(
 			kp:       kp,
 			logger:   logger,
 			prefix:   prefix,
+			delay:    delay,
 		},
 		kapi: kapi,
 	}
@@ -53,13 +56,14 @@ func newV3Crawler(
 	mutex *string,
 	mutexTTL int,
 	prefix string,
+	kvWrapper WrapKV,
 ) (crawler, error) {
 	blank := etcdCrawler{}
 	cl, err1 := clientv3.New(config)
 	if err1 != nil {
 		return &blank, err1
 	}
-	kv := clientv3.NewKV(cl)
+	kv := kvWrapper(clientv3.NewKV(cl))
 	api := etcdV3ReadAPI{
 		kV: kv,
 	}
@@ -84,6 +88,7 @@ type baseCrawler struct {
 	cancelFunc  context.CancelFunc
 	cancelMutex sync.Mutex
 	interval    int
+	delay       int
 	kp          keyProc
 	logger      *zap.Logger
 	mutex       *string
@@ -139,7 +144,10 @@ func (ec *etcdCrawler) crawlPath(path string) {
 	if ec.isStopping() {
 		return
 	}
-	resp, err := ec.kapi.Get(context.Background(), path, nil)
+	ctx := context.Background()
+	ctx = SetMethod(ctx, "crawler")
+	time.Sleep(time.Millisecond * time.Duration(ec.delay))
+	resp, err := ec.kapi.Get(ctx, path, nil)
 	if err != nil {
 		return
 	}
@@ -195,6 +203,7 @@ func (v3ec *v3EtcdCrawler) singleRun() {
 		return
 	}
 	ctx, cancelFunc := context.WithTimeout(context.Background(), time.Duration(1)*time.Minute)
+	ctx = SetMethod(ctx, "crawler")
 	v3ec.cancelMutex.Lock()
 	v3ec.cancelFunc = cancelFunc
 	v3ec.cancelMutex.Unlock()

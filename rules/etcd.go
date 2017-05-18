@@ -17,6 +17,7 @@ type baseReadAPI struct {
 func (bra *baseReadAPI) getContext() context.Context {
 	var ctx context.Context
 	ctx, bra.cancelFunc = context.WithTimeout(context.Background(), time.Duration(60)*time.Second)
+	ctx = SetMethod(ctx, "rule_eval")
 	return ctx
 }
 
@@ -109,6 +110,7 @@ func (bkw *baseKeyWatcher) getContext() context.Context {
 	} else {
 		ctx, bkw.cancelFunc = context.WithCancel(ctx)
 	}
+	ctx = SetMethod(ctx, "watcher")
 	return ctx
 }
 

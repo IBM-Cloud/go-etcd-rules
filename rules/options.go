@@ -15,11 +15,13 @@ func defaultContextProvider() context.Context {
 
 type engineOptions struct {
 	concurrency, crawlerTTL, syncGetTimeout, syncInterval, watchTimeout int
+	syncDelay                                                           int
 	constraints                                                         map[string]constraint
 	contextProvider                                                     ContextProvider
 	keyExpansion                                                        map[string][]string
 	lockTimeout                                                         int
 	crawlMutex                                                          *string
+	ruleWorkBuffer                                                      int
 }
 
 func makeEngineOptions(options ...EngineOption) engineOptions {
@@ -27,6 +29,7 @@ func makeEngineOptions(options ...EngineOption) engineOptions {
 		concurrency:     5,
 		constraints:     map[string]constraint{},
 		contextProvider: defaultContextProvider,
+		syncDelay:       1,
 		lockTimeout:     30,
 		syncInterval:    300,
 		syncGetTimeout:  0,
@@ -85,6 +88,15 @@ func EngineWatchTimeout(watchTimeout int) EngineOption {
 // settings while minimizing the scope of the watchers.
 func KeyExpansion(keyExpansion map[string][]string) EngineOption {
 	return engineOptionFunction(func(o *engineOptions) {
+		// Combine existing pairings with additional pairings, with
+		// collisions resolved by having later values overwrite
+		// earlier ones, i.e. "last one wins"
+		if o.keyExpansion != nil {
+			for k, v := range keyExpansion {
+				o.keyExpansion[k] = v
+			}
+			return
+		}
 		o.keyExpansion = keyExpansion
 	})
 }
@@ -105,6 +117,14 @@ func KeyConstraint(attribute string, prefix string, chars [][]rune) EngineOption
 func EngineSyncInterval(interval int) EngineOption {
 	return engineOptionFunction(func(o *engineOptions) {
 		o.syncInterval = interval
+	})
+}
+
+// EngineSyncDelay enables the throttling of the crawlers by introducing a delay (in ms)
+// between queries to keep the crawlers from overwhelming etcd.
+func EngineSyncDelay(delay int) EngineOption {
+	return engineOptionFunction(func(o *engineOptions) {
+		o.syncDelay = delay
 	})
 }
 
@@ -129,6 +149,14 @@ func EngineCrawlMutex(mutex string, mutexTTL int) EngineOption {
 	return engineOptionFunction(func(o *engineOptions) {
 		o.crawlMutex = &mutex
 		o.crawlerTTL = mutexTTL
+	})
+}
+
+// EngineRuleWorkBuffer sets the limit on the number of ruleWork in the channel
+// without a receiving worker.
+func EngineRuleWorkBuffer(buffer int) EngineOption {
+	return engineOptionFunction(func(o *engineOptions) {
+		o.ruleWorkBuffer = buffer
 	})
 }
 

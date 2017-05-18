@@ -39,9 +39,10 @@ type channelCloser func()
 
 type engine struct {
 	baseEngine
-	config      client.Config
-	keyProc     keyProcessor
-	workChannel chan ruleWork
+	config         client.Config
+	keyProc        keyProcessor
+	workChannel    chan ruleWork
+	keysAPIWrapper WrapKeysAPI
 }
 
 type v3Engine struct {
@@ -49,11 +50,13 @@ type v3Engine struct {
 	configV3    clientv3.Config
 	keyProc     v3KeyProcessor
 	workChannel chan v3RuleWork
+	kvWrapper   WrapKV
 }
 
 // Engine defines the interactions with a rule engine instance.
 type Engine interface {
 	BaseEngine
+	SetKeysAPIWrapper(WrapKeysAPI)
 	AddRule(rule DynamicRule,
 		lockPattern string,
 		callback RuleTaskCallback,
@@ -67,6 +70,7 @@ type Engine interface {
 // V3Engine defines the interactions with a rule engine instance communicating with etcd v3.
 type V3Engine interface {
 	BaseEngine
+	SetKVWrapper(WrapKV)
 	AddRule(rule DynamicRule,
 		lockPattern string,
 		callback V3RuleTaskCallback,
@@ -92,7 +96,7 @@ func NewV3Engine(configV3 clientv3.Config, logger *zap.Logger, options ...Engine
 func newEngine(config client.Config, configV3 clientv3.Config, useV3 bool, logger *zap.Logger, options ...EngineOption) engine {
 	opts := makeEngineOptions(options...)
 	ruleMgr := newRuleManager(map[string]constraint{})
-	channel := make(chan ruleWork)
+	channel := make(chan ruleWork, opts.ruleWorkBuffer)
 	keyProc := newKeyProcessor(channel, config, &ruleMgr)
 	eng := engine{
 		baseEngine: baseEngine{
@@ -105,9 +109,10 @@ func newEngine(config client.Config, configV3 clientv3.Config, useV3 bool, logge
 			ruleLockTTLs: map[int]int{},
 			ruleMgr:      ruleMgr,
 		},
-		config:      config,
-		keyProc:     keyProc,
-		workChannel: channel,
+		config:         config,
+		keyProc:        keyProc,
+		workChannel:    channel,
+		keysAPIWrapper: defaultWrapKeysAPI,
 	}
 	return eng
 }
@@ -131,8 +136,17 @@ func newV3Engine(config client.Config, configV3 clientv3.Config, useV3 bool, log
 		configV3:    configV3,
 		keyProc:     keyProc,
 		workChannel: channel,
+		kvWrapper:   defaultWrapKV,
 	}
 	return eng
+}
+
+func (e *engine) SetKeysAPIWrapper(keysAPIWrapper WrapKeysAPI) {
+	e.keysAPIWrapper = keysAPIWrapper
+}
+
+func (e *v3Engine) SetKVWrapper(kvWrapper WrapKV) {
+	e.kvWrapper = kvWrapper
 }
 
 func (e *engine) AddRule(rule DynamicRule,
@@ -271,13 +285,15 @@ func (e *engine) Run() {
 			prefix,
 			e.options.syncInterval,
 			e.baseEngine.keyProc,
+			e.keysAPIWrapper,
+			e.options.syncDelay,
 		)
 		if err1 != nil {
 			e.logger.Fatal("Failed to initialize crawler", zap.String("prefix", prefix), zap.Error(err1))
 		}
 		e.crawlers = append(e.crawlers, c)
 		go c.run()
-		w, err := newWatcher(e.config, prefix, logger, e.baseEngine.keyProc, e.options.watchTimeout)
+		w, err := newWatcher(e.config, prefix, logger, e.baseEngine.keyProc, e.options.watchTimeout, e.keysAPIWrapper)
 		if err != nil {
 			e.logger.Fatal("Failed to initialize watcher", zap.String("prefix", prefix))
 		}
@@ -298,32 +314,34 @@ func (e *engine) Run() {
 }
 
 func (e *v3Engine) Run() {
+	prefixSlice := []string{}
 	prefixes := e.ruleMgr.prefixes
 	// This is a map; used to ensure there are no duplicates
 	for prefix := range prefixes {
-		e.logger.Debug("Adding crawler", zap.String("prefix", prefix))
+		prefixSlice = append(prefixSlice, prefix)
 		logger := e.logger.With(zap.String("prefix", prefix))
-		c, err1 := newV3Crawler(
-			e.configV3,
-			e.options.syncInterval,
-			e.baseEngine.keyProc,
-			logger,
-			e.options.crawlMutex,
-			e.options.crawlerTTL,
-			prefix,
-		)
-		if err1 != nil {
-			e.logger.Fatal("Failed to initialize crawler", zap.String("prefix", prefix), zap.Error(err1))
-		}
-		e.crawlers = append(e.crawlers, c)
-		go c.run()
-		w, err := newV3Watcher(e.configV3, prefix, logger, e.baseEngine.keyProc, e.options.watchTimeout)
+		w, err := newV3Watcher(e.configV3, prefix, logger, e.baseEngine.keyProc, e.options.watchTimeout, e.kvWrapper)
 		if err != nil {
 			e.logger.Fatal("Failed to initialize watcher", zap.String("prefix", prefix))
 		}
 		e.watchers = append(e.watchers, &w)
 		go w.run()
 	}
+	logger := e.logger
+	c, err := newIntCrawler(e.configV3,
+		e.options.syncInterval,
+		e.baseEngine.keyProc,
+		logger,
+		e.options.crawlMutex,
+		e.options.crawlerTTL,
+		prefixSlice,
+		e.kvWrapper,
+		e.options.syncDelay)
+	if err != nil {
+		e.logger.Fatal("Failed to initialize crawler", zap.Error(err))
+	}
+	e.crawlers = append(e.crawlers, c)
+	go c.run()
 
 	for i := 0; i < e.options.concurrency; i++ {
 		id := fmt.Sprintf("worker%d", i)

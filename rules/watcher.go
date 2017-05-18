@@ -9,12 +9,12 @@ import (
 	"go.uber.org/zap"
 )
 
-func newWatcher(config client.Config, prefix string, logger *zap.Logger, proc keyProc, watchTimeout int) (watcher, error) {
+func newWatcher(config client.Config, prefix string, logger *zap.Logger, proc keyProc, watchTimeout int, wrapKeysAPI WrapKeysAPI) (watcher, error) {
 	ec, err := client.New(config)
 	if err != nil {
 		return watcher{}, err
 	}
-	ea := client.NewKeysAPI(ec)
+	ea := wrapKeysAPI(client.NewKeysAPI(ec))
 	api := etcdReadAPI{
 		baseReadAPI: baseReadAPI{},
 		keysAPI:     ea,
@@ -28,14 +28,14 @@ func newWatcher(config client.Config, prefix string, logger *zap.Logger, proc ke
 	}, nil
 }
 
-func newV3Watcher(config clientv3.Config, prefix string, logger *zap.Logger, proc keyProc, watchTimeout int) (watcher, error) {
+func newV3Watcher(config clientv3.Config, prefix string, logger *zap.Logger, proc keyProc, watchTimeout int, kvWrapper WrapKV) (watcher, error) {
 	ec, err := clientv3.New(config)
 	if err != nil {
 		return watcher{}, err
 	}
 	api := etcdV3ReadAPI{
 		baseReadAPI: baseReadAPI{},
-		kV:          ec,
+		kV:          kvWrapper(clientv3.NewKV(ec)),
 	}
 	ew := newEtcdV3KeyWatcher(ec, prefix, time.Duration(watchTimeout)*time.Second)
 	return watcher{
