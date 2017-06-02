@@ -20,6 +20,11 @@ type BaseEngine interface {
 	Run()
 	Stop()
 	IsStopped() bool
+
+	// Shutdown gracefully stops the rules engine and waits for termination to
+	// complete. If the provided context expires before the shutdown is complete,
+	// then the context's error is returned.
+	Shutdown(ctx context.Context) error
 }
 
 type baseEngine struct {
@@ -166,6 +171,26 @@ func (e *v3Engine) AddRule(rule DynamicRule,
 func (e *baseEngine) Stop() {
 	e.logger.Info("Stopping engine")
 	go e.stop()
+}
+
+var shutdownPollInterval = 500 * time.Millisecond
+
+func (e *baseEngine) Shutdown(ctx context.Context) error {
+	e.logger.Info("Shutting down engine")
+	go e.stop()
+
+	ticker := time.NewTicker(shutdownPollInterval)
+	defer ticker.Stop()
+	for {
+		if e.IsStopped() {
+			return nil
+		}
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-ticker.C:
+		}
+	}
 }
 
 func (e *baseEngine) stop() {
