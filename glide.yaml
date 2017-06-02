@@ -4,14 +4,17 @@ import:
   subpackages:
   - context
 - package: github.com/IBM-Bluemix/go-etcd-lock
+  version: f8db4b359db496dc78cb6512bd3c77eebd3b8f0c
   subpackages:
   - lock
 - package: github.com/coreos/etcd
-  version: master
+  version: release-3.1
   subpackages:
   - client
 - package: github.com/uber-go/zap
+  version: ~0.1.0-beta.1
 testImport:
 - package: github.com/stretchr/testify
+  version: ~1.1.4
   subpackages:
   - assert
