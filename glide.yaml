@@ -1,4 +1,4 @@
-package: .
+package: github.com/IBM-Bluemix/go-etcd-rules
 import:
 - package: golang.org/x/net
   subpackages:
