@@ -8,6 +8,7 @@ import (
 	"github.com/coreos/etcd/client"
 	"github.com/coreos/etcd/clientv3"
 	"github.com/stretchr/testify/assert"
+	"golang.org/x/net/context"
 )
 
 func channelWriteAfterCall(channel chan bool, f func()) {
@@ -96,6 +97,57 @@ func TestV3EngineConstructor(t *testing.T) {
 		time.Sleep(time.Second)
 	}
 	assert.True(t, stopped)
+}
+
+func TestEngineShutdown(t *testing.T) {
+	shutdownTests := map[string]struct {
+		blockCallback bool // prevent the callback from returning
+		timeout       time.Duration
+		expected      error
+	}{
+		"normal": {
+			blockCallback: false,
+			timeout:       5 * time.Second,
+			expected:      nil,
+		},
+		"timeout": {
+			blockCallback: true,
+			timeout:       100 * time.Millisecond,
+			expected:      context.DeadlineExceeded,
+		},
+	}
+
+	for name, tt := range shutdownTests {
+		cfg, _, kv := initEtcd()
+		eng := NewEngine(cfg, getTestLogger())
+		value := "val"
+		kv.Set(context.Background(), "/key", value, nil)
+		rule, _ := NewEqualsLiteralRule("/key", &value)
+
+		releaseCh := make(chan struct{})
+		shutdownErrCh := make(chan error)
+		eng.AddRule(rule, "/shutdown-lock", func(*RuleTask) {
+			blockCallback := tt.blockCallback
+			go func() {
+				ctx, cancel := context.WithTimeout(context.Background(), tt.timeout)
+				defer cancel()
+				shutdownErrCh <- eng.Shutdown(ctx)
+			}()
+			if blockCallback {
+				<-releaseCh
+			}
+		})
+		eng.Run()
+
+		timer := time.NewTimer(10 * time.Second)
+		select {
+		case err := <-shutdownErrCh:
+			close(releaseCh)
+			assert.Equal(t, tt.expected, err, name)
+		case <-timer.C:
+			assert.Fail(t, "timeout", "variation %q did not complete", name)
+		}
+	}
 }
 
 func TestCallbackWrapper(t *testing.T) {
