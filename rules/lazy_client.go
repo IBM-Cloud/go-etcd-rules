@@ -58,7 +58,7 @@ func (lc *lazyClient) LazyGet(pattern string) (*string, error) {
 	key := lc.attr.Format(pattern)
 	var originalValue *string
 	defer lc.cancel()
-	resp, err := lc.api.Get(lc.getContext(), key, nil)
+	resp, err := lc.api.Get(lc.getContext(), key, &client.GetOptions{Quorum: true})
 	if err != nil {
 		if !strings.HasPrefix(err.Error(), "100") {
 			return nil, err
@@ -90,6 +90,10 @@ func (lc *lazyClient) LazySet(pattern, value string) error {
 }
 
 func (lc *lazyClient) List(pattern string, options *client.GetOptions) ([]*client.Node, error) {
+	if options == nil {
+		options = &client.GetOptions{}
+	}
+	options.Quorum = true
 	initErr := lc.init()
 	if initErr != nil {
 		return []*client.Node{}, initErr

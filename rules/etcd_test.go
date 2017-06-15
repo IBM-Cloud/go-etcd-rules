@@ -32,7 +32,7 @@ func initV3Etcd() (clientv3.Config, *clientv3.Client) {
 		Endpoints: []string{"http://127.0.0.1:2379"},
 	}
 	c, _ := clientv3.New(cfg)
-	c.Delete(context.Background(), "", clientv3.WithPrefix())
+	c.Delete(context.Background(), "/", clientv3.WithPrefix())
 	return cfg, c
 }
 

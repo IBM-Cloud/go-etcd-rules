@@ -147,7 +147,7 @@ func (ec *etcdCrawler) crawlPath(path string) {
 	ctx := context.Background()
 	ctx = SetMethod(ctx, "crawler")
 	time.Sleep(time.Millisecond * time.Duration(ec.delay))
-	resp, err := ec.kapi.Get(ctx, path, nil)
+	resp, err := ec.kapi.Get(ctx, path, &client.GetOptions{Quorum: true})
 	if err != nil {
 		return
 	}
