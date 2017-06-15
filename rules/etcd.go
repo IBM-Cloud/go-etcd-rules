@@ -33,7 +33,7 @@ type etcdReadAPI struct {
 func (edra *etcdReadAPI) get(key string) (*string, error) {
 	ctx := edra.getContext()
 	defer edra.cancel()
-	resp, err := edra.keysAPI.Get(ctx, key, nil)
+	resp, err := edra.keysAPI.Get(ctx, key, &client.GetOptions{Quorum: true})
 	if err != nil {
 		if !strings.HasPrefix(err.Error(), "100") {
 			return nil, err
