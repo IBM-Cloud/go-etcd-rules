@@ -269,10 +269,17 @@ func (e *v3Engine) AddPolling(namespacePattern string, preconditions DynamicRule
 		return err
 	}
 	rule := NewAndRule(preconditions, ttlRule)
+	c, err := clientv3.New(e.configV3)
+	if err != nil {
+		return err
+	}
 	cbw := v3CallbackWrapper{
 		callback:       callback,
 		ttl:            ttl,
 		ttlPathPattern: ttlPathPattern,
+		kv:             e.kvWrapper(c),
+		lease:          c,
+		engine:         e,
 	}
 	e.AddRule(rule, "/rule_locks"+namespacePattern+"lock", cbw.doRule)
 	return nil
@@ -394,6 +401,9 @@ type v3CallbackWrapper struct {
 	ttlPathPattern string
 	callback       V3RuleTaskCallback
 	ttl            int
+	kv             clientv3.KV
+	lease          clientv3.Lease
+	engine         *v3Engine
 }
 
 func (cbw *callbackWrapper) doRule(task *RuleTask) {
@@ -421,25 +431,18 @@ func (cbw *callbackWrapper) doRule(task *RuleTask) {
 func (cbw *v3CallbackWrapper) doRule(task *V3RuleTask) {
 	logger := task.Logger
 	cbw.callback(task)
-	c, err := clientv3.New(*task.Conf)
-	if err != nil {
-		logger.Error("Error obtaining client", zap.Error(err))
-		return
-	}
-	kv := clientv3.NewKV(c)
 	path := task.Attr.Format(cbw.ttlPathPattern)
 	logger.Debug("Setting polling TTL", zap.String("path", path))
-	lease := clientv3.NewLease(c)
 	ctx, cancelFunc := context.WithTimeout(context.Background(), time.Duration(5)*time.Second)
 	defer cancelFunc()
-	resp, leaseErr := lease.Grant(ctx, int64(cbw.ttl))
+	resp, leaseErr := cbw.lease.Grant(ctx, int64(cbw.ttl))
 	if leaseErr != nil {
 		logger.Error("Error obtaining lease", zap.Error(leaseErr), zap.String("path", path))
 		return
 	}
 	ctx1, cancelFunc1 := context.WithTimeout(context.Background(), time.Duration(5)*time.Second)
 	defer cancelFunc1()
-	_, setErr := kv.Put(
+	_, setErr := cbw.kv.Put(
 		ctx1,
 		path,
 		"",
