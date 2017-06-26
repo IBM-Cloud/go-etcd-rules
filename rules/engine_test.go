@@ -130,6 +130,8 @@ func TestEngineShutdown(t *testing.T) {
 			blockCallback := tt.blockCallback
 			go func() {
 				ctx, cancel := context.WithTimeout(context.Background(), tt.timeout)
+				// Prevent additional firing of rule
+				kv.Delete(ctx, "/key", nil)
 				defer cancel()
 				shutdownErrCh <- eng.Shutdown(ctx)
 			}()
