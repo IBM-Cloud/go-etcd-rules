@@ -51,12 +51,13 @@ func newV3Worker(workerID string, engine *v3Engine) (v3Worker, error) {
 	var locker ruleLocker
 
 	c, err := clientv3.New(engine.configV3)
+	kv := engine.kvWrapper(c)
 	if err != nil {
 		return v3Worker{}, err
 	}
 	locker = newV3Locker(c)
 	api = &etcdV3ReadAPI{
-		kV: c,
+		kV: kv,
 	}
 	w := v3Worker{
 		baseWorker: baseWorker{
