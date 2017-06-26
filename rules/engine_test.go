@@ -130,6 +130,8 @@ func TestEngineShutdown(t *testing.T) {
 			blockCallback := tt.blockCallback
 			go func() {
 				ctx, cancel := context.WithTimeout(context.Background(), tt.timeout)
+				// Prevent additional firing of rule
+				kv.Delete(ctx, "/key", nil)
 				defer cancel()
 				shutdownErrCh <- eng.Shutdown(ctx)
 			}()
@@ -184,7 +186,8 @@ func TestCallbackWrapper(t *testing.T) {
 }
 
 func TestV3CallbackWrapper(t *testing.T) {
-	cfg, _ := initV3Etcd()
+	cfg, c := initV3Etcd()
+	defer c.Close()
 	task := V3RuleTask{
 		Attr:   &mapAttributes{values: map[string]string{"a": "b"}},
 		Conf:   &cfg,
@@ -194,27 +197,20 @@ func TestV3CallbackWrapper(t *testing.T) {
 		callback:       v3DummyCallback,
 		ttl:            30,
 		ttlPathPattern: "/:a/ttl",
+		kv:             c,
+		lease:          c,
 	}
-	t.Log("Testing valid rule")
 	cbw.doRule(&task)
-	// Bad configuration resulting in error creating client
-	cfg = clientv3.Config{}
-	task = V3RuleTask{
-		Attr:   &mapAttributes{},
-		Conf:   &cfg,
-		Logger: getTestLogger(),
+	resp, err := c.Get(context.Background(), "/b/ttl")
+	assert.NoError(t, err)
+	if assert.Equal(t, 1, len(resp.Kvs)) {
+		assert.Equal(t, "/b/ttl", string(resp.Kvs[0].Key))
+		leaseID := resp.Kvs[0].Lease
+		if assert.True(t, leaseID > 0) {
+			ttlResp, err := c.TimeToLive(context.Background(), clientv3.LeaseID(leaseID))
+			if assert.NoError(t, err) {
+				assert.InDelta(t, ttlResp.TTL, 30, 5)
+			}
+		}
 	}
-	t.Log("Testing invalid configuration--no endpoints")
-	cbw.doRule(&task)
-	// Bad configuration resulting in HTTP error
-	cfg = clientv3.Config{
-		Endpoints: []string{"xyz://500.0.0.1:0"},
-	}
-	task = V3RuleTask{
-		Attr:   &mapAttributes{},
-		Conf:   &cfg,
-		Logger: getTestLogger(),
-	}
-	t.Log("Testing invalid configuration--invalid host")
-	cbw.doRule(&task)
 }

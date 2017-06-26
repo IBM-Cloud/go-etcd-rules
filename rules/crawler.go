@@ -63,7 +63,7 @@ func newV3Crawler(
 	if err1 != nil {
 		return &blank, err1
 	}
-	kv := kvWrapper(clientv3.NewKV(cl))
+	kv := kvWrapper(cl)
 	api := etcdV3ReadAPI{
 		kV: kv,
 	}
