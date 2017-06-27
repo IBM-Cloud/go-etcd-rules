@@ -123,9 +123,9 @@ type etcdCrawler struct {
 func (ec *etcdCrawler) run() {
 	atomicSet(&ec.stopped, false)
 	for !ec.isStopping() {
-		ec.logger.Debug("Starting crawler run")
+		ec.logger.Info("Starting crawler run")
 		ec.singleRun()
-		ec.logger.Debug("Crawler run complete")
+		ec.logger.Info("Crawler run complete")
 		for i := 0; i < ec.interval; i++ {
 			time.Sleep(time.Second)
 			if ec.isStopping() {
