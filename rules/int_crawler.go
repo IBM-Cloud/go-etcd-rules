@@ -140,12 +140,16 @@ func (ic *intCrawler) singleRun() {
 	for _, prefix := range ic.prefixes {
 		resp, err := ic.kv.Get(ctx, prefix, clientv3.WithPrefix())
 		if err != nil {
+			logger.Error("Error retrieving prefix", zap.String("prefix", prefix), zap.Error(err))
 			return
 		}
 		for _, kv := range resp.Kvs {
 			values[string(kv.Key)] = string(kv.Value)
 		}
 	}
+	ic.processData(values, logger)
+}
+func (ic *intCrawler) processData(values map[string]string, logger zap.Logger) {
 	api := &cacheReadAPI{values: values}
 	for k, v := range values {
 		if ic.isStopping() {
