@@ -140,6 +140,7 @@ func (w *worker) singleRun() {
 	w.addWorkerID(task.Metadata)
 	task.Logger = task.Logger.With(zap.String("worker", w.workerID))
 	w.doWork(&task.Logger, &work.rule, w.engine.getLockTTLForRule(work.ruleIndex), func() { work.ruleTaskCallback(&task) }, work.lockKey)
+	work.ruleTask.cancel()
 }
 
 func (w *v3Worker) singleRun() {

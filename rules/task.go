@@ -23,6 +23,7 @@ type RuleTask struct {
 	Conf     client.Config
 	Logger   zap.Logger
 	Context  context.Context
+	cancel   context.CancelFunc
 	Metadata map[string]string
 }
 
@@ -33,6 +34,7 @@ type V3RuleTask struct {
 	Conf     *clientv3.Config
 	Logger   zap.Logger
 	Context  context.Context
+	cancel   context.CancelFunc
 	Metadata map[string]string
 }
 

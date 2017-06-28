@@ -159,6 +159,15 @@ func (ev3kw *etcdV3KeyWatcher) next() (string, *string, error) {
 		return "", nil, nil
 	}
 	if ev3kw.ch == nil {
+		// Cancel existing context, if any
+		if ev3kw.cancelFunc != nil {
+			ev3kw.cancelMutex.Lock()
+			if ev3kw.cancelFunc != nil {
+				ev3kw.cancelFunc()
+			}
+			ev3kw.cancelFunc = nil
+			ev3kw.cancelMutex.Unlock()
+		}
 		ev3kw.ch = ev3kw.w.Watch(ev3kw.getContext(), ev3kw.prefix, clientv3.WithPrefix())
 	}
 	if ev3kw.events == nil {
@@ -177,10 +186,10 @@ func (ev3kw *etcdV3KeyWatcher) next() (string, *string, error) {
 	if ev3kw.eventIndex >= len(ev3kw.events) {
 		ev3kw.events = nil
 	}
-	key := string(event.Kv.Key[:])
+	key := string(event.Kv.Key)
 	if event.Type == clientv3.EventTypeDelete { // Expire?
 		return key, nil, nil
 	}
-	val := string(event.Kv.Value[:])
+	val := string(event.Kv.Value)
 	return key, &val, nil
 }
