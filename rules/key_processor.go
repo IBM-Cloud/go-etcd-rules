@@ -22,11 +22,13 @@ type workDispatcher interface {
 }
 
 func (kp *keyProcessor) dispatchWork(index int, rule staticRule, logger zap.Logger, keyPattern string, metadata map[string]string) {
+	ctx, cancel := kp.contextProviders[index]()
 	task := RuleTask{
 		Attr:     rule.getAttributes(),
 		Conf:     kp.config,
 		Logger:   logger,
-		Context:  kp.contextProviders[index](),
+		Context:  ctx,
+		cancel:   cancel,
 		Metadata: metadata,
 	}
 	work := ruleWork{
@@ -76,12 +78,14 @@ func (v3kp *v3KeyProcessor) setCallback(index int, callback interface{}) {
 }
 
 func (v3kp *v3KeyProcessor) dispatchWork(index int, rule staticRule, logger zap.Logger, keyPattern string, metadata map[string]string) {
+	context, cancelFunc := v3kp.contextProviders[index]()
 	task := V3RuleTask{
 		Attr: rule.getAttributes(),
 		// This line is different
 		Conf:     v3kp.config,
 		Logger:   logger,
-		Context:  v3kp.contextProviders[index](),
+		Context:  context,
+		cancel:   cancelFunc,
 		Metadata: metadata,
 	}
 	work := v3RuleWork{

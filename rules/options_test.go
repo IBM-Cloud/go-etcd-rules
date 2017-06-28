@@ -48,13 +48,14 @@ func TestEngineOptions(t *testing.T) {
 }
 
 func getTestContextProvider() ContextProvider {
-	return func() context.Context {
-		return context.WithValue(context.Background(), "test", "value")
+	return func() (context.Context, context.CancelFunc) {
+		ctx, cancel := context.WithCancel(context.Background())
+		return context.WithValue(ctx, "test", "value"), cancel
 	}
 }
 
 func verifyTestContextProvider(t *testing.T, cp ContextProvider) {
-	ctx := cp()
+	ctx, _ := cp()
 	val := ctx.Value("test")
 	if assert.NotNil(t, val) {
 		text, ok := val.(string)

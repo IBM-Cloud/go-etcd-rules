@@ -7,6 +7,7 @@ import (
 	"github.com/coreos/etcd/clientv3"
 	"github.com/stretchr/testify/assert"
 	"github.com/uber-go/zap"
+	"golang.org/x/net/context"
 )
 
 func TestWorkerSingleRun(t *testing.T) {
@@ -31,11 +32,14 @@ func TestWorkerSingleRun(t *testing.T) {
 		values: attrMap,
 	}
 	conf := client.Config{}
+	ctx, cancel := context.WithCancel(context.Background())
 	task := RuleTask{
 		Attr:     &attr,
 		Conf:     conf,
 		Logger:   zap.New(zap.NewTextEncoder()),
 		Metadata: map[string]string{},
+		Context:  ctx,
+		cancel:   cancel,
 	}
 	cbChannel := make(chan bool)
 	callback := testCallback{

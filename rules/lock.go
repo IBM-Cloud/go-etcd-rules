@@ -62,7 +62,8 @@ func (v3l *v3Locker) lockWithTimeout(key string, ttl int, timeout int) (ruleLock
 		return nil, err
 	}
 	m := concurrency.NewMutex(s, key)
-	ctx, _ := context.WithTimeout(context.Background(), time.Duration(timeout)*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(timeout)*time.Second)
+	defer cancel()
 	err = m.Lock(ctx)
 	if err != nil {
 		return nil, err
@@ -79,7 +80,8 @@ type v3Lock struct {
 }
 
 func (v3l *v3Lock) unlock() {
-	ctx, _ := context.WithTimeout(context.Background(), time.Duration(5)*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(5)*time.Second)
+	defer cancel()
 	err := v3l.mutex.Unlock(ctx)
 	if err == nil {
 		v3l.session.Close()

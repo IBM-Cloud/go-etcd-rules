@@ -6,11 +6,10 @@ import (
 	"golang.org/x/net/context"
 )
 
-type ContextProvider func() context.Context
+type ContextProvider func() (context.Context, context.CancelFunc)
 
-func defaultContextProvider() context.Context {
-	c, _ := context.WithTimeout(context.Background(), time.Minute*5)
-	return c
+func defaultContextProvider() (context.Context, context.CancelFunc) {
+	return context.WithTimeout(context.Background(), time.Minute*5)
 }
 
 type engineOptions struct {
