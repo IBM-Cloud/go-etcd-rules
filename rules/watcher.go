@@ -28,11 +28,7 @@ func newWatcher(config client.Config, prefix string, logger zap.Logger, proc key
 	}, nil
 }
 
-func newV3Watcher(config clientv3.Config, prefix string, logger zap.Logger, proc keyProc, watchTimeout int, kvWrapper WrapKV) (watcher, error) {
-	ec, err := clientv3.New(config)
-	if err != nil {
-		return watcher{}, err
-	}
+func newV3Watcher(ec *clientv3.Client, prefix string, logger zap.Logger, proc keyProc, watchTimeout int, kvWrapper WrapKV) (watcher, error) {
 	api := etcdV3ReadAPI{
 		baseReadAPI: baseReadAPI{},
 		kV:          kvWrapper(ec),

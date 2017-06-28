@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	"github.com/coreos/etcd/client"
-	"github.com/coreos/etcd/clientv3"
 	"github.com/stretchr/testify/assert"
 	"golang.org/x/net/context"
 )
@@ -89,18 +88,7 @@ func TestV3Crawler(t *testing.T) {
 		0,
 		"/root",
 		defaultWrapKV,
+		c,
 	)
 	assert.NoError(t, err)
-	cfg = clientv3.Config{}
-	_, err = newV3Crawler(
-		cfg,
-		5,
-		&kp,
-		getTestLogger(),
-		nil,
-		0,
-		"/root",
-		defaultWrapKV,
-	)
-	assert.Error(t, err)
 }

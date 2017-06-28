@@ -56,6 +56,7 @@ type v3Engine struct {
 	keyProc     v3KeyProcessor
 	workChannel chan v3RuleWork
 	kvWrapper   WrapKV
+	cl          *clientv3.Client
 }
 
 // Engine defines the interactions with a rule engine instance.
@@ -94,7 +95,15 @@ func NewEngine(config client.Config, logger zap.Logger, options ...EngineOption)
 
 // NewV3Engine creates a new V3Engine instance.
 func NewV3Engine(configV3 clientv3.Config, logger zap.Logger, options ...EngineOption) V3Engine {
-	eng := newV3Engine(client.Config{}, configV3, true, logger, options...)
+	cl, err := clientv3.New(configV3)
+	if err != nil {
+		logger.Fatal("Failed to connect to etcd", zap.Error(err))
+	}
+	return NewV3EngineWithClient(cl, configV3, logger, options...)
+}
+
+func NewV3EngineWithClient(cl *clientv3.Client, configV3 clientv3.Config, logger zap.Logger, options ...EngineOption) V3Engine {
+	eng := newV3Engine(client.Config{}, configV3, true, logger, cl, options...)
 	return &eng
 }
 
@@ -122,7 +131,7 @@ func newEngine(config client.Config, configV3 clientv3.Config, useV3 bool, logge
 	return eng
 }
 
-func newV3Engine(config client.Config, configV3 clientv3.Config, useV3 bool, logger zap.Logger, options ...EngineOption) v3Engine {
+func newV3Engine(config client.Config, configV3 clientv3.Config, useV3 bool, logger zap.Logger, cl *clientv3.Client, options ...EngineOption) v3Engine {
 	opts := makeEngineOptions(options...)
 	ruleMgr := newRuleManager(opts.constraints)
 	channel := make(chan v3RuleWork)
@@ -142,6 +151,7 @@ func newV3Engine(config client.Config, configV3 clientv3.Config, useV3 bool, log
 		keyProc:     keyProc,
 		workChannel: channel,
 		kvWrapper:   defaultWrapKV,
+		cl:          cl,
 	}
 	return eng
 }
@@ -269,16 +279,12 @@ func (e *v3Engine) AddPolling(namespacePattern string, preconditions DynamicRule
 		return err
 	}
 	rule := NewAndRule(preconditions, ttlRule)
-	c, err := clientv3.New(e.configV3)
-	if err != nil {
-		return err
-	}
 	cbw := v3CallbackWrapper{
 		callback:       callback,
 		ttl:            ttl,
 		ttlPathPattern: ttlPathPattern,
-		kv:             e.kvWrapper(c),
-		lease:          c,
+		kv:             e.cl,
+		lease:          e.cl,
 		engine:         e,
 	}
 	e.AddRule(rule, "/rule_locks"+namespacePattern+"lock", cbw.doRule)
@@ -352,7 +358,7 @@ func (e *v3Engine) Run() {
 	for prefix := range prefixes {
 		prefixSlice = append(prefixSlice, prefix)
 		logger := e.logger.With(zap.String("prefix", prefix))
-		w, err := newV3Watcher(e.configV3, prefix, logger, e.baseEngine.keyProc, e.options.watchTimeout, e.kvWrapper)
+		w, err := newV3Watcher(e.cl, prefix, logger, e.baseEngine.keyProc, e.options.watchTimeout, e.kvWrapper)
 		if err != nil {
 			e.logger.Fatal("Failed to initialize watcher", zap.String("prefix", prefix))
 		}
@@ -360,7 +366,7 @@ func (e *v3Engine) Run() {
 		go w.run()
 	}
 	logger := e.logger
-	c, err := newIntCrawler(e.configV3,
+	c, err := newIntCrawler(e.cl,
 		e.options.syncInterval,
 		e.baseEngine.keyProc,
 		logger,

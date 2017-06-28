@@ -2,7 +2,6 @@ package rules
 
 import (
 	"github.com/coreos/etcd/client"
-	"github.com/coreos/etcd/clientv3"
 	"github.com/uber-go/zap"
 )
 
@@ -50,11 +49,8 @@ func newV3Worker(workerID string, engine *v3Engine) (v3Worker, error) {
 	var api readAPI
 	var locker ruleLocker
 
-	c, err := clientv3.New(engine.configV3)
+	c := engine.cl
 	kv := engine.kvWrapper(c)
-	if err != nil {
-		return v3Worker{}, err
-	}
 	locker = newV3Locker(c)
 	api = &etcdV3ReadAPI{
 		kV: kv,
