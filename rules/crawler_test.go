@@ -33,10 +33,10 @@ func TestCrawler(t *testing.T) {
 		},
 		kapi: kapi,
 	}
-	cr.singleRun()
+	cr.singleRun(getTestLogger())
 	assert.Equal(t, "/root/child", kp.keys[0])
 	cr.prefix = "/notroot"
-	cr.singleRun()
+	cr.singleRun(getTestLogger())
 
 	_, err := newCrawler(
 		cfg,
@@ -76,10 +76,10 @@ func TestV3Crawler(t *testing.T) {
 		},
 		kv: c,
 	}
-	cr.singleRun()
+	cr.singleRun(getTestLogger())
 	assert.Equal(t, "/root/child", kp.keys[0])
 	cr.prefix = "/notroot"
-	cr.singleRun()
+	cr.singleRun(getTestLogger())
 	_, err := newV3Crawler(
 		cfg,
 		5,

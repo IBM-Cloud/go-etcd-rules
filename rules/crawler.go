@@ -123,9 +123,14 @@ type etcdCrawler struct {
 func (ec *etcdCrawler) run() {
 	atomicSet(&ec.stopped, false)
 	for !ec.isStopping() {
-		ec.logger.Debug("Starting crawler run")
-		ec.singleRun()
-		ec.logger.Debug("Crawler run complete")
+		logger := ec.logger.With(
+			zap.String("source", "crawler"),
+			zap.String("crawler_prefix", ec.prefix),
+			zap.Object("crawler_start", time.Now()),
+		)
+		logger.Info("Crawler run starting")
+		ec.singleRun(logger)
+		logger.Info("Crawler run complete")
 		for i := 0; i < ec.interval; i++ {
 			time.Sleep(time.Second)
 			if ec.isStopping() {
@@ -136,11 +141,11 @@ func (ec *etcdCrawler) run() {
 	atomicSet(&ec.stopped, true)
 }
 
-func (ec *etcdCrawler) singleRun() {
-	ec.crawlPath(ec.prefix)
+func (ec *etcdCrawler) singleRun(logger zap.Logger) {
+	ec.crawlPath(ec.prefix, logger)
 }
 
-func (ec *etcdCrawler) crawlPath(path string) {
+func (ec *etcdCrawler) crawlPath(path string, logger zap.Logger) {
 	if ec.isStopping() {
 		return
 	}
@@ -149,16 +154,16 @@ func (ec *etcdCrawler) crawlPath(path string) {
 	time.Sleep(time.Millisecond * time.Duration(ec.delay))
 	resp, err := ec.kapi.Get(ctx, path, &client.GetOptions{Quorum: true})
 	if err != nil {
+		logger.Error("Crawler error", zap.Error(err), zap.String("path", path))
 		return
 	}
 	if resp.Node.Dir {
 		for _, node := range resp.Node.Nodes {
-			ec.crawlPath(node.Key)
+			ec.crawlPath(node.Key, logger)
 		}
 		return
 	}
 	node := resp.Node
-	logger := ec.logger.With(zap.String("source", "crawler"))
 	ec.kp.processKey(node.Key, &node.Value, ec.api, logger, map[string]string{"source": "crawler", "prefix": ec.prefix})
 }
 
@@ -171,23 +176,28 @@ type v3EtcdCrawler struct {
 func (v3ec *v3EtcdCrawler) run() {
 	atomicSet(&v3ec.stopped, false)
 	for !v3ec.isStopping() {
-		v3ec.logger.Debug("Starting crawler run")
+		logger := v3ec.logger.With(
+			zap.String("source", "crawler"),
+			zap.String("crawler_prefix", v3ec.prefix),
+			zap.Object("crawler_start", time.Now()),
+		)
+		logger.Info("Crawler run starting")
 		if v3ec.mutex == nil {
-			v3ec.singleRun()
+			v3ec.singleRun(logger)
 		} else {
 			mutex := "/crawler/" + *v3ec.mutex + v3ec.prefix
-			v3ec.logger.Debug("Attempting to obtain mutex",
+			logger.Debug("Attempting to obtain mutex",
 				zap.String("mutex", mutex), zap.Int("TTL", v3ec.mutexTTL))
 			locker := newV3Locker(v3ec.cl)
 			lock, err := locker.lock(mutex, v3ec.mutexTTL)
 			if err != nil {
-				v3ec.logger.Debug("Could not obtain mutex; skipping crawler run", zap.Error(err))
+				logger.Debug("Could not obtain mutex; skipping crawler run", zap.Error(err))
 			} else {
-				v3ec.singleRun()
+				v3ec.singleRun(logger)
 				lock.unlock()
 			}
 		}
-		v3ec.logger.Debug("Crawler run complete")
+		logger.Info("Crawler run complete")
 		for i := 0; i < v3ec.interval; i++ {
 			time.Sleep(time.Second)
 			if v3ec.isStopping() {
@@ -198,7 +208,7 @@ func (v3ec *v3EtcdCrawler) run() {
 	atomicSet(&v3ec.stopped, true)
 }
 
-func (v3ec *v3EtcdCrawler) singleRun() {
+func (v3ec *v3EtcdCrawler) singleRun(logger zap.Logger) {
 	if v3ec.isStopping() {
 		return
 	}
@@ -209,9 +219,9 @@ func (v3ec *v3EtcdCrawler) singleRun() {
 	v3ec.cancelMutex.Unlock()
 	resp, err := v3ec.kv.Get(ctx, v3ec.prefix, clientv3.WithPrefix())
 	if err != nil {
+		logger.Error("Crawler error", zap.Error(err))
 		return
 	}
-	logger := v3ec.logger.With(zap.String("source", "crawler"))
 	for _, kv := range resp.Kvs {
 		if v3ec.isStopping() {
 			return
