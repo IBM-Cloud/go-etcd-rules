@@ -9,16 +9,8 @@ import (
 )
 
 func TestCrawler(t *testing.T) {
-	cfg := client.Config{
-		Endpoints: []string{"http://127.0.0.1:2379"},
-	}
+	cfg, _, kapi := initEtcd()
 
-	c, _ := client.New(cfg)
-
-	kapi := client.NewKeysAPI(c)
-
-	kapi.Delete(context.Background(), "/", &client.DeleteOptions{Recursive: true})
-	kapi.Set(context.Background(), "/root", "", &client.SetOptions{Dir: true})
 	kapi.Set(context.Background(), "/root/child", "val1", nil)
 
 	kp := testKeyProcessor{
