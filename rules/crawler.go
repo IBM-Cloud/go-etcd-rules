@@ -153,14 +153,19 @@ func (ec *etcdCrawler) crawlPath(path string, logger zap.Logger) {
 		logger.Error("Crawler error", zap.Error(err), zap.String("path", path))
 		return
 	}
+	info := map[string]string{"source": "crawler", "prefix": ec.prefix}
 	if resp.Node.Dir {
 		for _, node := range resp.Node.Nodes {
-			ec.crawlPath(node.Key, logger)
+			if node.Dir {
+				ec.crawlPath(node.Key, logger)
+			} else {
+				ec.kp.processKey(node.Key, &node.Value, ec.api, logger, info)
+			}
 		}
 		return
 	}
 	node := resp.Node
-	ec.kp.processKey(node.Key, &node.Value, ec.api, logger, map[string]string{"source": "crawler", "prefix": ec.prefix})
+	ec.kp.processKey(node.Key, &node.Value, ec.api, logger, info)
 }
 
 type v3EtcdCrawler struct {
