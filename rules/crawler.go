@@ -59,8 +59,9 @@ func newV3Crawler(
 	kvWrapper WrapKV,
 	cl *clientv3.Client,
 ) (crawler, error) {
+	kv := kvWrapper(cl)
 	api := etcdV3ReadAPI{
-		kV: cl,
+		kV: kv,
 	}
 	c := v3EtcdCrawler{
 		baseCrawler: baseCrawler{
@@ -73,7 +74,7 @@ func newV3Crawler(
 			prefix:   prefix,
 		},
 		cl: cl,
-		kv: cl,
+		kv: kv,
 	}
 	return &c, nil
 }

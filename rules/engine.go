@@ -283,7 +283,7 @@ func (e *v3Engine) AddPolling(namespacePattern string, preconditions DynamicRule
 		callback:       callback,
 		ttl:            ttl,
 		ttlPathPattern: ttlPathPattern,
-		kv:             e.cl,
+		kv:             e.kvWrapper(e.cl),
 		lease:          e.cl,
 		engine:         e,
 	}
