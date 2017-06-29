@@ -57,12 +57,8 @@ func newV3Crawler(
 	mutexTTL int,
 	prefix string,
 	kvWrapper WrapKV,
+	cl *clientv3.Client,
 ) (crawler, error) {
-	blank := etcdCrawler{}
-	cl, err1 := clientv3.New(config)
-	if err1 != nil {
-		return &blank, err1
-	}
 	kv := kvWrapper(cl)
 	api := etcdV3ReadAPI{
 		kV: kv,

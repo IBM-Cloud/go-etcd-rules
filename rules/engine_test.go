@@ -8,6 +8,7 @@ import (
 	"github.com/coreos/etcd/client"
 	"github.com/coreos/etcd/clientv3"
 	"github.com/stretchr/testify/assert"
+	"github.com/uber-go/zap"
 	"golang.org/x/net/context"
 )
 
@@ -100,39 +101,48 @@ func TestV3EngineConstructor(t *testing.T) {
 }
 
 func TestEngineShutdown(t *testing.T) {
-	shutdownTests := map[string]struct {
+	shutdownTests := []struct {
 		blockCallback bool // prevent the callback from returning
 		timeout       time.Duration
 		expected      error
+		name, literal string
 	}{
-		"normal": {
-			blockCallback: false,
-			timeout:       5 * time.Second,
-			expected:      nil,
-		},
-		"timeout": {
+		{
 			blockCallback: true,
 			timeout:       100 * time.Millisecond,
 			expected:      context.DeadlineExceeded,
+			name:          "timeout",
+			literal:       "val2",
+		},
+		{
+			blockCallback: false,
+			timeout:       5 * time.Second,
+			expected:      nil,
+			name:          "normal",
+			literal:       "val1",
 		},
 	}
 
-	for name, tt := range shutdownTests {
+	for _, tt := range shutdownTests {
+		name := tt.name
+		getTestLogger().Info("Running test", zap.String("test", name))
 		cfg, _, kv := initEtcd()
 		eng := NewEngine(cfg, getTestLogger())
-		value := "val"
+		value := tt.literal
 		kv.Set(context.Background(), "/key", value, nil)
 		rule, _ := NewEqualsLiteralRule("/key", &value)
 
 		releaseCh := make(chan struct{})
 		shutdownErrCh := make(chan error)
-		eng.AddRule(rule, "/shutdown-lock", func(*RuleTask) {
+		eng.AddRule(rule, "/shutdown-lock", func(task *RuleTask) {
+			task.Logger.Info("Entering callback", zap.String("test", name))
+			// Prevent additional firing of rule
+			kv.Delete(context.Background(), "/key", nil)
 			blockCallback := tt.blockCallback
 			go func() {
 				ctx, cancel := context.WithTimeout(context.Background(), tt.timeout)
-				// Prevent additional firing of rule
-				kv.Delete(ctx, "/key", nil)
 				defer cancel()
+				task.Logger.Info("Shutting down engine", zap.String("test", name))
 				shutdownErrCh <- eng.Shutdown(ctx)
 			}()
 			if blockCallback {

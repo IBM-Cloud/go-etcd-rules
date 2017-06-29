@@ -10,7 +10,7 @@ import (
 )
 
 func newIntCrawler(
-	config clientv3.Config,
+	cl *clientv3.Client,
 	interval int,
 	kp extKeyProc,
 	logger zap.Logger,
@@ -20,11 +20,6 @@ func newIntCrawler(
 	kvWrapper WrapKV,
 	delay int,
 ) (crawler, error) {
-	blank := etcdCrawler{}
-	cl, err1 := clientv3.New(config)
-	if err1 != nil {
-		return &blank, err1
-	}
 	kv := kvWrapper(cl)
 	api := etcdV3ReadAPI{
 		kV: kv,
