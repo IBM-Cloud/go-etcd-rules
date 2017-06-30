@@ -1,12 +1,12 @@
-hash: 18cfd48f621c974b5e51da21d72b40af0895fc70272469a4115b2dbc20ea26fe
-updated: 2017-06-02T15:58:04.884057343-04:00
+hash: e379c364b456a9ed0c0f665102554efbff07ce45f70ecbc5b52cfed96328dbc0
+updated: 2017-06-30T11:01:07.097537184-04:00
 imports:
 - name: github.com/beorn7/perks
   version: 4c0e84591b9aa9e6dcfdf3e020114cd81f89d5f9
   subpackages:
   - quantile
 - name: github.com/coreos/etcd
-  version: d267ca9c184e953554257d0acdd1dc9c47d38229
+  version: 0f4a535c2fb7a2920e13e2e19b9eaf6b2e9285e5
   subpackages:
   - auth/authpb
   - client
@@ -34,7 +34,7 @@ imports:
   - runtime/internal
   - utilities
 - name: github.com/IBM-Bluemix/go-etcd-lock
-  version: f8db4b359db496dc78cb6512bd3c77eebd3b8f0c
+  version: 343136bb6033b8725278652b6aa6aac5e62fbd82
   subpackages:
   - lock
 - name: github.com/matttproud/golang_protobuf_extensions
@@ -50,17 +50,17 @@ imports:
   subpackages:
   - go
 - name: github.com/prometheus/common
-  version: 13ba4ddd0caa9c28ca7b7bffe1dfa9ed8d5ef207
+  version: 0d0c3d572886e0f2323ed376557f9eb99b97d25b
   subpackages:
   - expfmt
   - internal/bitbucket.org/ww/goautoneg
   - model
 - name: github.com/prometheus/procfs
-  version: 65c1f6f8f0fc1e2185eb9863a3bc751496404259
+  version: 822d4a1f8edcbcbc71e8d1fd6527b12331a6d0ad
   subpackages:
   - xfs
 - name: github.com/uber-go/atomic
-  version: 908889c45e73bedd558e99819aea3be3503fc581
+  version: 0506d69f5564c56e25797bf7183c28921d4c6360
 - name: github.com/uber-go/zap
   version: c064b5c44b285a7e2fd5c9b26e8c38228ce2bccb
 - name: github.com/ugorji/go

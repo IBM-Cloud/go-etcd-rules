@@ -4,7 +4,6 @@ import:
   subpackages:
   - context
 - package: github.com/IBM-Bluemix/go-etcd-lock
-  version: f8db4b359db496dc78cb6512bd3c77eebd3b8f0c
   subpackages:
   - lock
 - package: github.com/coreos/etcd
