@@ -21,6 +21,7 @@ type engineOptions struct {
 	lockTimeout                                                         int
 	crawlMutex                                                          *string
 	ruleWorkBuffer                                                      int
+	crawlGuides                                                         []string
 }
 
 func makeEngineOptions(options ...EngineOption) engineOptions {
@@ -148,6 +149,13 @@ func EngineCrawlMutex(mutex string, mutexTTL int) EngineOption {
 	return engineOptionFunction(func(o *engineOptions) {
 		o.crawlMutex = &mutex
 		o.crawlerTTL = mutexTTL
+	})
+}
+
+// EngineCrawlGuides ...
+func EngineCrawlGuides(crawlGuides []string) EngineOption {
+	return engineOptionFunction(func(o *engineOptions) {
+		o.crawlGuides = crawlGuides
 	})
 }
 

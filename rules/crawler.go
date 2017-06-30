@@ -1,6 +1,7 @@
 package rules
 
 import (
+	"strings"
 	"sync"
 	"time"
 
@@ -24,6 +25,7 @@ func newCrawler(
 	kp keyProc,
 	wrapKeysAPI WrapKeysAPI,
 	delay int,
+	crawlGuides []string,
 ) (crawler, error) {
 	blank := etcdCrawler{}
 	cl, err1 := client.New(config)
@@ -43,9 +45,20 @@ func newCrawler(
 			prefix:   prefix,
 			delay:    delay,
 		},
-		kapi: kapi,
+		crawlGuides: expandCrawlGuides(crawlGuides),
+		kapi:        kapi,
 	}
 	return &c, nil
+}
+
+func expandCrawlGuides(crawlGuides []string) [][]string {
+	expandedCrawlGuides := [][]string{}
+
+	for _, guide := range crawlGuides {
+		expandedCrawlGuides = append(expandedCrawlGuides, strings.Split(guide, "/"))
+	}
+
+	return expandedCrawlGuides
 }
 
 func newV3Crawler(
@@ -113,7 +126,8 @@ func (bc *baseCrawler) isStopped() bool {
 
 type etcdCrawler struct {
 	baseCrawler
-	kapi client.KeysAPI
+	kapi        client.KeysAPI
+	crawlGuides [][]string
 }
 
 func (ec *etcdCrawler) run() {
@@ -145,6 +159,9 @@ func (ec *etcdCrawler) crawlPath(path string, logger zap.Logger) {
 	if ec.isStopping() {
 		return
 	}
+	if !ec.matchesCrawlGuides(path) {
+		return
+	}
 	ctx := context.Background()
 	ctx = SetMethod(ctx, "crawler")
 	time.Sleep(time.Millisecond * time.Duration(ec.delay))
@@ -166,6 +183,33 @@ func (ec *etcdCrawler) crawlPath(path string, logger zap.Logger) {
 	}
 	node := resp.Node
 	ec.kp.processKey(node.Key, &node.Value, ec.api, logger, info)
+}
+
+func (ec *etcdCrawler) matchesCrawlGuides(path string) bool {
+	if len(ec.crawlGuides) == 0 {
+		return true
+	}
+
+	pathSegs := strings.Split(path, "/")
+
+	for _, crawlGuide := range ec.crawlGuides {
+		// Does the path match this guide path?
+		if len(crawlGuide) < len(pathSegs) {
+			continue
+		}
+
+		match := true
+		for i, seg := range pathSegs {
+			match = match &&
+				(seg == crawlGuide[i] || strings.HasPrefix(crawlGuide[i], ":"))
+		}
+
+		if match {
+			return true
+		}
+	}
+
+	return false
 }
 
 type v3EtcdCrawler struct {
