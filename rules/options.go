@@ -12,6 +12,22 @@ func defaultContextProvider() (context.Context, context.CancelFunc) {
 	return context.WithTimeout(context.Background(), time.Minute*5)
 }
 
+// EngineOptions is used to configure the engine from configuration files
+type EngineOptions struct {
+	Concurrency *int `toml:"concurrency"`
+}
+
+// GetEngineOptions is used to convert an EngineOptions instance into
+// an array of EngineOption instances which can then be used when
+// initializing an Engine instance
+func GetEngineOptions(options EngineOptions) []EngineOption {
+	out := []EngineOption{}
+	if options.Concurrency != nil {
+		out = append(out, EngineConcurrency(*options.Concurrency))
+	}
+	return out
+}
+
 type engineOptions struct {
 	concurrency, crawlerTTL, syncGetTimeout, syncInterval, watchTimeout int
 	syncDelay                                                           int

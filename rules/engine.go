@@ -340,6 +340,7 @@ func (e *engine) Run() {
 		go w.run()
 	}
 
+	e.logger.Info("Starting workers", zap.Int("count", e.options.concurrency))
 	for i := 0; i < e.options.concurrency; i++ {
 		id := fmt.Sprintf("worker%d", i)
 		w, err := newWorker(id, e)
@@ -382,6 +383,7 @@ func (e *v3Engine) Run() {
 	e.crawlers = append(e.crawlers, c)
 	go c.run()
 
+	e.logger.Info("Starting workers", zap.Int("count", e.options.concurrency))
 	for i := 0; i < e.options.concurrency; i++ {
 		id := fmt.Sprintf("worker%d", i)
 		w, err := newV3Worker(id, e)
