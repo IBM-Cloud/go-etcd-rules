@@ -107,7 +107,7 @@ func (bw *baseWorker) doWork(loggerPtr *zap.Logger,
 	}
 	l, err2 := bw.locker.lock(lockKey, lockTTL)
 	if err2 != nil {
-		logger.Error("Failed to acquire lock", zap.String("lock_key", lockKey), zap.Error(err2))
+		logger.Debug("Failed to acquire lock", zap.String("lock_key", lockKey), zap.Error(err2))
 		return
 	}
 	defer l.unlock()
