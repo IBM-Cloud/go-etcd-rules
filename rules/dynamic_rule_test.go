@@ -88,7 +88,7 @@ func TestAndRule(t *testing.T) {
 	var sat bool
 	sat, _ = s1.satisfied(api)
 	assert.True(t, sat)
-	s3 := a1.staticRuleFromAttributes(attr)
+	s3, _ := a1.staticRuleFromAttributes(attr)
 	sat, _ = s3.satisfied(api)
 	assert.True(t, sat)
 	assert.Equal(t, "/:region/desired/clusters/:clusterid/workers/:workerid/state", a1.getPatterns()[0])
@@ -149,7 +149,7 @@ func TestOrRule(t *testing.T) {
 	var sat bool
 	sat, _ = s1.satisfied(api)
 	assert.True(t, sat)
-	s3 := o1.staticRuleFromAttributes(attr)
+	s3, _ := o1.staticRuleFromAttributes(attr)
 	sat, _ = s3.satisfied(api)
 	assert.True(t, sat)
 
@@ -179,7 +179,7 @@ func TestNotRule(t *testing.T) {
 	sat, _ = notRule.satisfied(api)
 	assert.True(t, sat)
 
-	notRule = test.staticRuleFromAttributes(attr)
+	notRule, _ = test.staticRuleFromAttributes(attr)
 	sat, _ = notRule.satisfied(api)
 	assert.True(t, sat)
 	assert.Equal(t, "/:region/actual/clusters/:clusterid/workers/:workerid", test.getPatterns()[0])
@@ -305,14 +305,14 @@ func TestRuleSatisfied(t *testing.T) {
 		{
 			nil,
 			func() (DynamicRule, error) {
-				return NewEqualsLiteralRule("/emea/branch/parent/:parentid/child/:childid/location", sTP("home"))
+				return NewEqualsLiteralRule("/emea/branch/parent/:parentid/child/:childid/attributes/:attr/value", sTP("home"))
 			},
-			"/emea/branch/parent/fef460923d2248bf99da87f8d4b1c363/child/child-home-fef460923d2248bf99da87f8d4b1c363-c1/location",
+			"/emea/branch/parent/fef460923d2248bf99da87f8d4b1c363/child/child-home-fef460923d2248bf99da87f8d4b1c363-c1/attributes/location/value",
 			sTP("home"),
 			true,
 			false,
 			map[string]string{
-				"/emea/branch/parent/fef460923d2248bf99da87f8d4b1c363/child/child-home-fef460923d2248bf99da87f8d4b1c363-c1/location": "home",
+				"/emea/branch/parent/fef460923d2248bf99da87f8d4b1c363/child/child-home-fef460923d2248bf99da87f8d4b1c363-c1/attributes/location/value": "home",
 			},
 		},
 		{
@@ -328,16 +328,30 @@ func TestRuleSatisfied(t *testing.T) {
 				"/updater/emea/child/reading/enabled": "true",
 			},
 		},
+		// This rule is not satisfied, because the trigger key does not contain all the
+		// attributes necessary to evaluate the rule
 		{
 			func() DynamicRule { return NewAndRule(rules[0], rules[1]) },
 			nil,
-			"/updater/emea/child/reading/enabled",
+			"/updater/emea/child/location/enabled",
 			sTP("true"),
 			false,
+			true,
+			map[string]string{
+				"/emea/branch/parent/fef460923d2248bf99da87f8d4b1c363/child/child-home-fef460923d2248bf99da87f8d4b1c363-c1/attributes/location/value": "home",
+				"/updater/emea/child/location/enabled":                                                                                                "true",
+			},
+		},
+		{
+			func() DynamicRule { return NewAndRule(rules[0], rules[1]) },
+			nil,
+			"/emea/branch/parent/fef460923d2248bf99da87f8d4b1c363/child/child-home-fef460923d2248bf99da87f8d4b1c363-c1/attributes/location/value",
+			sTP("home"),
+			true,
 			false,
 			map[string]string{
-				"/emea/branch/parent/fef460923d2248bf99da87f8d4b1c363/child/child-home-fef460923d2248bf99da87f8d4b1c363-c1/location": "home",
-				"/updater/emea/child/reading/enabled":                                                                                "true",
+				"/emea/branch/parent/fef460923d2248bf99da87f8d4b1c363/child/child-home-fef460923d2248bf99da87f8d4b1c363-c1/attributes/location/value": "home",
+				"/updater/emea/child/location/enabled":                                                                                                "true",
 			},
 		},
 	}
@@ -353,7 +367,7 @@ func TestRuleSatisfied(t *testing.T) {
 		}
 		rules = append(rules, dr)
 		satisfied, err := RuleSatisfied(dr, testCase.key, testCase.value, testCase.kvs)
-		assert.Equal(t, satisfied, testCase.satisfied, "index %d", idx)
+		assert.Equal(t, testCase.satisfied, satisfied, "index %d", idx)
 		if testCase.err {
 			assert.Error(t, err, "index %d", idx)
 		} else {

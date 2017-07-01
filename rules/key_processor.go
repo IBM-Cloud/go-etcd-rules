@@ -36,7 +36,7 @@ func (kp *keyProcessor) dispatchWork(index int, rule staticRule, logger zap.Logg
 		ruleIndex:        index,
 		ruleTask:         task,
 		ruleTaskCallback: kp.callbacks[index],
-		lockKey:          formatWithAttributes(keyPattern, rule.getAttributes()),
+		lockKey:          FormatWithAttributes(keyPattern, rule.getAttributes()),
 	}
 	kp.channel <- work
 }
@@ -94,7 +94,7 @@ func (v3kp *v3KeyProcessor) dispatchWork(index int, rule staticRule, logger zap.
 		ruleTask:  task,
 		// This line is different
 		ruleTaskCallback: v3kp.callbacks[index],
-		lockKey:          formatWithAttributes(keyPattern, rule.getAttributes()),
+		lockKey:          FormatWithAttributes(keyPattern, rule.getAttributes()),
 	}
 	v3kp.channel <- work
 }

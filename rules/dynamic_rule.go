@@ -10,7 +10,7 @@ import (
 // referenced in rules.
 type DynamicRule interface {
 	makeStaticRule(key string, value *string) (staticRule, Attributes, bool)
-	staticRuleFromAttributes(attr Attributes) staticRule
+	staticRuleFromAttributes(attr Attributes) (staticRule, bool)
 	getPatterns() []string
 	getPrefixes() []string
 	getPrefixesWithConstraints(constraints map[string]constraint) []string
@@ -73,7 +73,7 @@ func (krp *dynamicRule) expand(valueMap map[string][]string) ([]DynamicRule, boo
 				newPatterns := []string{}
 				attrs := mapAttributes{values: map[string]string{param: value}}
 				for _, pattern := range krp.patterns {
-					newPatterns = append(newPatterns, formatWithAttributes(pattern, &attrs))
+					newPatterns = append(newPatterns, FormatWithAttributes(pattern, &attrs))
 				}
 				// Create a new rule instance for each value in the value map
 				newAttributes := []attributeInstance{}
@@ -135,7 +135,7 @@ func (na *nestingAttributes) GetAttribute(key string) *string {
 }
 
 func (na *nestingAttributes) Format(pattern string) string {
-	return formatWithAttributes(pattern, na)
+	return FormatWithAttributes(pattern, na)
 }
 
 func (krp *dynamicRule) makeStaticRule(key string, value *string) (staticRule, Attributes, bool) {
@@ -161,13 +161,17 @@ func (krp *dynamicRule) makeStaticRule(key string, value *string) (staticRule, A
 	return nil, nil, false
 }
 
-func (krp *dynamicRule) staticRuleFromAttributes(attr Attributes) staticRule {
+func (krp *dynamicRule) staticRuleFromAttributes(attr Attributes) (staticRule, bool) {
 	keys := make([]string, len(krp.matchers))
 	for i, matcher := range krp.matchers {
-		keys[i] = formatWithAttributes(matcher.getPattern(), attr)
+		key, ok := formatPath(matcher.getPattern(), attr)
+		if !ok {
+			return nil, false
+		}
+		keys[i] = key
 	}
 	sr := krp.factory.newRule(keys, attr)
-	return sr
+	return sr, true
 }
 
 // NewEqualsLiteralRule creates a rule that compares the provided string value with the
@@ -205,21 +209,27 @@ func (cdr *compoundDynamicRule) makeStaticRule(key string, value *string) (*comp
 	if !anySatisfiable {
 		return nil, nil, false
 	}
-	rule := cdr.staticRuleFromAttributes(validAttr)
+	rule, ok := cdr.staticRuleFromAttributes(validAttr)
+	if !ok {
+		return nil, nil, false
+	}
 	return rule, validAttr, true
 }
 
-func (cdr *compoundDynamicRule) staticRuleFromAttributes(validAttr Attributes) *compoundStaticRule {
+func (cdr *compoundDynamicRule) staticRuleFromAttributes(validAttr Attributes) (*compoundStaticRule, bool) {
 
 	staticRules := make([]staticRule, len(cdr.nestedDynamicRules))
 	for i, nestedRule := range cdr.nestedDynamicRules {
-		rule := nestedRule.staticRuleFromAttributes(validAttr)
+		rule, ok := nestedRule.staticRuleFromAttributes(validAttr)
+		if !ok {
+			return nil, false
+		}
 		staticRules[i] = rule
 	}
 	out := compoundStaticRule{
 		nestedRules: staticRules,
 	}
-	return &out
+	return &out, true
 }
 
 func newCompoundDynamicRule(rules []DynamicRule) compoundDynamicRule {
@@ -324,11 +334,14 @@ func (adr *andDynamicRule) makeStaticRule(key string, value *string) (staticRule
 	}, attr, ok
 }
 
-func (adr *andDynamicRule) staticRuleFromAttributes(attr Attributes) staticRule {
-	cdr := adr.compoundDynamicRule.staticRuleFromAttributes(attr)
+func (adr *andDynamicRule) staticRuleFromAttributes(attr Attributes) (staticRule, bool) {
+	cdr, ok := adr.compoundDynamicRule.staticRuleFromAttributes(attr)
+	if !ok {
+		return nil, false
+	}
 	return &andStaticRule{
 		compoundStaticRule: *cdr,
-	}
+	}, true
 }
 
 func (adr *andDynamicRule) expand(valueMap map[string][]string) ([]DynamicRule, bool) {
@@ -364,11 +377,14 @@ func (odr *orDynamicRule) makeStaticRule(key string, value *string) (staticRule,
 	}, attr, ok
 }
 
-func (odr *orDynamicRule) staticRuleFromAttributes(attr Attributes) staticRule {
-	cdr := odr.compoundDynamicRule.staticRuleFromAttributes(attr)
+func (odr *orDynamicRule) staticRuleFromAttributes(attr Attributes) (staticRule, bool) {
+	cdr, ok := odr.compoundDynamicRule.staticRuleFromAttributes(attr)
+	if !ok {
+		return nil, false
+	}
 	return &orStaticRule{
 		compoundStaticRule: *cdr,
-	}
+	}, true
 }
 
 // NewOrRule allows two or more dynamic rules to be combined into a single rule
@@ -410,11 +426,12 @@ func (ndr *notDynamicRule) makeStaticRule(key string, value *string) (staticRule
 	return &nsr, attr, ok
 }
 
-func (ndr *notDynamicRule) staticRuleFromAttributes(attr Attributes) staticRule {
+func (ndr *notDynamicRule) staticRuleFromAttributes(attr Attributes) (staticRule, bool) {
+	nested, _ := ndr.nestedDynamicRules[0].staticRuleFromAttributes(attr)
 	nsr := notStaticRule{
-		nested: ndr.nestedDynamicRules[0].staticRuleFromAttributes(attr),
+		nested: nested,
 	}
-	return &nsr
+	return &nsr, true
 }
 
 func (ndr *notDynamicRule) getPatterns() []string {
