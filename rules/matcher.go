@@ -103,9 +103,18 @@ func (m *regexKeyMatch) GetAttribute(name string) *string {
 }
 
 func (m *regexKeyMatch) Format(pattern string) string {
-	return formatWithAttributes(pattern, m)
+	return FormatWithAttributes(pattern, m)
 }
-func formatWithAttributes(pattern string, m Attributes) string {
+
+// FormatWithAttributes applied the specified attributes to the
+// provided path.
+func FormatWithAttributes(pattern string, m Attributes) string {
+	result, _ := formatPath(pattern, m)
+	return result
+}
+
+func formatPath(pattern string, m Attributes) (string, bool) {
+	allFound := true
 	paths := strings.Split(pattern, "/")
 	result := ""
 	for _, path := range paths {
@@ -118,13 +127,14 @@ func formatWithAttributes(pattern string, m Attributes) string {
 			if attr == nil {
 				s := path
 				attr = &s
+				allFound = false
 			}
 			result = result + *attr
 		} else {
 			result = result + path
 		}
 	}
-	return result
+	return result, allFound
 }
 
 // Keep the bool return value, because it's tricky to check for null
@@ -150,6 +160,12 @@ func newRegexKeyMatcher(pattern string) (*regexKeyMatcher, error) {
 	}, nil
 }
 
+// NewAttributes provides a map-based Attributes instance,
+// for instance for testing callbacks.
+func NewAttributes(values map[string]string) Attributes {
+	return &mapAttributes{values: values}
+}
+
 type mapAttributes struct {
 	values map[string]string
 }
@@ -163,7 +179,7 @@ func (ma *mapAttributes) GetAttribute(key string) *string {
 }
 
 func (ma *mapAttributes) Format(path string) string {
-	return formatWithAttributes(path, ma)
+	return FormatWithAttributes(path, ma)
 }
 
 func parsePath(pattern string) (map[string]int, string) {
