@@ -291,3 +291,73 @@ func TestFormatRuleString(t *testing.T) {
 		FormatRuleString("((/:region/test = <nil> AND /:region/test2 = \"value\") OR (/:region/test = <nil> OR /:region/test2 = \"value\"))"),
 	)
 }
+
+func TestRuleSatisfied(t *testing.T) {
+	rules := []DynamicRule{}
+	testCases := []struct {
+		get            func() DynamicRule
+		getErr         func() (DynamicRule, error)
+		key            string
+		value          *string
+		satisfied, err bool
+		kvs            map[string]string
+	}{
+		{
+			nil,
+			func() (DynamicRule, error) {
+				return NewEqualsLiteralRule("/emea/branch/parent/:parentid/child/:childid/location", sTP("home"))
+			},
+			"/emea/branch/parent/fef460923d2248bf99da87f8d4b1c363/child/child-home-fef460923d2248bf99da87f8d4b1c363-c1/location",
+			sTP("home"),
+			true,
+			false,
+			map[string]string{
+				"/emea/branch/parent/fef460923d2248bf99da87f8d4b1c363/child/child-home-fef460923d2248bf99da87f8d4b1c363-c1/location": "home",
+			},
+		},
+		{
+			nil,
+			func() (DynamicRule, error) {
+				return NewEqualsLiteralRule("/updater/emea/child/:attr/enabled", sTP("true"))
+			},
+			"/updater/emea/child/reading/enabled",
+			sTP("true"),
+			true,
+			false,
+			map[string]string{
+				"/updater/emea/child/reading/enabled": "true",
+			},
+		},
+		{
+			func() DynamicRule { return NewAndRule(rules[0], rules[1]) },
+			nil,
+			"/updater/emea/child/reading/enabled",
+			sTP("true"),
+			false,
+			false,
+			map[string]string{
+				"/emea/branch/parent/fef460923d2248bf99da87f8d4b1c363/child/child-home-fef460923d2248bf99da87f8d4b1c363-c1/location": "home",
+				"/updater/emea/child/reading/enabled":                                                                                "true",
+			},
+		},
+	}
+	for idx, testCase := range testCases {
+		var dr DynamicRule
+		if testCase.get != nil {
+			dr = testCase.get()
+		}
+		if testCase.getErr != nil {
+			var err error
+			dr, err = testCase.getErr()
+			assert.NoError(t, err, "index %d", idx)
+		}
+		rules = append(rules, dr)
+		satisfied, err := RuleSatisfied(dr, testCase.key, testCase.value, testCase.kvs)
+		assert.Equal(t, satisfied, testCase.satisfied, "index %d", idx)
+		if testCase.err {
+			assert.Error(t, err, "index %d", idx)
+		} else {
+			assert.NoError(t, err, "index %d", idx)
+		}
+	}
+}

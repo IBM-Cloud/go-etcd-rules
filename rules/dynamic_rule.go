@@ -1,6 +1,7 @@
 package rules
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 )
@@ -462,4 +463,12 @@ func FormatRuleString(in string) string {
 		}
 	}
 	return out
+}
+
+func RuleSatisfied(rule DynamicRule, triggerKey string, triggerValue *string, kvs map[string]string) (bool, error) {
+	sRule, _, ok := rule.makeStaticRule(triggerKey, triggerValue)
+	if !ok {
+		return false, errors.New("Rule could not be triggered")
+	}
+	return sRule.satisfied(&mapReadAPI{values: kvs})
 }
