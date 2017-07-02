@@ -14,7 +14,8 @@ func defaultContextProvider() (context.Context, context.CancelFunc) {
 
 // EngineOptions is used to configure the engine from configuration files
 type EngineOptions struct {
-	Concurrency *int `toml:"concurrency"`
+	Concurrency     *int  `toml:"concurrency"`
+	AutoCrawlGuides *bool `toml:"auto_crawl_guides"`
 }
 
 // GetEngineOptions is used to convert an EngineOptions instance into
@@ -24,6 +25,9 @@ func GetEngineOptions(options EngineOptions) []EngineOption {
 	out := []EngineOption{}
 	if options.Concurrency != nil {
 		out = append(out, EngineConcurrency(*options.Concurrency))
+	}
+	if options.AutoCrawlGuides != nil {
+		out = append(out, EngineAutoCrawlGuides(*options.AutoCrawlGuides))
 	}
 	return out
 }
@@ -38,6 +42,7 @@ type engineOptions struct {
 	crawlMutex                                                          *string
 	ruleWorkBuffer                                                      int
 	crawlGuides                                                         []string
+	autoCrawlGuides                                                     bool
 }
 
 func makeEngineOptions(options ...EngineOption) engineOptions {
@@ -168,10 +173,20 @@ func EngineCrawlMutex(mutex string, mutexTTL int) EngineOption {
 	})
 }
 
-// EngineCrawlGuides ...
+// EngineCrawlGuides provide a way to limit the crawling to paths that can result in rule
+// matches.
 func EngineCrawlGuides(crawlGuides []string) EngineOption {
 	return engineOptionFunction(func(o *engineOptions) {
 		o.crawlGuides = crawlGuides
+	})
+}
+
+// EngineAutoCrawlGuides when set to true instructs the engine to derive crawl guides from
+// the provided rules. The rules are analyzed to limit the guides to only those referencing
+// paths that can trigger rules.
+func EngineAutoCrawlGuides(autoCrawlGuides bool) EngineOption {
+	return engineOptionFunction(func(o *engineOptions) {
+		o.autoCrawlGuides = autoCrawlGuides
 	})
 }
 

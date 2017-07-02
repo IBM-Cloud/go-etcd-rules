@@ -42,3 +42,29 @@ func TestSortPrefixesByLength(t *testing.T) {
 	assert.Equal(t, "/servers/internal", sorted[1])
 	assert.Equal(t, "/servers", sorted[0])
 }
+
+func TestCombineRuleData(t *testing.T) {
+	testCases := []struct {
+		sourceData   [][]string
+		expectedData []string
+	}{
+		{
+			[][]string{[]string{"/a/b/c", "/x/y/z"}, []string{"/a/b/c"}},
+			[]string{"/a/b/c", "/x/y/z"},
+		},
+	}
+	dummyRule := NewAndRule()
+	for idx, testCase := range testCases {
+		ruleIndex := 0
+		source := func(_ DynamicRule) []string {
+			out := testCase.sourceData[ruleIndex]
+			ruleIndex++
+			return out
+		}
+		rules := []DynamicRule{}
+		for i := 0; i < len(testCase.sourceData); i++ {
+			rules = append(rules, dummyRule)
+		}
+		compareUnorderedStringArrays(t, testCase.expectedData, combineRuleData(rules, source), "index %d", idx)
+	}
+}

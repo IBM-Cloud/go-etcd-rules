@@ -9,6 +9,7 @@ type ruleManager struct {
 	currentIndex      int
 	rulesBySlashCount map[int]map[DynamicRule]int
 	prefixes          map[string]string
+	rules             []DynamicRule
 }
 
 func newRuleManager(constraints map[string]constraint) ruleManager {
@@ -17,6 +18,7 @@ func newRuleManager(constraints map[string]constraint) ruleManager {
 		prefixes:          map[string]string{},
 		constraints:       constraints,
 		currentIndex:      0,
+		rules:             []DynamicRule{},
 	}
 	return rm
 }
@@ -37,6 +39,7 @@ func (rm *ruleManager) getStaticRules(key string, value *string) map[staticRule]
 }
 
 func (rm *ruleManager) addRule(rule DynamicRule) int {
+	rm.rules = append(rm.rules, rule)
 	for _, pattern := range rule.getPatterns() {
 		slashCount := strings.Count(pattern, "/")
 		rules, ok := rm.rulesBySlashCount[slashCount]
@@ -90,4 +93,16 @@ func sortPrefixesByLength(prefixes map[string]string) []string {
 		out[j+1] = x
 	}
 	return out
+}
+
+func getCrawlGuidesForRules(rules []DynamicRule) []string {
+	return combineRuleData(rules, getCrawlerPatterns)
+}
+func combineRuleData(rules []DynamicRule, source func(DynamicRule) []string) []string {
+	crawlGuides := []string{}
+	for _, rule := range rules {
+		crawlGuides = append(crawlGuides, source(rule)...)
+	}
+	crawlGuides = removeDuplicates(crawlGuides)
+	return crawlGuides
 }
