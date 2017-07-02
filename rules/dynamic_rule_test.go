@@ -2,6 +2,7 @@ package rules
 
 import (
 	"fmt"
+	"sort"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -75,6 +76,12 @@ func TestEqualsLiteralRule(t *testing.T) {
 	assert.Equal(t, "/testpolling/", prefixes[0])
 }
 
+func compareUnorderedStringArrays(t *testing.T, expected, actual []string, msgAndArgs ...interface{}) {
+	sort.Strings(expected)
+	sort.Strings(actual)
+	assert.Equal(t, expected, actual, msgAndArgs...)
+}
+
 func TestAndRule(t *testing.T) {
 	api := newMapReadAPI()
 
@@ -91,12 +98,15 @@ func TestAndRule(t *testing.T) {
 	s3, _ := a1.staticRuleFromAttributes(attr)
 	sat, _ = s3.satisfied(api)
 	assert.True(t, sat)
-	assert.Equal(t, "/:region/desired/clusters/:clusterid/workers/:workerid/state", a1.getPatterns()[0])
-	assert.Equal(t, "/:region/actual/clusters/:clusterid/workers/:workerid", a1.getPatterns()[1])
-	assert.Equal(t, 2, len(a1.getPatterns()))
-	assert.Equal(t, "/", a1.getPrefixes()[0])
-	assert.Equal(t, "/", a1.getPrefixes()[1])
-	assert.Equal(t, 2, len(a1.getPrefixes()))
+	patterns := append([]string{}, a1.getPatterns()...)
+	expectedPatterns := []string{
+		"/:region/desired/clusters/:clusterid/workers/:workerid/state",
+		"/:region/actual/clusters/:clusterid/workers/:workerid",
+	}
+	compareUnorderedStringArrays(t, expectedPatterns, patterns)
+	prefixes := append([]string{}, a1.getPrefixes()...)
+	expectedPrefixes := []string{"/"}
+	compareUnorderedStringArrays(t, expectedPrefixes, prefixes)
 
 	api.put("/us-south/actual/clusters/armada-9b93c18d/workers/worker3", "<dir>")
 	sat, _ = s1.satisfied(api)
@@ -373,5 +383,368 @@ func TestRuleSatisfied(t *testing.T) {
 		} else {
 			assert.NoError(t, err, "index %d", idx)
 		}
+	}
+}
+
+func TestGetLeafRepresentations(t *testing.T) {
+	rules := []DynamicRule{}
+	testCases := []struct {
+		get    func() DynamicRule
+		getErr func() (DynamicRule, error)
+		expect []string
+	}{
+		{
+			nil,
+			func() (DynamicRule, error) { return NewEqualsLiteralRule("/:region/test", nil) },
+			[]string{"/:region/test = <nil>"},
+		},
+		{
+			nil,
+			func() (DynamicRule, error) { return NewEqualsLiteralRule("/:region/test2", sTP("value")) },
+			[]string{"/:region/test2 = \"value\""},
+		},
+		{
+			func() DynamicRule { return NewAndRule(rules[0], rules[1]) },
+			nil,
+			[]string{"/:region/test = <nil>", "/:region/test2 = \"value\""},
+		},
+		{
+			func() DynamicRule { return NewOrRule(rules[0], rules[1]) },
+			nil,
+			[]string{"/:region/test = <nil>", "/:region/test2 = \"value\""},
+		},
+		{
+			func() DynamicRule { return NewOrRule(rules[2], rules[3]) },
+			nil,
+			[]string{"/:region/test = <nil>", "/:region/test2 = \"value\""},
+		},
+		{
+			func() DynamicRule { return NewNotRule(rules[4]) },
+			nil,
+			[]string{"/:region/test = <nil>", "/:region/test2 = \"value\""},
+		},
+		{
+			nil,
+			func() (DynamicRule, error) { return NewEqualsRule([]string{"/:region/test", "/:region/test2"}) },
+			[]string{"/:region/test = /:region/test2"},
+		},
+	}
+	for idx, testCase := range testCases {
+		var dr DynamicRule
+		if testCase.get != nil {
+			dr = testCase.get()
+		}
+		if testCase.getErr != nil {
+			var err error
+			dr, err = testCase.getErr()
+			assert.NoError(t, err, "index %d", idx)
+		}
+		rules = append(rules, dr)
+		result := dr.getLeafRepresentations()
+		compareUnorderedStringArrays(t, testCase.expect, result, "index %d", idx)
+	}
+}
+
+func TestGetLeafRepresentationPatternMap(t *testing.T) {
+	rules := []DynamicRule{}
+	testCases := []struct {
+		get    func() DynamicRule
+		getErr func() (DynamicRule, error)
+		expect map[string][]string
+	}{
+		{
+			nil,
+			func() (DynamicRule, error) { return NewEqualsLiteralRule("/:region/test", nil) },
+			map[string][]string{
+				"/:region/test = <nil>": []string{"/:region/test"},
+			},
+		},
+		{
+			nil,
+			func() (DynamicRule, error) { return NewEqualsLiteralRule("/:region/test2", sTP("value")) },
+			map[string][]string{
+				"/:region/test2 = \"value\"": []string{"/:region/test2"},
+			},
+		},
+		{
+			func() DynamicRule { return NewAndRule(rules[0], rules[1]) },
+			nil,
+			map[string][]string{
+				"/:region/test = <nil>":      []string{"/:region/test"},
+				"/:region/test2 = \"value\"": []string{"/:region/test2"},
+			},
+		},
+		{
+			func() DynamicRule { return NewOrRule(rules[0], rules[1]) },
+			nil,
+			map[string][]string{
+				"/:region/test = <nil>":      []string{"/:region/test"},
+				"/:region/test2 = \"value\"": []string{"/:region/test2"},
+			},
+		},
+		{
+			func() DynamicRule { return NewOrRule(rules[2], rules[3]) },
+			nil,
+			map[string][]string{
+				"/:region/test = <nil>":      []string{"/:region/test"},
+				"/:region/test2 = \"value\"": []string{"/:region/test2"},
+			},
+		},
+		{
+			func() DynamicRule { return NewNotRule(rules[4]) },
+			nil,
+			map[string][]string{
+				"/:region/test = <nil>":      []string{"/:region/test"},
+				"/:region/test2 = \"value\"": []string{"/:region/test2"},
+			},
+		},
+		{
+			nil,
+			func() (DynamicRule, error) { return NewEqualsRule([]string{"/:region/test", "/:region/test2"}) },
+			map[string][]string{
+				"/:region/test = /:region/test2": []string{"/:region/test", "/:region/test2"},
+			},
+		},
+	}
+	for idx, testCase := range testCases {
+		var dr DynamicRule
+		if testCase.get != nil {
+			dr = testCase.get()
+		}
+		if testCase.getErr != nil {
+			var err error
+			dr, err = testCase.getErr()
+			assert.NoError(t, err, "index %d", idx)
+		}
+		rules = append(rules, dr)
+		assert.Equal(t, testCase.expect, dr.getLeafRepresentationPatternMap(), "index %d", idx)
+	}
+}
+
+func TestEvaluate(t *testing.T) {
+	rules := []DynamicRule{}
+	testCases := []struct {
+		get    func() DynamicRule
+		getErr func() (DynamicRule, error)
+		values map[string]bool
+		result bool
+	}{
+		{
+			nil,
+			func() (DynamicRule, error) { return NewEqualsLiteralRule("/:region/test", nil) },
+			map[string]bool{"/:region/test = <nil>": true},
+			true,
+		},
+		{
+			nil,
+			func() (DynamicRule, error) { return NewEqualsLiteralRule("/:region/test2", sTP("value")) },
+			map[string]bool{"/:region/test2 = \"value\"": false},
+			false,
+		},
+		{
+			func() DynamicRule { return NewAndRule(rules[0], rules[1]) },
+			nil,
+			map[string]bool{"/:region/test = <nil>": true, "/:region/test2 = \"value\"": false},
+			false,
+		},
+		{
+			func() DynamicRule { return NewAndRule(rules[0], rules[1]) },
+			nil,
+			map[string]bool{"/:region/test = <nil>": true, "/:region/test2 = \"value\"": true},
+			true,
+		},
+		{
+			func() DynamicRule { return NewOrRule(rules[0], rules[1]) },
+			nil,
+			map[string]bool{"/:region/test = <nil>": false, "/:region/test2 = \"value\"": false},
+			false,
+		},
+		{
+			func() DynamicRule { return NewOrRule(rules[0], rules[1]) },
+			nil,
+			map[string]bool{"/:region/test = <nil>": false, "/:region/test2 = \"value\"": true},
+			true,
+		},
+		{
+			func() DynamicRule { return NewOrRule(rules[0], rules[1]) },
+			nil,
+			map[string]bool{"/:region/test = <nil>": true, "/:region/test2 = \"value\"": true},
+			true,
+		},
+		{
+			func() DynamicRule { return NewNotRule(rules[0]) },
+			nil,
+			map[string]bool{"/:region/test = <nil>": false},
+			true,
+		},
+		{
+			func() DynamicRule { return NewNotRule(rules[0]) },
+			nil,
+			map[string]bool{"/:region/test = <nil>": true},
+			false,
+		},
+		{
+			nil,
+			func() (DynamicRule, error) { return NewEqualsRule([]string{"/:region/test", "/:region/test2"}) },
+			map[string]bool{"/:region/test = /:region/test2": true},
+			true,
+		},
+	}
+	for idx, testCase := range testCases {
+		var dr DynamicRule
+		if testCase.get != nil {
+			dr = testCase.get()
+		}
+		if testCase.getErr != nil {
+			var err error
+			dr, err = testCase.getErr()
+			assert.NoError(t, err, "index %d", idx)
+		}
+		rules = append(rules, dr)
+		assert.Equal(t, testCase.result, dr.evaluate(testCase.values), "index %d", idx)
+	}
+}
+
+func TestGetCrawlerPatterns(t *testing.T) {
+	rules := []DynamicRule{}
+	testCases := []struct {
+		get    func() DynamicRule
+		getErr func() (DynamicRule, error)
+		expect []string
+	}{
+		{
+			nil,
+			func() (DynamicRule, error) { return NewEqualsLiteralRule("/:region/test", nil) },
+			[]string{},
+		},
+		{
+			nil,
+			func() (DynamicRule, error) { return NewEqualsLiteralRule("/:region/test2", sTP("value")) },
+			[]string{"/:region/test2"},
+		},
+		{
+			func() DynamicRule { return NewAndRule(rules[0], rules[1]) },
+			nil,
+			[]string{"/:region/test2"},
+		},
+		{
+			func() DynamicRule { return NewOrRule(rules[0], rules[1]) },
+			nil,
+			[]string{"/:region/test", "/:region/test2"},
+		},
+		{
+			func() DynamicRule { return NewOrRule(rules[2], rules[3]) },
+			nil,
+			[]string{"/:region/test", "/:region/test2"},
+		},
+		{
+			func() DynamicRule { return NewNotRule(rules[4]) },
+			nil,
+			[]string{"/:region/test2", "/:region/test"},
+		},
+		{
+			nil,
+			func() (DynamicRule, error) { return NewEqualsRule([]string{"/:region/test", "/:region/test2"}) },
+			[]string{"/:region/test2", "/:region/test"},
+		},
+	}
+	for idx, testCase := range testCases {
+		var dr DynamicRule
+		if testCase.get != nil {
+			dr = testCase.get()
+		}
+		if testCase.getErr != nil {
+			var err error
+			dr, err = testCase.getErr()
+			assert.NoError(t, err, "index %d", idx)
+		}
+		rules = append(rules, dr)
+		result := getCrawlerPatterns(dr)
+		compareUnorderedStringArrays(t, testCase.expect, result, "index %d", idx)
+	}
+}
+
+func TestProcessBooleanMap(t *testing.T) {
+	keys := []string{}
+	for i := 0; i < 3; i++ {
+		keys = append(keys, fmt.Sprintf("%d", i))
+	}
+	expectedValues := []int{}
+	for i := 0; i < 8; i++ {
+		expectedValues = append(expectedValues, i)
+	}
+	actualValues := []int{}
+	proc := func(values map[string]bool) {
+		testValue := 0
+		for idx, key := range keys {
+			if values[key] {
+				testValue += 1 << uint((len(keys)-1)-idx)
+			}
+		}
+		actualValues = append(actualValues, testValue)
+	}
+	parent := map[string]bool{}
+	for _, val := range []bool{false, true} {
+		processBooleanMap(keys, parent, val, proc)
+	}
+	assert.Equal(t, expectedValues, actualValues)
+}
+
+func TestGetEssentialRepresentations(t *testing.T) {
+	rules := []DynamicRule{}
+	testCases := []struct {
+		get    func() DynamicRule
+		getErr func() (DynamicRule, error)
+		expect []string
+	}{
+		{
+			nil,
+			func() (DynamicRule, error) { return NewEqualsLiteralRule("/:region/test", nil) },
+			[]string{"/:region/test = <nil>"},
+		},
+		{
+			nil,
+			func() (DynamicRule, error) { return NewEqualsLiteralRule("/:region/test2", sTP("value")) },
+			[]string{"/:region/test2 = \"value\""},
+		},
+		{
+			func() DynamicRule { return NewAndRule(rules[0], rules[1]) },
+			nil,
+			[]string{"/:region/test = <nil>", "/:region/test2 = \"value\""},
+		},
+		{
+			func() DynamicRule { return NewOrRule(rules[0], rules[1]) },
+			nil,
+			[]string{},
+		},
+		{
+			func() DynamicRule { return NewOrRule(rules[2], rules[3]) },
+			nil,
+			[]string{},
+		},
+		{
+			func() DynamicRule { return NewNotRule(rules[0]) },
+			nil,
+			[]string{},
+		},
+		{
+			nil,
+			func() (DynamicRule, error) { return NewEqualsRule([]string{"/:region/test", "/:region/test2"}) },
+			[]string{"/:region/test = /:region/test2"},
+		},
+	}
+	for idx, testCase := range testCases {
+		var dr DynamicRule
+		if testCase.get != nil {
+			dr = testCase.get()
+		}
+		if testCase.getErr != nil {
+			var err error
+			dr, err = testCase.getErr()
+			assert.NoError(t, err, "index %d", idx)
+		}
+		rules = append(rules, dr)
+		result := getEssentialRepresentations(dr)
+		compareUnorderedStringArrays(t, testCase.expect, result, "index %d", idx)
 	}
 }

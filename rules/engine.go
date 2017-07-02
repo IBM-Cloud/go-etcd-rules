@@ -312,6 +312,10 @@ func (e *baseEngine) addRule(rule DynamicRule,
 }
 
 func (e *engine) Run() {
+	crawlGuides := e.options.crawlGuides
+	if len(crawlGuides) == 0 && e.options.autoCrawlGuides {
+		crawlGuides = getCrawlGuidesForRules(e.ruleMgr.rules)
+	}
 	prefixes := e.ruleMgr.prefixes
 
 	// This is a map; used to ensure there are no duplicates
@@ -325,7 +329,7 @@ func (e *engine) Run() {
 			e.baseEngine.keyProc,
 			e.keysAPIWrapper,
 			e.options.syncDelay,
-			e.options.crawlGuides,
+			crawlGuides,
 		)
 		if err1 != nil {
 			e.logger.Fatal("Failed to initialize crawler", zap.String("prefix", prefix), zap.Error(err1))

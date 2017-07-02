@@ -15,6 +15,9 @@ type DynamicRule interface {
 	getPrefixes() []string
 	getPrefixesWithConstraints(constraints map[string]constraint) []string
 	expand(map[string][]string) ([]DynamicRule, bool)
+	evaluate(map[string]bool) bool
+	getLeafRepresentations() []string
+	getLeafRepresentationPatternMap() map[string][]string
 }
 
 func newDynamicRule(factory ruleFactory, patterns []string, rep string, attributes ...attributeInstance) (DynamicRule, error) {
@@ -46,6 +49,72 @@ type dynamicRule struct {
 	prefixes   []string
 	attributes []attributeInstance
 	rep        string
+}
+
+func getEssentialRepresentations(rule DynamicRule) []string {
+	// Provides the string representations of the leaf rules that must
+	// always be true in order for the overall rule to evaluate to true
+	mustAlwaysBeTrue := map[string]bool{}
+	reps := rule.getLeafRepresentations()
+	for _, rep := range reps {
+		mustAlwaysBeTrue[rep] = true
+	}
+	parent := map[string]bool{}
+	proc := func(values map[string]bool) {
+		result := rule.evaluate(values)
+		if result {
+			for _, rep := range reps {
+				if !values[rep] {
+					mustAlwaysBeTrue[rep] = false
+				}
+			}
+		}
+	}
+	for _, val := range []bool{false, true} {
+		processBooleanMap(reps, parent, val, proc)
+	}
+	essentialReps := []string{}
+	for _, rep := range reps {
+		if mustAlwaysBeTrue[rep] {
+			essentialReps = append(essentialReps, rep)
+		}
+	}
+	return essentialReps
+}
+
+func processBooleanMap(keys []string, parent map[string]bool, value bool, proc func(map[string]bool)) {
+	if len(keys) == 0 {
+		return
+	}
+	child := map[string]bool{}
+	for k, v := range parent {
+		child[k] = v
+	}
+	child[keys[0]] = value
+	if len(keys) == 1 {
+		proc(child)
+		return
+	}
+	for _, val := range []bool{false, true} {
+		processBooleanMap(keys[1:], child, val, proc)
+	}
+
+}
+
+func (krp *dynamicRule) getLeafRepresentationPatternMap() map[string][]string {
+	out := map[string][]string{krp.rep: []string{}}
+	for _, pattern := range krp.patterns {
+		out[krp.rep] = append(out[krp.rep], pattern)
+	}
+	return out
+}
+
+func (krp *dynamicRule) getLeafRepresentations() []string {
+	return []string{krp.rep}
+}
+
+func (krp *dynamicRule) evaluate(values map[string]bool) bool {
+	return values[krp.rep]
 }
 
 func (krp *dynamicRule) String() string {
@@ -192,6 +261,38 @@ type compoundDynamicRule struct {
 	prefixes           []string
 }
 
+func (cdr *compoundDynamicRule) getLeafRepresentationPatternMap() map[string][]string {
+	out := map[string][]string{}
+	for _, rule := range cdr.nestedDynamicRules {
+		for k, v := range rule.getLeafRepresentationPatternMap() {
+			var patterns []string
+			var ok bool
+			if patterns, ok = out[k]; !ok {
+				patterns = []string{}
+			}
+			out[k] = append(patterns, v...)
+		}
+	}
+	for k, v := range out {
+		out[k] = removeDuplicates(v)
+	}
+	return out
+}
+
+func (cdr *compoundDynamicRule) getLeafRepresentations() []string {
+	reps := map[string]bool{}
+	for _, rule := range cdr.nestedDynamicRules {
+		for _, rep := range rule.getLeafRepresentations() {
+			reps[rep] = true
+		}
+	}
+	result := []string{}
+	for rep := range reps {
+		result = append(result, rep)
+	}
+	return result
+}
+
 func (cdr *compoundDynamicRule) makeStaticRule(key string, value *string) (*compoundStaticRule, Attributes, bool) {
 	anySatisfiable := false
 	var validAttr Attributes
@@ -239,6 +340,8 @@ func newCompoundDynamicRule(rules []DynamicRule) compoundDynamicRule {
 		patterns = append(patterns, rule.getPatterns()...)
 		prefixes = append(prefixes, rule.getPrefixes()...)
 	}
+	patterns = removeDuplicates(patterns)
+	prefixes = removeDuplicates(prefixes)
 	cdr := compoundDynamicRule{
 		nestedDynamicRules: rules,
 		patterns:           patterns,
@@ -247,8 +350,45 @@ func newCompoundDynamicRule(rules []DynamicRule) compoundDynamicRule {
 	return cdr
 }
 
+func removeDuplicates(in []string) []string {
+	unique := map[string]bool{}
+	for _, value := range in {
+		unique[value] = true
+	}
+	out := []string{}
+	for value := range unique {
+		out = append(out, value)
+	}
+	return out
+}
+
 func (cdr *compoundDynamicRule) getPatterns() []string {
 	return cdr.patterns
+}
+
+func getCrawlerPatterns(rule DynamicRule) []string {
+	patterns := map[string]bool{}
+	for _, pattern := range rule.getPatterns() {
+		patterns[pattern] = true
+	}
+	// Get all the representations of leaf rules that must evaluate
+	// to true for the overall rule to evaluate to true
+	eReps := getEssentialRepresentations(rule)
+	mappings := rule.getLeafRepresentationPatternMap()
+	for _, rep := range eReps {
+		if strings.HasSuffix(rep, "<nil>") {
+			// Remove the pattern (there will only be one) associated
+			// with the leaf rule, so it isn't crawled
+			for _, pattern := range mappings[rep] {
+				delete(patterns, pattern)
+			}
+		}
+	}
+	out := []string{}
+	for k := range patterns {
+		out = append(out, k)
+	}
+	return out
 }
 
 func (cdr *compoundDynamicRule) getPrefixes() []string {
@@ -302,6 +442,14 @@ func (cdr *compoundDynamicRule) expand(valueMap map[string][]string,
 
 type andDynamicRule struct {
 	compoundDynamicRule
+}
+
+func (adr *andDynamicRule) evaluate(values map[string]bool) bool {
+	result := true
+	for _, rule := range adr.compoundDynamicRule.nestedDynamicRules {
+		result = result && rule.evaluate(values)
+	}
+	return result
 }
 
 func (adr *andDynamicRule) String() string {
@@ -363,6 +511,14 @@ type orDynamicRule struct {
 	compoundDynamicRule
 }
 
+func (odr *orDynamicRule) evaluate(values map[string]bool) bool {
+	result := false
+	for _, rule := range odr.compoundDynamicRule.nestedDynamicRules {
+		result = result || rule.evaluate(values)
+	}
+	return result
+}
+
 func (odr *orDynamicRule) expand(valueMap map[string][]string) ([]DynamicRule, bool) {
 	return odr.compoundDynamicRule.expand(valueMap, NewOrRule, odr)
 }
@@ -408,6 +564,10 @@ func (ndr *notDynamicRule) expand(valueMap map[string][]string) ([]DynamicRule, 
 
 func (ndr *notDynamicRule) String() string {
 	return "NOT (" + fmt.Sprintf("%s", ndr.nestedDynamicRules[0]) + ")"
+}
+
+func (ndr *notDynamicRule) evaluate(values map[string]bool) bool {
+	return !ndr.nestedDynamicRules[0].evaluate(values)
 }
 
 func newNotRule(rules ...DynamicRule) DynamicRule {
