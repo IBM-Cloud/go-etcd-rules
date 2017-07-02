@@ -117,13 +117,6 @@ func (krp *dynamicRule) evaluate(values map[string]bool) bool {
 	return values[krp.rep]
 }
 
-func (krp *dynamicRule) getParent() DynamicRule {
-	return nil
-}
-
-func (krp *dynamicRule) setParent(parent DynamicRule) {
-}
-
 func (krp *dynamicRule) String() string {
 	return krp.rep
 }
