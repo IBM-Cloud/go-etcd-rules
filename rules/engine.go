@@ -312,15 +312,15 @@ func (e *baseEngine) addRule(rule DynamicRule,
 }
 
 func (e *engine) Run() {
+	crawlGuides := e.options.crawlGuides
+	if len(crawlGuides) == 0 && e.options.autoCrawlGuides {
+		crawlGuides = getCrawlGuidesForRules(e.ruleMgr.rules)
+	}
 	prefixes := e.ruleMgr.prefixes
 
 	// This is a map; used to ensure there are no duplicates
 	for prefix := range prefixes {
 		logger := e.logger.With(zap.String("prefix", prefix))
-		crawlGuides := e.options.crawlGuides
-		if len(crawlGuides) == 0 && e.options.autoCrawlGuides {
-			crawlGuides = getCrawlGuidesForRules(e.ruleMgr.rules)
-		}
 		c, err1 := newCrawler(
 			e.config,
 			logger,
