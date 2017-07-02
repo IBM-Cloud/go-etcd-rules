@@ -2,6 +2,7 @@ package rules
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 	"time"
 
@@ -312,9 +313,20 @@ func (e *baseEngine) addRule(rule DynamicRule,
 }
 
 func (e *engine) Run() {
+	rulePatterns := getRulePatterns(e.ruleMgr.rules)
+	sort.Strings(rulePatterns)
+	for _, pattern := range rulePatterns {
+		e.logger.Info("Rule matcher", zap.String("pattern", pattern))
+	}
 	crawlGuides := e.options.crawlGuides
 	if len(crawlGuides) == 0 && e.options.autoCrawlGuides {
 		crawlGuides = getCrawlGuidesForRules(e.ruleMgr.rules)
+	}
+	if len(crawlGuides) > 0 {
+		sort.Strings(crawlGuides)
+		for _, guide := range crawlGuides {
+			e.logger.Info("Crawl guide", zap.String("pattern", guide))
+		}
 	}
 	prefixes := e.ruleMgr.prefixes
 

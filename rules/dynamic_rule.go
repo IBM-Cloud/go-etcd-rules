@@ -649,3 +649,31 @@ func RuleSatisfied(rule DynamicRule, triggerKey string, triggerValue *string, kv
 	}
 	return sRule.satisfied(&mapReadAPI{values: kvs})
 }
+
+type mapReadAPI struct {
+	values map[string]string
+}
+
+func newMapReadAPI() *mapReadAPI {
+	values := make(map[string]string)
+	return &mapReadAPI{
+		values: values,
+	}
+}
+
+var errorValue = "<ERROR>"
+
+func (mra *mapReadAPI) get(key string) (*string, error) {
+	value, ok := mra.values[key]
+	if !ok {
+		return nil, nil
+	}
+	if value == errorValue {
+		return nil, errors.New("Error")
+	}
+	return &value, nil
+}
+
+func (mra *mapReadAPI) put(key string, value string) {
+	mra.values[key] = value
+}

@@ -1,4 +1,4 @@
-GOPACKAGES=$(shell glide novendor)
+GOPACKAGES=$(shell glide novendor | grep -v enginetest)
 GOFILES=$(shell find . -type f -name '*.go' -not -path "./vendor/*")
 
 .PHONY: all
@@ -15,7 +15,8 @@ fmt:
 
 .PHONY: test
 test:
-	go test -v -race -coverprofile=coverage.out ${GOPACKAGES}
+	echo 'mode: atomic' > cover.out && glide novendor | grep -v enginetest | xargs -n1 -I{} sh -c 'go test -v -race -covermode=atomic -coverprofile=coverage.tmp {} && tail -n +2 coverage.tmp >> cover.out' && rm coverage.tmp
+	go run enginetest/main.go
 
 .PHONY: vet
 vet:
