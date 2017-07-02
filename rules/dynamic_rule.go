@@ -12,7 +12,6 @@ type DynamicRule interface {
 	makeStaticRule(key string, value *string) (staticRule, Attributes, bool)
 	staticRuleFromAttributes(attr Attributes) (staticRule, bool)
 	getPatterns() []string
-	getCrawlerPatterns() []string
 	getPrefixes() []string
 	getPrefixesWithConstraints(constraints map[string]constraint) []string
 	expand(map[string][]string) ([]DynamicRule, bool)
@@ -176,10 +175,6 @@ func (krp *dynamicRule) expand(valueMap map[string][]string) ([]DynamicRule, boo
 }
 
 func (krp *dynamicRule) getPatterns() []string {
-	return krp.patterns
-}
-
-func (krp *dynamicRule) getCrawlerPatterns() []string {
 	return krp.patterns
 }
 
@@ -354,12 +349,8 @@ func newCompoundDynamicRule(rules []DynamicRule) compoundDynamicRule {
 	}
 	patterns = removeDuplicates(patterns)
 	prefixes = removeDuplicates(prefixes)
-	nestedRules := []DynamicRule{}
-	for _, rule := range rules {
-		nestedRules = append(nestedRules, rule)
-	}
 	cdr := compoundDynamicRule{
-		nestedDynamicRules: nestedRules,
+		nestedDynamicRules: rules,
 		patterns:           patterns,
 		prefixes:           prefixes,
 	}
@@ -379,10 +370,6 @@ func removeDuplicates(in []string) []string {
 }
 
 func (cdr *compoundDynamicRule) getPatterns() []string {
-	return cdr.patterns
-}
-
-func (cdr *compoundDynamicRule) getCrawlerPatterns() []string {
 	return cdr.patterns
 }
 
