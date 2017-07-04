@@ -34,7 +34,8 @@ func newCrawler(
 	}
 	kapi := wrapKeysAPI(client.NewKeysAPI(cl))
 	api := etcdReadAPI{
-		keysAPI: kapi,
+		keysAPI:  kapi,
+		noQuorum: true, // Crawler does not need Quorum
 	}
 	c := etcdCrawler{
 		baseCrawler: baseCrawler{
@@ -165,7 +166,7 @@ func (ec *etcdCrawler) crawlPath(path string, logger zap.Logger) {
 	ctx := context.Background()
 	ctx = SetMethod(ctx, "crawler")
 	time.Sleep(time.Millisecond * time.Duration(ec.delay))
-	resp, err := ec.kapi.Get(ctx, path, &client.GetOptions{Quorum: true})
+	resp, err := ec.kapi.Get(ctx, path, nil) // Crawler does not need Quorum
 	if err != nil {
 		logger.Error("Crawler error", zap.Error(err), zap.String("path", path))
 		return
