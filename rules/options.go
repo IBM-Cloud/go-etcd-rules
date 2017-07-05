@@ -14,8 +14,9 @@ func defaultContextProvider() (context.Context, context.CancelFunc) {
 
 // EngineOptions is used to configure the engine from configuration files
 type EngineOptions struct {
-	Concurrency     *int  `toml:"concurrency"`
-	AutoCrawlGuides *bool `toml:"auto_crawl_guides"`
+	Concurrency        *int  `toml:"concurrency"`
+	AutoCrawlGuides    *bool `toml:"auto_crawl_guides"`
+	EnhancedRuleFilter *bool `toml:"enhanced_rule_filter"`
 }
 
 // GetEngineOptions is used to convert an EngineOptions instance into
@@ -28,6 +29,9 @@ func GetEngineOptions(options EngineOptions) []EngineOption {
 	}
 	if options.AutoCrawlGuides != nil {
 		out = append(out, EngineAutoCrawlGuides(*options.AutoCrawlGuides))
+	}
+	if options.EnhancedRuleFilter != nil {
+		out = append(out, EngineEnhancedRuleFilter(*options.EnhancedRuleFilter))
 	}
 	return out
 }
@@ -42,7 +46,7 @@ type engineOptions struct {
 	crawlMutex                                                          *string
 	ruleWorkBuffer                                                      int
 	crawlGuides                                                         []string
-	autoCrawlGuides                                                     bool
+	autoCrawlGuides, enhancedRuleFilter                                 bool
 }
 
 func makeEngineOptions(options ...EngineOption) engineOptions {
@@ -195,6 +199,14 @@ func EngineAutoCrawlGuides(autoCrawlGuides bool) EngineOption {
 func EngineRuleWorkBuffer(buffer int) EngineOption {
 	return engineOptionFunction(func(o *engineOptions) {
 		o.ruleWorkBuffer = buffer
+	})
+}
+
+// EngineEnhancedRuleFilter uses a rule filtering mechanism that more accurately
+// selects rules to be evaluated based on given key/value pair.
+func EngineEnhancedRuleFilter(enhancedRuleFilter bool) EngineOption {
+	return engineOptionFunction(func(o *engineOptions) {
+		o.enhancedRuleFilter = enhancedRuleFilter
 	})
 }
 
