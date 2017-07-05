@@ -13,7 +13,7 @@ func TestKeyProcessor(t *testing.T) {
 	value := "value"
 	rule, err := NewEqualsLiteralRule("/test/:key", &value)
 	assert.NoError(t, err)
-	rm := newRuleManager(map[string]constraint{})
+	rm := newRuleManager(map[string]constraint{}, false)
 	rm.addRule(rule)
 	api := newMapReadAPI()
 	api.put("/test/key", value)
@@ -63,7 +63,7 @@ func TestV3KeyProcessor(t *testing.T) {
 	value := "value"
 	rule, err := NewEqualsLiteralRule("/test/:key", &value)
 	assert.NoError(t, err)
-	rm := newRuleManager(map[string]constraint{})
+	rm := newRuleManager(map[string]constraint{}, false)
 	rm.addRule(rule)
 	api := newMapReadAPI()
 	api.put("/test/key", value)

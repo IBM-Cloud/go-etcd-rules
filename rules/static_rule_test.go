@@ -2,6 +2,7 @@ package rules
 
 import (
 	"errors"
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -23,6 +24,9 @@ type dummyRule struct {
 	key                                    string
 	attr                                   Attributes
 	err                                    error
+	qSatisfiableResponse                   quadState
+	expectedKey                            *string
+	expectedValue                          **string
 }
 
 func (dr *dummyRule) getAttributes() Attributes {
@@ -31,6 +35,29 @@ func (dr *dummyRule) getAttributes() Attributes {
 
 func (dr *dummyRule) satisfiable(key string, value *string) bool {
 	return dr.satisfiableResponse
+}
+
+func (dr *dummyRule) qSatisfiable(key string, value *string) quadState {
+	if dr.expectedKey != nil && *dr.expectedKey != key {
+		panic("Key did not match")
+	}
+	if dr.expectedValue != nil {
+		eVal := *dr.expectedValue
+		if eVal == nil {
+			if value != nil {
+				panic("Value did not match")
+			}
+		} else {
+			if value == nil || (value != nil && *value != *eVal) {
+				panic("Value did not match")
+			}
+		}
+	}
+	return dr.qSatisfiableResponse
+}
+
+func (dr *dummyRule) String() string {
+	return fmt.Sprintf("qSatisfiable: %d", dr.qSatisfiableResponse)
 }
 
 func (dr *dummyRule) satisfied(api readAPI) (bool, error) {
@@ -416,4 +443,417 @@ func TestEquals(t *testing.T) {
 	_, err = rule.satisfied(api)
 	assert.Error(t, err)
 
+}
+
+type srtc struct {
+	name   string
+	rule   func() staticRule
+	key    string
+	value  *string
+	qState quadState
+}
+
+func TestEqualsLiteralQSatisfiable(t *testing.T) {
+	rules := map[string]staticRule{}
+	key1 := "key1"
+	key2 := "key2"
+	value1 := "value1"
+	value2 := "value2"
+	testCases := []*srtc{}
+	tInfo := []struct {
+		name       string
+		value      *string
+		inputKey   string
+		inputValue *string
+		result     quadState
+	}{
+		{
+			"equalsLiteralSameKeyValueToSameValue",
+			&value1,
+			key1,
+			&value1,
+			qTrue,
+		},
+		{
+			"equalsLiteralSameKeyValueToDifferentValue",
+			&value2,
+			key1,
+			&value1,
+			qFalse,
+		},
+		{
+			"equalsLiteralSameKeyNilToNil",
+			nil,
+			key1,
+			nil,
+			qTrue,
+		},
+		{
+			"equalsLiteralSameKeyNilToValue",
+			nil,
+			key1,
+			&value1,
+			qFalse,
+		},
+		{
+			"equalsLiteralSameKeyValueToNil",
+			&value1,
+			key1,
+			nil,
+			qFalse,
+		},
+		// Keys are different
+		{
+			"equalsLiteralDiffKeyValueToSameValue",
+			&value1,
+			key2,
+			&value1,
+			qNone,
+		},
+		{
+			"equalsLiteralDiffKeyValueToDifferentValue",
+			&value2,
+			key2,
+			&value1,
+			qNone,
+		},
+		{
+			"equalsLiteralDiffKeyNilToNil",
+			nil,
+			key2,
+			nil,
+			qNone,
+		},
+		{
+			"equalsLiteralDiffKeyNilToValue",
+			nil,
+			key2,
+			&value1,
+			qNone,
+		},
+		{
+			"equalsLiteralDiffKeyValueToNil",
+			&value1,
+			key2,
+			nil,
+			qNone,
+		},
+	}
+	for _, i := range tInfo {
+		// Assign local variables because pointer variables in the iterated items
+		// get re-used in loops.
+		value := i.value
+		inputValue := i.inputValue
+		testCases = append(testCases, &srtc{
+			name:   i.name,
+			rule:   func() staticRule { return &equalsLiteralRule{key: key1, value: value} },
+			key:    i.inputKey,
+			value:  inputValue,
+			qState: i.result,
+		})
+	}
+	testQSatisfiable(t, testCases, rules)
+}
+
+func TestEqualsQSatisfiable(t *testing.T) {
+	key1 := "key1"
+	key2 := "key2"
+	key3 := "key3"
+	value := "value"
+	rules := map[string]staticRule{}
+	tInfo := []struct {
+		name     string
+		keys     []string
+		inputKey string
+		qState   quadState
+	}{
+		{
+			"equalsKey1AndKey2ToKey1",
+			[]string{key1, key2},
+			key1,
+			qMaybe,
+		},
+		{
+			"equalsKey1AndKey2ToKey2",
+			[]string{key1, key2},
+			key2,
+			qMaybe,
+		},
+		{
+			"equalsKey1AndKey2ToKey3",
+			[]string{key1, key2},
+			key3,
+			qNone,
+		},
+	}
+	testCases := []*srtc{}
+	for _, inputVal := range []*string{nil, &value} {
+		localInputVal := inputVal
+		for _, i := range tInfo {
+			valType := "Nil"
+			if localInputVal != nil {
+				valType = "Not" + valType
+			}
+			testCases = append(testCases,
+				&srtc{
+					name:   i.name + valType + "Value",
+					rule:   func() staticRule { return &equalsRule{keys: i.keys} },
+					key:    i.inputKey,
+					value:  localInputVal,
+					qState: i.qState,
+				},
+			)
+		}
+	}
+	testQSatisfiable(t, testCases, rules)
+}
+
+func TestCompoundQSatisfiable(t *testing.T) {
+	value := "value"
+	valuePtr := &value
+	key1 := "key1"
+	rules := map[string]staticRule{}
+	testCases := []*srtc{
+		&srtc{
+			name: "dummyTrue",
+			rule: func() staticRule {
+				return &dummyRule{
+					qSatisfiableResponse: qTrue,
+					expectedKey:          &key1,
+					expectedValue:        &valuePtr,
+				}
+			},
+			value:  &value,
+			qState: qTrue,
+		},
+		&srtc{
+			name: "dummyFalse",
+			rule: func() staticRule {
+				return &dummyRule{
+					qSatisfiableResponse: qFalse,
+					expectedKey:          &key1,
+					expectedValue:        &valuePtr,
+				}
+			},
+			value:  &value,
+			qState: qFalse,
+		},
+		&srtc{
+			name: "dummyMaybe",
+			rule: func() staticRule {
+				return &dummyRule{
+					qSatisfiableResponse: qMaybe,
+					expectedKey:          &key1,
+					expectedValue:        &valuePtr,
+				}
+			},
+
+			qState: qMaybe,
+		},
+		&srtc{
+			name: "dummyNone",
+			rule: func() staticRule {
+				return &dummyRule{
+					qSatisfiableResponse: qNone,
+					expectedKey:          &key1,
+					expectedValue:        &valuePtr,
+				}
+			},
+			qState: qNone,
+		},
+		&srtc{
+			name:   "TrueAndTrue",
+			rule:   func() staticRule { return asrfn(rules["dummyTrue"], rules["dummyTrue"]) },
+			qState: qTrue,
+		},
+		&srtc{
+			name:   "TrueAndFalse",
+			rule:   func() staticRule { return asrfn(rules["dummyTrue"], rules["dummyFalse"]) },
+			qState: qFalse,
+		},
+		&srtc{
+			name:   "TrueAndMaybe",
+			rule:   func() staticRule { return asrfn(rules["dummyTrue"], rules["dummyMaybe"]) },
+			qState: qTrue,
+		},
+		&srtc{
+			name:   "TrueAndNone",
+			rule:   func() staticRule { return asrfn(rules["dummyTrue"], rules["dummyMaybe"]) },
+			qState: qTrue,
+		},
+		&srtc{
+			name:   "FalseAndFalse",
+			rule:   func() staticRule { return asrfn(rules["dummyFalse"], rules["dummyFalse"]) },
+			qState: qFalse,
+		},
+		&srtc{
+			name:   "FalseAndMaybe",
+			rule:   func() staticRule { return asrfn(rules["dummyFalse"], rules["dummyMaybe"]) },
+			qState: qFalse,
+		},
+		&srtc{
+			name:   "FalseAndNone",
+			rule:   func() staticRule { return asrfn(rules["dummyFalse"], rules["dummyNone"]) },
+			qState: qFalse,
+		},
+		&srtc{
+			name:   "MaybeAndMaybe",
+			rule:   func() staticRule { return asrfn(rules["dummyMaybe"], rules["dummyMaybe"]) },
+			qState: qMaybe,
+		},
+		&srtc{
+			name:   "MaybeAndNone",
+			rule:   func() staticRule { return asrfn(rules["dummyMaybe"], rules["dummyNone"]) },
+			qState: qMaybe,
+		},
+		&srtc{
+			name:   "TrueOrTrue",
+			rule:   func() staticRule { return osrfn(rules["dummyTrue"], rules["dummyTrue"]) },
+			qState: qTrue,
+		},
+		&srtc{
+			name:   "TrueOrFalse",
+			rule:   func() staticRule { return osrfn(rules["dummyTrue"], rules["dummyFalse"]) },
+			qState: qTrue,
+		},
+		&srtc{
+			name:   "TrueOrMaybe",
+			rule:   func() staticRule { return osrfn(rules["dummyTrue"], rules["dummyMaybe"]) },
+			qState: qTrue,
+		},
+		&srtc{
+			name:   "TrueOrNone",
+			rule:   func() staticRule { return osrfn(rules["dummyTrue"], rules["dummyMaybe"]) },
+			qState: qTrue,
+		},
+		&srtc{
+			name:   "FalseOrFalse",
+			rule:   func() staticRule { return osrfn(rules["dummyFalse"], rules["dummyFalse"]) },
+			qState: qFalse,
+		},
+		&srtc{
+			name:   "FalseOrMaybe",
+			rule:   func() staticRule { return osrfn(rules["dummyFalse"], rules["dummyMaybe"]) },
+			qState: qMaybe,
+		},
+		&srtc{
+			name:   "FalseOrNone",
+			rule:   func() staticRule { return osrfn(rules["dummyFalse"], rules["dummyNone"]) },
+			qState: qFalse,
+		},
+		&srtc{
+			name:   "MaybeOrMaybe",
+			rule:   func() staticRule { return osrfn(rules["dummyMaybe"], rules["dummyMaybe"]) },
+			qState: qMaybe,
+		},
+		&srtc{
+			name:   "MaybeOrNone",
+			rule:   func() staticRule { return osrfn(rules["dummyMaybe"], rules["dummyNone"]) },
+			qState: qMaybe,
+		},
+		&srtc{
+			name:   "NotTrue",
+			rule:   func() staticRule { return &notStaticRule{nested: rules["dummyTrue"]} },
+			qState: qFalse,
+		},
+		&srtc{
+			name:   "NotFalse",
+			rule:   func() staticRule { return &notStaticRule{nested: rules["dummyFalse"]} },
+			qState: qTrue,
+		},
+		&srtc{
+			name:   "NotMaybe",
+			rule:   func() staticRule { return &notStaticRule{nested: rules["dummyMaybe"]} },
+			qState: qMaybe,
+		},
+		&srtc{
+			name:   "NotNone",
+			rule:   func() staticRule { return &notStaticRule{nested: rules["dummyNone"]} },
+			qState: qNone,
+		},
+		&srtc{
+			name:   "Not(TrueOrFalse) <=> NotTrueAndNotFalse",
+			rule:   func() staticRule { return &notStaticRule{nested: rules["TrueOrFalse"]} },
+			qState: qFalse,
+		},
+		&srtc{
+			name: "NotTrueAndNotFalse <=> Not(TrueOrFalse)",
+			rule: func() staticRule {
+				return asrfn(&notStaticRule{nested: rules["dummyTrue"]}, &notStaticRule{nested: rules["dummyFalse"]})
+			},
+			qState: qFalse,
+		},
+		&srtc{
+			name:   "Not(FalseOrFalse) <=> NotFalseAndNotFalse",
+			rule:   func() staticRule { return &notStaticRule{nested: rules["FalseOrFalse"]} },
+			qState: qTrue,
+		},
+		&srtc{
+			name: "NotFalseAndNotFalse <=> Not(FalseOrFalse)",
+			rule: func() staticRule {
+				return asrfn(&notStaticRule{nested: rules["dummyFalse"]}, &notStaticRule{nested: rules["dummyFalse"]})
+			},
+			qState: qTrue,
+		},
+		&srtc{
+			name:   "Not(TrueAndFalse) <=> NotTrueOrNotFalse",
+			rule:   func() staticRule { return &notStaticRule{nested: rules["TrueAndFalse"]} },
+			qState: qTrue,
+		},
+		&srtc{
+			name: "NotTruOrNotFalse <=> Not(TrueAndFalse)",
+			rule: func() staticRule {
+				return osrfn(&notStaticRule{nested: rules["dummyTrue"]}, &notStaticRule{nested: rules["dummyFalse"]})
+			},
+			qState: qTrue,
+		},
+		&srtc{
+			name:   "Not(TrueAndTrue) <=> NotTrueOrNotTrue",
+			rule:   func() staticRule { return &notStaticRule{nested: rules["TrueAndTrue"]} },
+			qState: qFalse,
+		},
+		&srtc{
+			name: "NotTrueOrNotTrue <=> Not(TrueOrTrue)",
+			rule: func() staticRule {
+				return asrfn(&notStaticRule{nested: rules["dummyTrue"]}, &notStaticRule{nested: rules["dummyTrue"]})
+			},
+			qState: qFalse,
+		},
+	}
+	for _, testCase := range testCases {
+		testCase.key = key1
+		testCase.value = &value
+	}
+	testQSatisfiable(t, testCases, rules)
+}
+
+func asrfn(rules ...staticRule) staticRule {
+	return &andStaticRule{compoundStaticRule: compoundStaticRule{nestedRules: rules}}
+}
+
+func osrfn(rules ...staticRule) staticRule {
+	return &orStaticRule{compoundStaticRule: compoundStaticRule{nestedRules: rules}}
+}
+
+func testQSatisfiable(t *testing.T, testCases []*srtc, rules map[string]staticRule) {
+	for _, testCase := range testCases {
+		rule := testCase.rule()
+		val := "<nil>"
+		if testCase.value != nil {
+			val = *testCase.value
+		}
+		rules[testCase.name] = rule
+		qState := evaluateQSatisfiable(t, testCase.name, rule, testCase.key, testCase.value) //rule.qSatisfiable(testCase.key, testCase.value)
+		assert.Equal(t, testCase.qState, qState, "%s: %s (%s, %s)", testCase.name, rule, testCase.key, val)
+	}
+}
+
+func evaluateQSatisfiable(t *testing.T, name string, rule staticRule, key string, value *string) quadState {
+	defer func() {
+		r := recover()
+		if r != nil {
+			t.Fatalf("Panic on %s: %s", name, r)
+		}
+	}()
+	return rule.qSatisfiable(key, value)
 }

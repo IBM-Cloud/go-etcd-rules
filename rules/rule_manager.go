@@ -5,20 +5,22 @@ import (
 )
 
 type ruleManager struct {
-	constraints       map[string]constraint
-	currentIndex      int
-	rulesBySlashCount map[int]map[DynamicRule]int
-	prefixes          map[string]string
-	rules             []DynamicRule
+	constraints        map[string]constraint
+	currentIndex       int
+	rulesBySlashCount  map[int]map[DynamicRule]int
+	prefixes           map[string]string
+	rules              []DynamicRule
+	enhancedRuleFilter bool
 }
 
-func newRuleManager(constraints map[string]constraint) ruleManager {
+func newRuleManager(constraints map[string]constraint, enhancedRuleFilter bool) ruleManager {
 	rm := ruleManager{
-		rulesBySlashCount: map[int]map[DynamicRule]int{},
-		prefixes:          map[string]string{},
-		constraints:       constraints,
-		currentIndex:      0,
-		rules:             []DynamicRule{},
+		rulesBySlashCount:  map[int]map[DynamicRule]int{},
+		prefixes:           map[string]string{},
+		constraints:        constraints,
+		currentIndex:       0,
+		rules:              []DynamicRule{},
+		enhancedRuleFilter: enhancedRuleFilter,
 	}
 	return rm
 }
@@ -30,8 +32,17 @@ func (rm *ruleManager) getStaticRules(key string, value *string) map[staticRule]
 	if ok {
 		for rule, index := range rules {
 			sRule, _, inScope := rule.makeStaticRule(key, value)
-			if inScope && sRule.satisfiable(key, value) {
-				out[sRule] = index
+			if inScope {
+				if rm.enhancedRuleFilter {
+					qSat := sRule.qSatisfiable(key, value)
+					if qSat == qTrue || qSat == qMaybe {
+						out[sRule] = index
+					}
+				} else {
+					if sRule.satisfiable(key, value) {
+						out[sRule] = index
+					}
+				}
 			}
 		}
 	}

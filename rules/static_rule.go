@@ -1,5 +1,26 @@
 package rules
 
+import (
+	"fmt"
+	"strings"
+)
+
+type quadState int
+
+const (
+	// The key/value pair makes a rule true or contributes to making it true
+	qTrue quadState = iota
+	// The key/value pair makes a rule false or matches a key involved in the
+	// rule but its value does not have the potential to make it true
+	qFalse
+	// The key/value pair has the potential to make a rule true,
+	// for instance when dealing with a rule that compares the values of two keys and
+	// one of the keys is the key of the key/value pair
+	qMaybe
+	// The key/value pair has no impact on a rule or any part of it
+	qNone
+)
+
 type ruleFactory interface {
 	// The actual keys derived from patterns
 	newRule(keys []string, attr Attributes) staticRule
@@ -8,6 +29,18 @@ type ruleFactory interface {
 type staticRule interface {
 	keyMatch(key string) bool
 	satisfiable(key string, value *string) bool
+	// This method determines whether the given key/value pair contributes to making
+	// the rule true; it does NOT determine whether the rule can be true given the
+	// key/value pair.  For instance, if the rule consists of an OR expression whose
+	// first part evaluates to qFalse and whose second part evaluates to qNone, the
+	// overall rule should evaluate to qFalse, although the rule could still evaluate
+	// to true if the data store contained values that would cause the second part to evaluate
+	// to true.  The purpose of this method is to determine whether the store should be
+	// queried for additional values, and in the example the given key/value pair does
+	// not warrant further queries.  The evaluation of the rule should be triggered either
+	// when the matching value is passed in for the same key or a different key/value pair
+	// is passed in that would cause the second part of the rule to evaluate to qTrue or qMaybe.
+	qSatisfiable(key string, value *string) quadState
 	satisfied(api readAPI) (bool, error)
 	getAttributes() Attributes
 }
@@ -53,8 +86,35 @@ func (elrf *equalsLiteralRuleFactory) newRule(keys []string, attr Attributes) st
 	return &r
 }
 
+func (elr *equalsLiteralRule) String() string {
+	value := "<nil>"
+	if elr.value != nil {
+		value = *elr.value
+	}
+	return fmt.Sprintf("%s = %s", elr.key, value)
+}
+
 func (elr *equalsLiteralRule) satisfiable(key string, value *string) bool {
 	return key == elr.key
+}
+
+func (elr *equalsLiteralRule) qSatisfiable(key string, value *string) quadState {
+	if key != elr.key {
+		return qNone
+	}
+	if value == nil {
+		if elr.value == nil {
+			return qTrue
+		}
+		return qFalse
+	}
+	if elr.value == nil {
+		return qFalse
+	}
+	if *elr.value == *value {
+		return qTrue
+	}
+	return qFalse
 }
 
 func (elr *equalsLiteralRule) satisfied(api readAPI) (bool, error) {
@@ -94,6 +154,33 @@ func (csr *compoundStaticRule) satisfiable(key string, value *string) bool {
 	return anySatisfiable
 }
 
+func (asr *andStaticRule) qSatisfiable(key string, value *string) quadState {
+	anyTrue := false
+	anyMaybe := false
+	anyFalse := false
+	for _, rule := range asr.nestedRules {
+		nqs := rule.qSatisfiable(key, value)
+		switch nqs {
+		case qTrue:
+			anyTrue = true
+		case qFalse:
+			anyFalse = true
+		case qMaybe:
+			anyMaybe = true
+		}
+	}
+	if anyFalse {
+		return qFalse
+	}
+	if anyTrue {
+		return qTrue
+	}
+	if anyMaybe {
+		return qMaybe
+	}
+	return qNone
+}
+
 func (csr *compoundStaticRule) keyMatch(key string) bool {
 	for _, rule := range csr.nestedRules {
 		if rule.keyMatch(key) {
@@ -105,6 +192,14 @@ func (csr *compoundStaticRule) keyMatch(key string) bool {
 
 type andStaticRule struct {
 	compoundStaticRule
+}
+
+func (asr *andStaticRule) String() string {
+	nestedRules := []string{}
+	for _, rule := range asr.nestedRules {
+		nestedRules = append(nestedRules, fmt.Sprint(rule))
+	}
+	return fmt.Sprintf("(%s)", strings.Join(nestedRules, " AND "))
 }
 
 func (asr *andStaticRule) satisfied(api readAPI) (bool, error) {
@@ -124,6 +219,42 @@ type orStaticRule struct {
 	compoundStaticRule
 }
 
+func (osr *orStaticRule) String() string {
+	nestedRules := []string{}
+	for _, rule := range osr.nestedRules {
+		nestedRules = append(nestedRules, fmt.Sprint(rule))
+	}
+	return fmt.Sprintf("(%s)", strings.Join(nestedRules, " OR "))
+}
+
+func (osr *orStaticRule) qSatisfiable(key string, value *string) quadState {
+	anyTrue := false
+	anyMaybe := false
+	anyFalse := false
+	for _, rule := range osr.nestedRules {
+		nqs := rule.qSatisfiable(key, value)
+		switch nqs {
+		case qTrue:
+			anyTrue = true
+		case qMaybe:
+			anyMaybe = true
+		case qFalse:
+			anyFalse = true
+		}
+
+	}
+	if anyTrue {
+		return qTrue
+	}
+	if anyMaybe {
+		return qMaybe
+	}
+	if anyFalse {
+		return qFalse
+	}
+	return qNone
+}
+
 func (osr *orStaticRule) satisfied(api readAPI) (bool, error) {
 	for _, rule := range osr.nestedRules {
 		satisfied, err := rule.satisfied(api)
@@ -141,6 +272,10 @@ type notStaticRule struct {
 	nested staticRule
 }
 
+func (nsr *notStaticRule) String() string {
+	return fmt.Sprintf("NOT (%s)", nsr.nested)
+}
+
 func (nsr *notStaticRule) getAttributes() Attributes {
 	return nsr.nested.getAttributes()
 }
@@ -151,6 +286,19 @@ func (nsr *notStaticRule) keyMatch(key string) bool {
 
 func (nsr *notStaticRule) satisfiable(key string, value *string) bool {
 	return nsr.nested.keyMatch(key)
+}
+
+func (nsr *notStaticRule) qSatisfiable(key string, value *string) quadState {
+	nqs := nsr.nested.qSatisfiable(key, value)
+	switch nqs {
+	case qMaybe:
+		return qMaybe
+	case qTrue:
+		return qFalse
+	case qFalse:
+		return qTrue
+	}
+	return qNone
 }
 
 func (nsr *notStaticRule) satisfied(api readAPI) (bool, error) {
@@ -166,8 +314,19 @@ type equalsRule struct {
 	keys []string
 }
 
+func (er *equalsRule) String() string {
+	return strings.Join(er.keys, " = ")
+}
+
 func (er *equalsRule) satisfiable(key string, value *string) bool {
 	return er.keyMatch(key)
+}
+
+func (er *equalsRule) qSatisfiable(key string, value *string) quadState {
+	if er.keyMatch(key) {
+		return qMaybe
+	}
+	return qNone
 }
 
 func (er *equalsRule) keyMatch(key string) bool {
