@@ -29,3 +29,5 @@ cover.*
 .DS_Store
 
 coverage.out
+
+*~

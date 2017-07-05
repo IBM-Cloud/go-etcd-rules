@@ -27,13 +27,18 @@ func (bra *baseReadAPI) cancel() {
 
 type etcdReadAPI struct {
 	baseReadAPI
-	keysAPI client.KeysAPI
+	keysAPI  client.KeysAPI
+	noQuorum bool
 }
 
 func (edra *etcdReadAPI) get(key string) (*string, error) {
 	ctx := edra.getContext()
 	defer edra.cancel()
-	resp, err := edra.keysAPI.Get(ctx, key, &client.GetOptions{Quorum: true})
+	options := &client.GetOptions{Quorum: true}
+	if edra.noQuorum {
+		options = nil
+	}
+	resp, err := edra.keysAPI.Get(ctx, key, options)
 	if err != nil {
 		if !strings.HasPrefix(err.Error(), "100") {
 			return nil, err
