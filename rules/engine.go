@@ -242,7 +242,7 @@ func (e *baseEngine) IsStopped() bool {
 
 func (e *baseEngine) addRuleWithIface(rule DynamicRule, lockPattern string, callback interface{}, options ...RuleOption) {
 	if len(e.options.keyExpansion) > 0 {
-		rules, _ := rule.expand(e.options.keyExpansion)
+		rules, _ := rule.Expand(e.options.keyExpansion)
 		for _, expRule := range rules {
 			e.addRule(expRule, lockPattern, callback, options...)
 		}

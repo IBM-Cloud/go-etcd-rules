@@ -14,7 +14,7 @@ type DynamicRule interface {
 	getPatterns() []string
 	getPrefixes() []string
 	getPrefixesWithConstraints(constraints map[string]constraint) []string
-	expand(map[string][]string) ([]DynamicRule, bool)
+	Expand(map[string][]string) ([]DynamicRule, bool)
 	evaluate(map[string]bool) bool
 	getLeafRepresentations() []string
 	getLeafRepresentationPatternMap() map[string][]string
@@ -121,7 +121,7 @@ func (krp *dynamicRule) String() string {
 	return krp.rep
 }
 
-func (krp *dynamicRule) expand(valueMap map[string][]string) ([]DynamicRule, bool) {
+func (krp *dynamicRule) Expand(valueMap map[string][]string) ([]DynamicRule, bool) {
 	params := map[string]string{}
 	for _, pattern := range krp.patterns {
 		fieldsToParms, _ := parsePath(pattern)
@@ -154,7 +154,7 @@ func (krp *dynamicRule) expand(valueMap map[string][]string) ([]DynamicRule, boo
 				rule, err := newDynamicRule(krp.factory, newPatterns, "", newAttributes...)
 				// Expand the new rule instance
 				if err == nil {
-					exp, _ := rule.expand(valueMap)
+					exp, _ := rule.Expand(valueMap)
 					out = append(out, exp...)
 				}
 			}
@@ -417,7 +417,7 @@ func (cdr *compoundDynamicRule) expand(valueMap map[string][]string,
 			attr := map[string][]string{key: {value}}
 			newNested := []DynamicRule{}
 			for _, nested := range cdr.nestedDynamicRules {
-				expandedRule, gotExpanded := nested.expand(attr)
+				expandedRule, gotExpanded := nested.Expand(attr)
 				if gotExpanded {
 					keyExpansion = true
 				}
@@ -428,7 +428,7 @@ func (cdr *compoundDynamicRule) expand(valueMap map[string][]string,
 		if keyExpansion {
 			expanded = true
 			for _, rule := range newRules {
-				expandedRules, _ := rule.expand(valueMap)
+				expandedRules, _ := rule.Expand(valueMap)
 				out = append(out, expandedRules...)
 			}
 			break
@@ -492,7 +492,7 @@ func (adr *andDynamicRule) staticRuleFromAttributes(attr Attributes) (staticRule
 	}, true
 }
 
-func (adr *andDynamicRule) expand(valueMap map[string][]string) ([]DynamicRule, bool) {
+func (adr *andDynamicRule) Expand(valueMap map[string][]string) ([]DynamicRule, bool) {
 	return adr.compoundDynamicRule.expand(valueMap, NewAndRule, adr)
 }
 
@@ -519,7 +519,7 @@ func (odr *orDynamicRule) evaluate(values map[string]bool) bool {
 	return result
 }
 
-func (odr *orDynamicRule) expand(valueMap map[string][]string) ([]DynamicRule, bool) {
+func (odr *orDynamicRule) Expand(valueMap map[string][]string) ([]DynamicRule, bool) {
 	return odr.compoundDynamicRule.expand(valueMap, NewOrRule, odr)
 }
 
@@ -558,7 +558,7 @@ type notDynamicRule struct {
 	compoundDynamicRule
 }
 
-func (ndr *notDynamicRule) expand(valueMap map[string][]string) ([]DynamicRule, bool) {
+func (ndr *notDynamicRule) Expand(valueMap map[string][]string) ([]DynamicRule, bool) {
 	return ndr.compoundDynamicRule.expand(valueMap, newNotRule, ndr)
 }
 
