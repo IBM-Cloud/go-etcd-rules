@@ -45,7 +45,7 @@ func TestEqualsLiteralRule(t *testing.T) {
 	assert.Equal(t, "/:region/actual/clusters/:clusterid/workers/:workerid", r.getPatterns()[0])
 	r, err = NewEqualsLiteralRule("/:a/:b/:var/attr1", nil)
 	assert.NoError(t, err)
-	expanded, exp := r.expand(expansionMap)
+	expanded, exp := r.Expand(expansionMap)
 	assert.True(t, exp)
 	assert.Equal(t, 4, len(expanded))
 
@@ -118,7 +118,7 @@ func TestAndRule(t *testing.T) {
 	e2, _ := NewEqualsLiteralRule("/:a/:b/:var/attr2", nil)
 
 	eAnd := NewAndRule([]DynamicRule{e1, e2}...)
-	expanded, exp := eAnd.expand(expansionMap)
+	expanded, exp := eAnd.Expand(expansionMap)
 	assert.True(t, exp)
 	assert.Equal(t, 4, len(expanded))
 
