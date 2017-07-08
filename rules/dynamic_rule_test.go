@@ -237,58 +237,63 @@ func TestRuleCombinations(t *testing.T) {
 	assert.True(t, sat)
 }
 
+func newExpandedEqualsLiteralRule(key string, value *string) DynamicRule {
+	rule, err := NewEqualsLiteralRule(key, value)
+	if err != nil {
+		return nil
+	}
+	rules, _ := rule.Expand(map[string][]string{"region": []string{"us"}})
+	return rules[0]
+}
+
+func newExpandedEqualsRule(keys []string) DynamicRule {
+	rule, err := NewEqualsRule(keys)
+	if err != nil {
+		return nil
+	}
+	rules, _ := rule.Expand(map[string][]string{"region": []string{"us"}})
+	return rules[0]
+}
+
 func TestRulePrint(t *testing.T) {
 	rules := []DynamicRule{}
 	testCases := []struct {
 		get    func() DynamicRule
-		getErr func() (DynamicRule, error)
 		expect string
 	}{
 		{
-			nil,
-			func() (DynamicRule, error) { return NewEqualsLiteralRule("/:region/test", nil) },
-			"/:region/test = <nil>",
+			func() DynamicRule { return newExpandedEqualsLiteralRule("/:region/test", nil) },
+			"/us/test = <nil>", //"/:region/test = <nil>",
 		},
 		{
-			nil,
-			func() (DynamicRule, error) { return NewEqualsLiteralRule("/:region/test2", sTP("value")) },
-			"/:region/test2 = \"value\"",
+			func() DynamicRule { return newExpandedEqualsLiteralRule("/:region/test2", sTP("value")) },
+			"/us/test2 = \"value\"",
 		},
 		{
 			func() DynamicRule { return NewAndRule(rules[0], rules[1]) },
-			nil,
-			"(/:region/test = <nil> AND /:region/test2 = \"value\")",
+			"(/us/test = <nil> AND /us/test2 = \"value\")",
 		},
 		{
 			func() DynamicRule { return NewOrRule(rules[0], rules[1]) },
-			nil,
-			"(/:region/test = <nil> OR /:region/test2 = \"value\")",
+			"(/us/test = <nil> OR /us/test2 = \"value\")",
 		},
 		{
 			func() DynamicRule { return NewOrRule(rules[2], rules[3]) },
-			nil,
-			"((/:region/test = <nil> AND /:region/test2 = \"value\") OR (/:region/test = <nil> OR /:region/test2 = \"value\"))",
+			"((/us/test = <nil> AND /us/test2 = \"value\") OR (/us/test = <nil> OR /us/test2 = \"value\"))",
 		},
 		{
 			func() DynamicRule { return NewNotRule(rules[4]) },
-			nil,
-			"NOT (((/:region/test = <nil> AND /:region/test2 = \"value\") OR (/:region/test = <nil> OR /:region/test2 = \"value\")))",
+			"NOT (((/us/test = <nil> AND /us/test2 = \"value\") OR (/us/test = <nil> OR /us/test2 = \"value\")))",
 		},
 		{
-			nil,
-			func() (DynamicRule, error) { return NewEqualsRule([]string{"/:region/test", "/:region/test2"}) },
-			"/:region/test = /:region/test2",
+			func() DynamicRule { return newExpandedEqualsRule([]string{"/:region/test", "/:region/test2"}) },
+			"/us/test = /us/test2",
 		},
 	}
 	for idx, testCase := range testCases {
 		var dr DynamicRule
 		if testCase.get != nil {
 			dr = testCase.get()
-		}
-		if testCase.getErr != nil {
-			var err error
-			dr, err = testCase.getErr()
-			assert.NoError(t, err, "index %d", idx)
 		}
 		rules = append(rules, dr)
 		assert.Equal(t, testCase.expect, fmt.Sprintf("%s", dr), "index %d", idx)
