@@ -151,7 +151,8 @@ func (krp *dynamicRule) Expand(valueMap map[string][]string) ([]DynamicRule, boo
 				// each loop iteration
 				valref := value
 				newAttributes = append(newAttributes, attributeInstance{key: param, value: &valref})
-				rule, err := newDynamicRule(krp.factory, newPatterns, "", newAttributes...)
+				rep := strings.Replace(krp.rep, "/:"+param+"/", "/"+value+"/", -1)
+				rule, err := newDynamicRule(krp.factory, newPatterns, rep, newAttributes...)
 				// Expand the new rule instance
 				if err == nil {
 					exp, _ := rule.Expand(valueMap)
