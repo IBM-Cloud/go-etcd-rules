@@ -194,6 +194,10 @@ func TestNotRule(t *testing.T) {
 	assert.True(t, sat)
 	assert.Equal(t, "/:region/actual/clusters/:clusterid/workers/:workerid", test.getPatterns()[0])
 	assert.Equal(t, "/", test.getPrefixes()[0])
+	_, _, ok = test.makeStaticRule("/blah", nil)
+	assert.False(t, ok)
+	_, ok = test.staticRuleFromAttributes(&mapAttributes{values: map[string]string{}})
+	assert.False(t, ok)
 }
 
 func TestEqualsRule(t *testing.T) {
