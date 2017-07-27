@@ -581,6 +581,9 @@ func newNotRule(rules ...DynamicRule) DynamicRule {
 
 func (ndr *notDynamicRule) makeStaticRule(key string, value *string) (staticRule, Attributes, bool) {
 	ns, attr, ok := ndr.nestedDynamicRules[0].makeStaticRule(key, value)
+	if !ok {
+		return nil, nil, false
+	}
 	nsr := notStaticRule{
 		nested: ns,
 	}
@@ -588,7 +591,10 @@ func (ndr *notDynamicRule) makeStaticRule(key string, value *string) (staticRule
 }
 
 func (ndr *notDynamicRule) staticRuleFromAttributes(attr Attributes) (staticRule, bool) {
-	nested, _ := ndr.nestedDynamicRules[0].staticRuleFromAttributes(attr)
+	nested, ok := ndr.nestedDynamicRules[0].staticRuleFromAttributes(attr)
+	if !ok {
+		return nil, false
+	}
 	nsr := notStaticRule{
 		nested: nested,
 	}
