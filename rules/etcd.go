@@ -1,6 +1,7 @@
 package rules
 
 import (
+	"errors"
 	"strings"
 	"sync"
 	"time"
@@ -88,12 +89,15 @@ func newEtcdKeyWatcher(api client.KeysAPI, prefix string, timeout time.Duration)
 }
 
 func newEtcdV3KeyWatcher(watcher clientv3.Watcher, prefix string, timeout time.Duration) *etcdV3KeyWatcher {
+	_, cancel := context.WithCancel(context.Background())
 	kw := etcdV3KeyWatcher{
 		baseKeyWatcher: baseKeyWatcher{
-			prefix:  prefix,
-			timeout: timeout,
+			prefix:     prefix,
+			timeout:    timeout,
+			cancelFunc: cancel,
 		},
-		w: watcher,
+		w:      watcher,
+		stopCh: make(chan bool),
 	}
 	return &kw
 }
@@ -153,46 +157,44 @@ func (bkw *baseKeyWatcher) cancel() {
 
 type etcdV3KeyWatcher struct {
 	baseKeyWatcher
-	ch         clientv3.WatchChan
-	eventIndex int
-	events     []*clientv3.Event
-	w          clientv3.Watcher
+	ch     clientv3.WatchChan
+	stopCh chan bool
+	events []*clientv3.Event
+	w      clientv3.Watcher
+}
+
+func (ev3kw *etcdV3KeyWatcher) cancel() {
+	ev3kw.stopCh <- true
 }
 
 func (ev3kw *etcdV3KeyWatcher) next() (string, *string, error) {
-	if is(&ev3kw.stopping) {
-		return "", nil, nil
-	}
 	if ev3kw.ch == nil {
-		// Cancel existing context, if any
-		if ev3kw.cancelFunc != nil {
-			ev3kw.cancelMutex.Lock()
-			if ev3kw.cancelFunc != nil {
-				ev3kw.cancelFunc()
+		ev3kw.ch = ev3kw.w.Watch(context.Background(), ev3kw.prefix, clientv3.WithPrefix())
+	}
+	for ev3kw.events == nil || len(ev3kw.events) == 0 {
+		select {
+		case <-ev3kw.stopCh:
+			ev3kw.cancelFunc()
+			err := ev3kw.w.Close()
+			if err == nil {
+				err = errors.New("Watcher closing")
 			}
-			ev3kw.cancelFunc = nil
-			ev3kw.cancelMutex.Unlock()
+			return "", nil, err
+		case wr := <-ev3kw.ch:
+			// If there is an error, the logic appears to always
+			// close the channel, so there is no need to try to
+			// close it here.
+			if err := wr.Err(); err != nil {
+				ev3kw.ch = nil
+				return "", nil, err
+			}
+			ev3kw.events = wr.Events
 		}
-		ev3kw.ch = ev3kw.w.Watch(ev3kw.getContext(), ev3kw.prefix, clientv3.WithPrefix())
 	}
-	if ev3kw.events == nil {
-		ev3kw.eventIndex = 0
-		wr := <-ev3kw.ch
-		ev3kw.events = wr.Events
-	}
-	if len(ev3kw.events) == 0 {
-		ev3kw.events = nil
-		// This avoids a potential endless loop due to a closed channel
-		ev3kw.ch = nil
-		return ev3kw.next()
-	}
-	event := ev3kw.events[ev3kw.eventIndex]
-	ev3kw.eventIndex = ev3kw.eventIndex + 1
-	if ev3kw.eventIndex >= len(ev3kw.events) {
-		ev3kw.events = nil
-	}
+	event := ev3kw.events[0]
+	ev3kw.events = ev3kw.events[1:]
 	key := string(event.Kv.Key)
-	if event.Type == clientv3.EventTypeDelete { // Expire?
+	if event.Type == clientv3.EventTypeDelete { // Covers lease expiration
 		return key, nil, nil
 	}
 	val := string(event.Kv.Value)
