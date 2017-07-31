@@ -33,7 +33,7 @@ func newV3Watcher(ec *clientv3.Client, prefix string, logger zap.Logger, proc ke
 		baseReadAPI: baseReadAPI{},
 		kV:          kvWrapper(ec),
 	}
-	ew := newEtcdV3KeyWatcher(ec, prefix, time.Duration(watchTimeout)*time.Second)
+	ew := newEtcdV3KeyWatcher(clientv3.NewWatcher(ec), prefix, time.Duration(watchTimeout)*time.Second)
 	return watcher{
 		api:    &api,
 		kw:     ew,

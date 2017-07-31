@@ -17,6 +17,7 @@ fmt:
 test:
 	echo 'mode: atomic' > cover.out && glide novendor | grep -v enginetest | xargs -n1 -I{} sh -c 'go test -v -race -covermode=atomic -coverprofile=coverage.tmp {} && tail -n +2 coverage.tmp >> cover.out' && rm coverage.tmp
 	go run enginetest/main.go
+	go run v3enginetest/main.go
 
 .PHONY: vet
 vet:
