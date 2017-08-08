@@ -39,7 +39,7 @@ func TestIntCrawler(t *testing.T) {
 		prefixes: []string{"/root", "/root1"},
 		kv:       c,
 	}
-	cr.singleRun()
+	cr.singleRun(getTestLogger())
 	if assert.Equal(t, 1, len(kp.keys)) {
 		assert.Equal(t, "/root/child", kp.keys[0])
 	}
