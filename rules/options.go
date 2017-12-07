@@ -6,6 +6,8 @@ import (
 	"golang.org/x/net/context"
 )
 
+// ContextProvider is used to specify a custom provider of a context
+// for a given rule.
 type ContextProvider func() (context.Context, context.CancelFunc)
 
 func defaultContextProvider() (context.Context, context.CancelFunc) {

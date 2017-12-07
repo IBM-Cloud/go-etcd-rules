@@ -632,6 +632,7 @@ func NewEqualsRule(pattern []string) (DynamicRule, error) {
 	return newDynamicRule(f, pattern, rep)
 }
 
+// FormatRuleString creates an indented, more readable version of a rule string
 func FormatRuleString(in string) string {
 	out := ""
 	indent := 0
@@ -649,6 +650,8 @@ func FormatRuleString(in string) string {
 	return out
 }
 
+// RuleSatisfied returns true if the rule was satisfied and false if it was not.  An error is
+// returned if the trigger key did not contain the required path variables to evaluate the rule.
 func RuleSatisfied(rule DynamicRule, triggerKey string, triggerValue *string, kvs map[string]string) (bool, error) {
 	sRule, _, ok := rule.makeStaticRule(triggerKey, triggerValue)
 	if !ok {
