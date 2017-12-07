@@ -153,7 +153,7 @@ func (bkp *baseKeyProcessor) processKey(key string, value *string, api readAPI, 
 
 func (bkp *baseKeyProcessor) isWork(key string, value *string, api readAPI) bool {
 	rules := bkp.rm.getStaticRules(key, value)
-	for rule, _ := range rules {
+	for rule := range rules {
 		satisfied, _ := rule.satisfied(api)
 		if satisfied {
 			return true

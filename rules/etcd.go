@@ -171,7 +171,7 @@ func (ev3kw *etcdV3KeyWatcher) next() (string, *string, error) {
 	if ev3kw.ch == nil {
 		ev3kw.ch = ev3kw.w.Watch(context.Background(), ev3kw.prefix, clientv3.WithPrefix())
 	}
-	for ev3kw.events == nil || len(ev3kw.events) == 0 {
+	if ev3kw.events == nil || len(ev3kw.events) == 0 {
 		select {
 		case <-ev3kw.stopCh:
 			ev3kw.cancelFunc()
@@ -180,16 +180,30 @@ func (ev3kw *etcdV3KeyWatcher) next() (string, *string, error) {
 				err = errors.New("Watcher closing")
 			}
 			return "", nil, err
-		case wr := <-ev3kw.ch:
+		case wr, stillOpen := <-ev3kw.ch:
+			var err error
+			// Check if channel is closed without
+			// an event with an error having been
+			// added.
+			if !stillOpen {
+				err = errors.New("Channel closed")
+			}
 			// If there is an error, the logic appears to always
 			// close the channel, so there is no need to try to
 			// close it here.
-			if err := wr.Err(); err != nil {
+			if err == nil {
+				err = wr.Err()
+			}
+			if err != nil {
 				ev3kw.ch = nil
 				return "", nil, err
 			}
 			ev3kw.events = wr.Events
 		}
+	}
+	if ev3kw.events == nil || len(ev3kw.events) == 0 {
+		ev3kw.ch = nil
+		return "", nil, errors.New("No events received from watcher channel; instantiating new channel")
 	}
 	event := ev3kw.events[0]
 	ev3kw.events = ev3kw.events[1:]

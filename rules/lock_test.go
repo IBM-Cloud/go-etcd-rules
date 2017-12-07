@@ -82,8 +82,8 @@ func TestV3Locker(t *testing.T) {
 
 	go func() {
 		lckr := newV3Locker(c)
-		lck, err := lckr.lock("test1", 10)
-		assert.NoError(t, err)
+		lck, lErr := lckr.lock("test1", 10)
+		assert.NoError(t, lErr)
 		done1 <- true
 		<-done2
 		if lck != nil {

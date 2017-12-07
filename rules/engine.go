@@ -17,6 +17,7 @@ type stopable interface {
 	isStopped() bool
 }
 
+// BaseEngine provides common method for etcd v2 and v3 rules engine instances.
 type BaseEngine interface {
 	Run()
 	Stop()
@@ -103,6 +104,7 @@ func NewV3Engine(configV3 clientv3.Config, logger zap.Logger, options ...EngineO
 	return NewV3EngineWithClient(cl, configV3, logger, options...)
 }
 
+// NewV3EngineWithClient creates a new V3Engine instance with the provided etcd v3 client instance.
 func NewV3EngineWithClient(cl *clientv3.Client, configV3 clientv3.Config, logger zap.Logger, options ...EngineOption) V3Engine {
 	eng := newV3Engine(client.Config{}, configV3, true, logger, cl, options...)
 	return &eng
