@@ -16,9 +16,9 @@ func defaultContextProvider() (context.Context, context.CancelFunc) {
 
 // EngineOptions is used to configure the engine from configuration files
 type EngineOptions struct {
-	Concurrency        *int  `toml:"concurrency",envconfig:"concurrency"`
-	AutoCrawlGuides    *bool `toml:"auto_crawl_guides",envconfig:"auto_crawl_guides"`
-	EnhancedRuleFilter *bool `toml:"enhanced_rule_filter",envconfig:"enhanced_rule_filter"`
+	Concurrency        *int  `toml:"concurrency" envconfig:"concurrency"`
+	AutoCrawlGuides    *bool `toml:"auto_crawl_guides" envconfig:"auto_crawl_guides"`
+	EnhancedRuleFilter *bool `toml:"enhanced_rule_filter" envconfig:"enhanced_rule_filter"`
 }
 
 // GetEngineOptions is used to convert an EngineOptions instance into
