@@ -1,7 +1,6 @@
 language: go
-group: deprecated-2017Q4
 go:
-  - 1.8.4
+  - 1.9.1
   - tip
 
 matrix:
