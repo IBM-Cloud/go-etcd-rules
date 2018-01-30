@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/IBM-Bluemix/go-etcd-rules/rules"
+	"github.com/IBM-Cloud/go-etcd-rules/rules"
 	"github.com/coreos/etcd/client"
 	"github.com/uber-go/zap"
 )

@@ -1,9 +1,9 @@
-package: github.com/IBM-Bluemix/go-etcd-rules
+package: github.com/IBM-Cloud/go-etcd-rules
 import:
 - package: golang.org/x/net
   subpackages:
   - context
-- package: github.com/IBM-Bluemix/go-etcd-lock
+- package: github.com/IBM-Cloud/go-etcd-lock
   subpackages:
   - lock
 - package: github.com/coreos/etcd

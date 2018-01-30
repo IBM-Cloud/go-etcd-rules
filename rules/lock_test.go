@@ -3,7 +3,7 @@ package rules
 import (
 	"testing"
 
-	"github.com/IBM-Bluemix/go-etcd-lock/lock"
+	"github.com/IBM-Cloud/go-etcd-lock/lock"
 	"github.com/coreos/etcd/client"
 	"github.com/coreos/etcd/clientv3"
 	"github.com/stretchr/testify/assert"
