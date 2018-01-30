@@ -1,8 +1,8 @@
 etcd-rules
 ==========
 
-[![Build Status](https://travis-ci.org/IBM-Bluemix/go-etcd-rules.svg?branch=master)](https://travis-ci.org/IBM-Bluemix/go-etcd-rules)
-[![Coverage Status](https://coveralls.io/repos/github/IBM-Bluemix/go-etcd-rules/badge.svg?branch=master)](https://coveralls.io/github/IBM-Bluemix/go-etcd-rules?branch=master)
+[![Build Status](https://travis-ci.org/IBM-Cloud/go-etcd-rules.svg?branch=master)](https://travis-ci.org/IBM-Cloud/go-etcd-rules)
+[![Coverage Status](https://coveralls.io/repos/github/IBM-Cloud/go-etcd-rules/badge.svg?branch=master)](https://coveralls.io/github/IBM-Cloud/go-etcd-rules?branch=master)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
 This is a rules engine for use with etcd.  Simple dynamic rules allow the specification
@@ -12,7 +12,7 @@ of complex relationships of values in etcd and the actions to be triggered when 
 of conditions has been met.  The engine watches etcd for updates and crawls the data tree
 at configurable intervals so that changes that occurred beyond the watch time scope are picked
 up and actions triggered by watches that initially failed can be retried without being lost.
-This library makes use of the IBM-Bluemix/go-etcd-lock library to enable concurrent monitoring
+This library makes use of the IBM-Cloud/go-etcd-lock library to enable concurrent monitoring
 by multiple application instances without collisions--the first client to obtain the lock
 processes the change while the others quickly fail to acquire the lock and move on.  A trigger
 callback function should update the model if the action is successful so it is not retriggered.
@@ -25,7 +25,7 @@ Import
 
 ```
 # Master via standard import
-go get github.com/IBM-Bluemix/go-etcd-rules/rules
+go get github.com/IBM-Cloud/go-etcd-rules/rules
 ```
 
 Example
@@ -37,7 +37,7 @@ package main
 import (
 	"time"
 
-	"github.com/IBM-Bluemix/go-etcd-rules/rules"
+	"github.com/IBM-Cloud/go-etcd-rules/rules"
 	"github.com/coreos/etcd/client"
 	"github.com/uber-go/zap"
 	"golang.org/x/net/context"
