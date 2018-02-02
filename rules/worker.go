@@ -1,6 +1,8 @@
 package rules
 
 import (
+	"sync"
+
 	"github.com/coreos/etcd/client"
 	"github.com/uber-go/zap"
 )
@@ -147,5 +149,17 @@ func (w *v3Worker) singleRun() {
 	}
 	w.addWorkerID(task.Metadata)
 	task.Logger = task.Logger.With(zap.String("worker", w.workerID))
-	w.doWork(&task.Logger, &work.rule, w.engine.getLockTTLForRule(work.ruleIndex), func() { work.ruleTaskCallback(&task) }, work.lockKey)
+	// Use wait group and go routine to prevent killing of workers
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		defer func() {
+			wg.Done()
+			if r := recover(); r != nil {
+				task.Logger.Error("Panic", zap.Object("recover", r))
+			}
+		}()
+		w.doWork(&task.Logger, &work.rule, w.engine.getLockTTLForRule(work.ruleIndex), func() { work.ruleTaskCallback(&task) }, work.lockKey)
+	}()
+	wg.Wait()
 }
