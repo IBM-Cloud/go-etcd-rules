@@ -42,7 +42,7 @@ func main() {
 	check(err)
 	kv := clientv3.NewKV(cl)
 	kv.Delete(context.Background(), "/", clientv3.WithPrefix())
-	engine := rules.NewV3Engine(cfg, logger, rules.EngineAutoCrawlGuides(true))
+	engine := rules.NewV3Engine(cfg, logger)
 	preReq, err := rules.NewEqualsLiteralRule(dataPath, nil)
 	check(err)
 	preReq = rules.NewNotRule(preReq)
