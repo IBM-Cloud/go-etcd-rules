@@ -47,16 +47,18 @@ func TestEngineOptions(t *testing.T) {
 	assert.Equal(t, 10, opts.ruleWorkBuffer)
 }
 
+var contextKeyTest = contextKey("test")
+
 func getTestContextProvider() ContextProvider {
 	return func() (context.Context, context.CancelFunc) {
 		ctx, cancel := context.WithCancel(context.Background())
-		return context.WithValue(ctx, "test", "value"), cancel
+		return context.WithValue(ctx, contextKeyTest, "value"), cancel
 	}
 }
 
 func verifyTestContextProvider(t *testing.T, cp ContextProvider) {
 	ctx, _ := cp()
-	val := ctx.Value("test")
+	val := ctx.Value(contextKeyTest)
 	if assert.NotNil(t, val) {
 		text, ok := val.(string)
 		if assert.True(t, ok) {

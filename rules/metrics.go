@@ -3,14 +3,17 @@ package rules
 import (
 	"time"
 
-	"github.com/coreos/etcd/client"
 	"github.com/coreos/etcd/clientv3"
 	"golang.org/x/net/context"
 )
 
-const (
-	etcdMetricsMetadataKey = "etcdMetricsMetadata"
-)
+type contextKey string
+
+func (c contextKey) String() string {
+	return "rules context key " + string(c)
+}
+
+var contextKeyEtcdMetricsMetadata = contextKey("etcdMetricsMetadata")
 
 // EtcdMetricsMetadata provides information about
 // calls to etcd
@@ -24,26 +27,18 @@ type EtcdMetricsMetadata struct {
 // is being made, allowing metrics to differentiate between
 // different types of calls to etcd.
 func SetMethod(ctx context.Context, method string) context.Context {
-	return context.WithValue(ctx, etcdMetricsMetadataKey,
+	return context.WithValue(ctx, contextKeyEtcdMetricsMetadata,
 		&EtcdMetricsMetadata{Method: method},
 	)
 }
 
 // GetMetricsMetadata gets metadata about an etcd call from the context
 func GetMetricsMetadata(ctx context.Context) *EtcdMetricsMetadata {
-	out := ctx.Value(etcdMetricsMetadataKey)
+	out := ctx.Value(contextKeyEtcdMetricsMetadata)
 	if md, ok := out.(*EtcdMetricsMetadata); ok {
 		return md
 	}
 	return nil
-}
-
-// WrapKeysAPI is used to provide a wrapper for the default KeysAPI used
-// by the rules engine.
-type WrapKeysAPI func(client.KeysAPI) client.KeysAPI
-
-func defaultWrapKeysAPI(keysAPI client.KeysAPI) client.KeysAPI {
-	return keysAPI
 }
 
 // WrapKV is used to provide a wrapper for the default etcd v3 KV implementation

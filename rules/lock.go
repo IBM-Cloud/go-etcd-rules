@@ -3,8 +3,6 @@ package rules
 import (
 	"time"
 
-	"github.com/IBM-Cloud/go-etcd-lock/lock"
-	"github.com/coreos/etcd/client"
 	"github.com/coreos/etcd/clientv3"
 	"github.com/coreos/etcd/clientv3/concurrency"
 	"golang.org/x/net/context"
@@ -16,31 +14,6 @@ type ruleLocker interface {
 
 type ruleLock interface {
 	unlock()
-}
-
-type lockLock struct {
-	lockInst lock.Lock
-}
-
-func (ll *lockLock) unlock() {
-	err := ll.lockInst.Release()
-	if err != nil {
-	}
-}
-
-type lockLocker struct {
-	locker lock.Locker
-}
-
-func (ll *lockLocker) lock(key string, ttl int) (ruleLock, error) {
-	lockInst, err := ll.locker.Acquire(key, uint64(ttl))
-	return &lockLock{lockInst}, err
-}
-
-func newLockLocker(cl client.Client) ruleLocker {
-	return &lockLocker{
-		locker: lock.NewEtcdLocker(cl, false),
-	}
 }
 
 func newV3Locker(cl *clientv3.Client) ruleLocker {

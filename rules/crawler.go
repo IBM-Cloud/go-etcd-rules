@@ -1,11 +1,9 @@
 package rules
 
 import (
-	"strings"
 	"sync"
 	"time"
 
-	"github.com/coreos/etcd/client"
 	"github.com/coreos/etcd/clientv3"
 	"github.com/uber-go/zap"
 	"golang.org/x/net/context"
@@ -15,51 +13,6 @@ type crawler interface {
 	run()
 	stop()
 	isStopped() bool
-}
-
-func newCrawler(
-	config client.Config,
-	logger zap.Logger,
-	prefix string,
-	interval int,
-	kp keyProc,
-	wrapKeysAPI WrapKeysAPI,
-	delay int,
-	crawlGuides []string,
-) (crawler, error) {
-	blank := etcdCrawler{}
-	cl, err1 := client.New(config)
-	if err1 != nil {
-		return &blank, err1
-	}
-	kapi := wrapKeysAPI(client.NewKeysAPI(cl))
-	api := etcdReadAPI{
-		keysAPI:  kapi,
-		noQuorum: true, // Crawler does not need Quorum
-	}
-	c := etcdCrawler{
-		baseCrawler: baseCrawler{
-			api:      &api,
-			interval: interval,
-			kp:       kp,
-			logger:   logger,
-			prefix:   prefix,
-			delay:    delay,
-		},
-		crawlGuides: expandCrawlGuides(crawlGuides),
-		kapi:        kapi,
-	}
-	return &c, nil
-}
-
-func expandCrawlGuides(crawlGuides []string) [][]string {
-	expandedCrawlGuides := [][]string{}
-
-	for _, guide := range crawlGuides {
-		expandedCrawlGuides = append(expandedCrawlGuides, strings.Split(guide, "/"))
-	}
-
-	return expandedCrawlGuides
 }
 
 func newV3Crawler(
@@ -123,94 +76,6 @@ func (bc *baseCrawler) stop() {
 
 func (bc *baseCrawler) isStopped() bool {
 	return is(&bc.stopped)
-}
-
-type etcdCrawler struct {
-	baseCrawler
-	kapi        client.KeysAPI
-	crawlGuides [][]string
-}
-
-func (ec *etcdCrawler) run() {
-	atomicSet(&ec.stopped, false)
-	for !ec.isStopping() {
-		logger := ec.logger.With(
-			zap.String("source", "crawler"),
-			zap.String("crawler_prefix", ec.prefix),
-			zap.Object("crawler_start", time.Now()),
-		)
-		logger.Info("Crawler run starting")
-		ec.singleRun(logger)
-		logger.Info("Crawler run complete")
-		for i := 0; i < ec.interval; i++ {
-			time.Sleep(time.Second)
-			if ec.isStopping() {
-				break
-			}
-		}
-	}
-	atomicSet(&ec.stopped, true)
-}
-
-func (ec *etcdCrawler) singleRun(logger zap.Logger) {
-	ec.crawlPath(ec.prefix, logger)
-}
-
-func (ec *etcdCrawler) crawlPath(path string, logger zap.Logger) {
-	if ec.isStopping() {
-		return
-	}
-	if !ec.matchesCrawlGuides(path) {
-		return
-	}
-	ctx := context.Background()
-	ctx = SetMethod(ctx, "crawler")
-	time.Sleep(time.Millisecond * time.Duration(ec.delay))
-	resp, err := ec.kapi.Get(ctx, path, nil) // Crawler does not need Quorum
-	if err != nil {
-		logger.Error("Crawler error", zap.Error(err), zap.String("path", path))
-		return
-	}
-	info := map[string]string{"source": "crawler", "prefix": ec.prefix}
-	if resp.Node.Dir {
-		for _, node := range resp.Node.Nodes {
-			if node.Dir {
-				ec.crawlPath(node.Key, logger)
-			} else {
-				ec.kp.processKey(node.Key, &node.Value, ec.api, logger, info)
-			}
-		}
-		return
-	}
-	node := resp.Node
-	ec.kp.processKey(node.Key, &node.Value, ec.api, logger, info)
-}
-
-func (ec *etcdCrawler) matchesCrawlGuides(path string) bool {
-	if len(ec.crawlGuides) == 0 {
-		return true
-	}
-
-	pathSegs := strings.Split(path, "/")
-
-	for _, crawlGuide := range ec.crawlGuides {
-		// Does the path match this guide path?
-		if len(crawlGuide) < len(pathSegs) {
-			continue
-		}
-
-		match := true
-		for i, seg := range pathSegs {
-			match = match &&
-				(seg == crawlGuide[i] || strings.HasPrefix(crawlGuide[i], ":"))
-		}
-
-		if match {
-			return true
-		}
-	}
-
-	return false
 }
 
 type v3EtcdCrawler struct {

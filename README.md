@@ -38,7 +38,7 @@ import (
 	"time"
 
 	"github.com/IBM-Cloud/go-etcd-rules/rules"
-	"github.com/coreos/etcd/client"
+	"github.com/coreos/etcd/clientv3"
 	"github.com/uber-go/zap"
 	"golang.org/x/net/context"
 )
@@ -49,19 +49,16 @@ func lTP(val string) *string {
 }
 
 func main() {
-	cfg := client.Config{
-		Endpoints: []string{"http://127.0.0.1:2379"},
-		Transport: client.DefaultTransport,
-		// set timeout per request to fail fast when the target endpoint is unavailable
-		HeaderTimeoutPerRequest: time.Second,
-	}
-
 	logger := zap.New(
 		zap.NewJSONEncoder(zap.RFC3339Formatter("ts")),
 		zap.AddCaller(),
 	)
 
-	engine := rules.NewEngine(cfg, logger)
+	cfg := clientv3.Config{
+		Endpoints: []string{"http://127.0.0.1:2379"},
+	}
+
+	engine := rules.NewV3Engine(cfg, logger)
 
 	serverActive, _ := rules.NewEqualsLiteralRule("/servers/:serverid/state", lTP("active"))
 	pollDelayGone, _ := rules.NewEqualsLiteralRule("/servers/internal/:serverid/poll_delay", nil)
@@ -78,19 +75,34 @@ func main() {
 	<-end
 }
 
-func pollServer(task *rules.RuleTask) {
-	c, _ := client.New(task.Conf)
-	api := client.NewKeysAPI(c)
-	ip, _ := api.Get(context.Background(), task.Attr.Format("/servers/:serverid/ip"), nil)
+func pollServer(task *rules.V3RuleTask) {
+	cl, err := clientv3.New(task.Conf)
+	if err != nil {
+		return
+	}
+	kv := clientv3.NewKV(cl)
+	resp, err := kv.Get(task.Context, task.Attr.Format("/servers/:serverid/ip"))
+	if err != nil {
+		return
+	}
+	if resp.Count == 0 {
+		return
+	}
+	ip := string(resp.Kvs[0].Value)
 	var status string
 	if ping(ip.Node.Value) {
 		status = "ok"
 	} else {
 		status = "down"
 	}
-	api.Set(context.Background(), task.Attr.Format("/servers/:serverid/status"), status, nil)
+	kv.Put(task.Context, task.Attr.Format("/servers/:serverid/status"), status)
 	// Add new poll delay
-	opts := client.SetOptions{TTL: time.Duration(5) * time.Second}
-	api.Set(context.Background(), task.Attr.Format("/servers/internal/:serverid/poll_delay"), "", &opts)
+	leaseCtx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	resp, err = cl.Grant(leaseCtx, int64(5))
+	if err != nil {
+		return
+	}
+	kv.Put(task.Context, task.Attr.Format("/servers/internal/:serverid/poll_delay"), "", clientv3.WithLease(resp.ID))
 }
 ```

@@ -47,7 +47,6 @@ type engineOptions struct {
 	lockTimeout                                                         int
 	crawlMutex                                                          *string
 	ruleWorkBuffer                                                      int
-	crawlGuides                                                         []string
 	autoCrawlGuides, enhancedRuleFilter                                 bool
 }
 
@@ -176,14 +175,6 @@ func EngineCrawlMutex(mutex string, mutexTTL int) EngineOption {
 	return engineOptionFunction(func(o *engineOptions) {
 		o.crawlMutex = &mutex
 		o.crawlerTTL = mutexTTL
-	})
-}
-
-// EngineCrawlGuides provide a way to limit the crawling to paths that can result in rule
-// matches.
-func EngineCrawlGuides(crawlGuides []string) EngineOption {
-	return engineOptionFunction(func(o *engineOptions) {
-		o.crawlGuides = crawlGuides
 	})
 }
 

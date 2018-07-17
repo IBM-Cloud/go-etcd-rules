@@ -69,7 +69,7 @@ func main() {
 			panic("Poll count does not match!")
 		}
 		if p.pollCount == pollCount {
-			_, err := kv.Put(task.Context, task.Attr.Format(blockPath), "done")
+			_, err = kv.Put(task.Context, task.Attr.Format(blockPath), "done")
 			check(err)
 			done <- p
 			return
@@ -86,6 +86,7 @@ func main() {
 		p := <-done
 		logger.Info("Done", zap.String("ID", p.ID))
 	}
-	ctx, _ := context.WithTimeout(context.Background(), time.Duration(30)*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(30)*time.Second)
+	defer cancel()
 	engine.Shutdown(ctx)
 }

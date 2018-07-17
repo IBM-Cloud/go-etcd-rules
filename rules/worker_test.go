@@ -3,7 +3,6 @@ package rules
 import (
 	"testing"
 
-	"github.com/coreos/etcd/client"
 	"github.com/coreos/etcd/clientv3"
 	"github.com/stretchr/testify/assert"
 	"github.com/uber-go/zap"
@@ -11,15 +10,19 @@ import (
 )
 
 func TestWorkerSingleRun(t *testing.T) {
-	assert.True(t, true)
-	e := newEngine(client.Config{}, clientv3.Config{}, false, getTestLogger(), EngineLockTimeout(300))
+	conf := clientv3.Config{
+		Endpoints: []string{""},
+	}
+	cl, err := clientv3.New(conf)
+	assert.NoError(t, err)
+	e := newV3Engine(conf, true, getTestLogger(), cl, EngineLockTimeout(300))
 	channel := e.workChannel
 	lockChannel := make(chan bool)
 	locker := testLocker{
 		channel: lockChannel,
 	}
 	api := mapReadAPI{}
-	w := worker{
+	w := v3Worker{
 		baseWorker: baseWorker{
 			api:      &api,
 			locker:   &locker,
@@ -31,11 +34,10 @@ func TestWorkerSingleRun(t *testing.T) {
 	attr := mapAttributes{
 		values: attrMap,
 	}
-	conf := client.Config{}
 	ctx, cancel := context.WithCancel(context.Background())
-	task := RuleTask{
+	task := V3RuleTask{
 		Attr:     &attr,
-		Conf:     conf,
+		Conf:     &clientv3.Config{},
 		Logger:   zap.New(zap.NewTextEncoder()),
 		Metadata: map[string]string{},
 		Context:  ctx,
@@ -48,7 +50,7 @@ func TestWorkerSingleRun(t *testing.T) {
 	rule := dummyRule{
 		satisfiedResponse: true,
 	}
-	rw := ruleWork{
+	rw := v3RuleWork{
 		rule:             &rule,
 		ruleTask:         task,
 		ruleTaskCallback: callback.callback,

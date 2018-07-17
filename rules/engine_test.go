@@ -5,10 +5,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/coreos/etcd/client"
 	"github.com/coreos/etcd/clientv3"
 	"github.com/stretchr/testify/assert"
-	"github.com/uber-go/zap"
 	"golang.org/x/net/context"
 )
 
@@ -21,7 +19,7 @@ type testCallback struct {
 	called chan bool
 }
 
-func (tc *testCallback) callback(task *RuleTask) {
+func (tc *testCallback) callback(task *V3RuleTask) {
 	tc.called <- true
 }
 
@@ -48,32 +46,6 @@ func (tl *testLock) unlock() {
 	tl.channel <- true
 }
 
-func TestEngineConstructor(t *testing.T) {
-	cfg, _, _ := initEtcd()
-	eng := NewEngine(cfg, getTestLogger())
-	value := "val"
-	rule, _ := NewEqualsLiteralRule("/key", &value)
-	eng.AddRule(rule, "/lock", dummyCallback)
-	eng.AddPolling("/polling", rule, 30, dummyCallback)
-	eng.Run()
-	eng = NewEngine(cfg, getTestLogger(), KeyExpansion(map[string][]string{"a:": {"b"}}))
-	eng.AddRule(rule, "/lock", dummyCallback, RuleLockTimeout(30))
-	eng.AddPolling("/polling", rule, 30, dummyCallback)
-	err := eng.AddPolling("/polling[", rule, 30, dummyCallback)
-	assert.Error(t, err)
-	eng.Run()
-	eng.Stop()
-	stopped := false
-	for i := 0; i < 20; i++ {
-		stopped = eng.IsStopped()
-		if stopped {
-			break
-		}
-		time.Sleep(time.Second)
-	}
-	assert.True(t, stopped)
-}
-
 func TestV3EngineConstructor(t *testing.T) {
 	cfg, _ := initV3Etcd()
 	eng := NewV3Engine(cfg, getTestLogger())
@@ -98,101 +70,6 @@ func TestV3EngineConstructor(t *testing.T) {
 		time.Sleep(time.Second)
 	}
 	assert.True(t, stopped)
-}
-
-func TestEngineShutdown(t *testing.T) {
-	shutdownTests := []struct {
-		blockCallback bool // prevent the callback from returning
-		timeout       time.Duration
-		expected      error
-		name, literal string
-	}{
-		{
-			blockCallback: true,
-			timeout:       100 * time.Millisecond,
-			expected:      context.DeadlineExceeded,
-			name:          "timeout",
-			literal:       "val2",
-		},
-		{
-			blockCallback: false,
-			timeout:       5 * time.Second,
-			expected:      nil,
-			name:          "normal",
-			literal:       "val1",
-		},
-	}
-
-	for _, tt := range shutdownTests {
-		name := tt.name
-		getTestLogger().Info("Running test", zap.String("test", name))
-		cfg, _, kv := initEtcd()
-		eng := NewEngine(cfg, getTestLogger())
-		value := tt.literal
-		kv.Set(context.Background(), "/key", value, nil)
-		rule, _ := NewEqualsLiteralRule("/key", &value)
-
-		releaseCh := make(chan struct{})
-		shutdownErrCh := make(chan error)
-		eng.AddRule(rule, "/shutdown-lock", func(task *RuleTask) {
-			task.Logger.Info("Entering callback", zap.String("test", name))
-			// Prevent additional firing of rule
-			kv.Delete(context.Background(), "/key", nil)
-			blockCallback := tt.blockCallback
-			go func() {
-				ctx, cancel := context.WithTimeout(context.Background(), tt.timeout)
-				defer cancel()
-				task.Logger.Info("Shutting down engine", zap.String("test", name))
-				shutdownErrCh <- eng.Shutdown(ctx)
-			}()
-			if blockCallback {
-				<-releaseCh
-			}
-		})
-		eng.Run()
-
-		timer := time.NewTimer(10 * time.Second)
-		select {
-		case err := <-shutdownErrCh:
-			close(releaseCh)
-			assert.Equal(t, tt.expected, err, name)
-		case <-timer.C:
-			assert.Fail(t, "timeout", "variation %q did not complete", name)
-		}
-	}
-}
-
-func TestCallbackWrapper(t *testing.T) {
-	cfg, _, _ := initEtcd()
-	task := RuleTask{
-		Attr:   &mapAttributes{values: map[string]string{"a": "b"}},
-		Conf:   cfg,
-		Logger: getTestLogger(),
-	}
-	cbw := callbackWrapper{
-		callback:       dummyCallback,
-		ttl:            30,
-		ttlPathPattern: "/:a/ttl",
-	}
-	cbw.doRule(&task)
-	// Bad configuration resulting in error creating client
-	cfg = client.Config{}
-	task = RuleTask{
-		Attr:   &mapAttributes{},
-		Conf:   cfg,
-		Logger: getTestLogger(),
-	}
-	cbw.doRule(&task)
-	// Bad configuration resulting in HTTP error
-	cfg = client.Config{
-		Endpoints: []string{"http://500.0.0.1:0"},
-	}
-	task = RuleTask{
-		Attr:   &mapAttributes{},
-		Conf:   cfg,
-		Logger: getTestLogger(),
-	}
-	cbw.doRule(&task)
 }
 
 func TestV3CallbackWrapper(t *testing.T) {

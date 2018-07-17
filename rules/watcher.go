@@ -4,29 +4,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/coreos/etcd/client"
 	"github.com/coreos/etcd/clientv3"
 	"github.com/uber-go/zap"
 )
-
-func newWatcher(config client.Config, prefix string, logger zap.Logger, proc keyProc, watchTimeout int, wrapKeysAPI WrapKeysAPI) (watcher, error) {
-	ec, err := client.New(config)
-	if err != nil {
-		return watcher{}, err
-	}
-	ea := wrapKeysAPI(client.NewKeysAPI(ec))
-	api := etcdReadAPI{
-		baseReadAPI: baseReadAPI{},
-		keysAPI:     ea,
-	}
-	ew := newEtcdKeyWatcher(ea, prefix, time.Duration(watchTimeout)*time.Second)
-	return watcher{
-		api:    &api,
-		kw:     ew,
-		kp:     proc,
-		logger: logger,
-	}, nil
-}
 
 func newV3Watcher(ec *clientv3.Client, prefix string, logger zap.Logger, proc keyProc, watchTimeout int, kvWrapper WrapKV) (watcher, error) {
 	api := etcdV3ReadAPI{

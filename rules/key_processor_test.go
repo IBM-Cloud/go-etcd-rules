@@ -3,39 +3,10 @@ package rules
 import (
 	"testing"
 
-	"github.com/coreos/etcd/client"
 	"github.com/coreos/etcd/clientv3"
 	"github.com/stretchr/testify/assert"
 	"github.com/uber-go/zap"
 )
-
-func TestKeyProcessor(t *testing.T) {
-	value := "value"
-	rule, err := NewEqualsLiteralRule("/test/:key", &value)
-	assert.NoError(t, err)
-	rm := newRuleManager(map[string]constraint{}, false)
-	rm.addRule(rule)
-	api := newMapReadAPI()
-	api.put("/test/key", value)
-	callbacks := map[int]RuleTaskCallback{0: dummyCallback}
-	lockKeyPatterns := map[int]string{0: "/test/lock/:key"}
-	contextProviders := map[int]ContextProvider{0: defaultContextProvider}
-	channel := make(chan ruleWork)
-	kp := keyProcessor{
-		baseKeyProcessor: baseKeyProcessor{
-			rm:               &rm,
-			lockKeyPatterns:  lockKeyPatterns,
-			contextProviders: contextProviders,
-		},
-		callbacks: callbacks,
-		channel:   channel,
-		config:    client.Config{},
-	}
-	logger := getTestLogger()
-	go kp.processKey("/test/key", &value, api, logger, map[string]string{})
-	work := <-channel
-	assert.Equal(t, "/test/lock/key", work.lockKey)
-}
 
 type testKeyProcessor struct {
 	apis    []readAPI
