@@ -1,11 +1,10 @@
-hash: 870614f6a6a4cb3c7f6323741c382a322337013dea5056807a10e13830cf12da
-updated: 2018-07-17T08:37:36.846885-04:00
+hash: 1190f2d9cfad5c3efd600125236c93b69be592ddfae7f105633967be347d40d0
+updated: 2018-07-17T08:54:53.832118-04:00
 imports:
 - name: github.com/coreos/etcd
   version: c9504f61fc7f29b0ad30bf8bab02d9e1b600e962
   subpackages:
   - auth/authpb
-  - client
   - clientv3
   - clientv3/concurrency
   - etcdserver/api/v3rpc/rpctypes
