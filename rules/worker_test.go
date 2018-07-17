@@ -15,7 +15,7 @@ func TestWorkerSingleRun(t *testing.T) {
 	}
 	cl, err := clientv3.New(conf)
 	assert.NoError(t, err)
-	e := newV3Engine(conf, true, getTestLogger(), cl, EngineLockTimeout(300))
+	e := newV3Engine(conf, getTestLogger(), cl, EngineLockTimeout(300))
 	channel := e.workChannel
 	lockChannel := make(chan bool)
 	locker := testLocker{

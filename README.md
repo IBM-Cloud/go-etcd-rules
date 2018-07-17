@@ -60,8 +60,14 @@ func main() {
 
 	engine := rules.NewV3Engine(cfg, logger)
 
-	serverActive, _ := rules.NewEqualsLiteralRule("/servers/:serverid/state", lTP("active"))
-	pollDelayGone, _ := rules.NewEqualsLiteralRule("/servers/internal/:serverid/poll_delay", nil)
+	serverActive, err := rules.NewEqualsLiteralRule("/servers/:serverid/state", lTP("active"))
+	if err != nil {
+		panic(err)
+	}
+	pollDelayGone, err := rules.NewEqualsLiteralRule("/servers/internal/:serverid/poll_delay", nil)
+	if err != nil {
+		panic(err)
+	}
 
 	engine.AddRule(
 		rules.NewAndRule(serverActive, pollDelayGone),

@@ -76,11 +76,11 @@ func NewV3Engine(configV3 clientv3.Config, logger zap.Logger, options ...EngineO
 
 // NewV3EngineWithClient creates a new V3Engine instance with the provided etcd v3 client instance.
 func NewV3EngineWithClient(cl *clientv3.Client, configV3 clientv3.Config, logger zap.Logger, options ...EngineOption) V3Engine {
-	eng := newV3Engine(configV3, true, logger, cl, options...)
+	eng := newV3Engine(configV3, logger, cl, options...)
 	return &eng
 }
 
-func newV3Engine(configV3 clientv3.Config, useV3 bool, logger zap.Logger, cl *clientv3.Client, options ...EngineOption) v3Engine {
+func newV3Engine(configV3 clientv3.Config, logger zap.Logger, cl *clientv3.Client, options ...EngineOption) v3Engine {
 	opts := makeEngineOptions(options...)
 	ruleMgr := newRuleManager(opts.constraints, opts.enhancedRuleFilter)
 	channel := make(chan v3RuleWork)
