@@ -2,11 +2,9 @@ package rules
 
 import (
 	"fmt"
-	"sort"
 	"strings"
 	"time"
 
-	"github.com/coreos/etcd/client"
 	"github.com/coreos/etcd/clientv3"
 	"github.com/uber-go/zap"
 	"golang.org/x/net/context"
@@ -44,14 +42,6 @@ type baseEngine struct {
 
 type channelCloser func()
 
-type engine struct {
-	baseEngine
-	config         client.Config
-	keyProc        keyProcessor
-	workChannel    chan ruleWork
-	keysAPIWrapper WrapKeysAPI
-}
-
 type v3Engine struct {
 	baseEngine
 	configV3    clientv3.Config
@@ -59,20 +49,6 @@ type v3Engine struct {
 	workChannel chan v3RuleWork
 	kvWrapper   WrapKV
 	cl          *clientv3.Client
-}
-
-// Engine defines the interactions with a rule engine instance.
-type Engine interface {
-	BaseEngine
-	SetKeysAPIWrapper(WrapKeysAPI)
-	AddRule(rule DynamicRule,
-		lockPattern string,
-		callback RuleTaskCallback,
-		options ...RuleOption)
-	AddPolling(namespacePattern string,
-		preconditions DynamicRule,
-		ttl int,
-		callback RuleTaskCallback) error
 }
 
 // V3Engine defines the interactions with a rule engine instance communicating with etcd v3.
@@ -89,12 +65,6 @@ type V3Engine interface {
 		callback V3RuleTaskCallback) error
 }
 
-// NewEngine creates a new Engine instance.
-func NewEngine(config client.Config, logger zap.Logger, options ...EngineOption) Engine {
-	eng := newEngine(config, clientv3.Config{}, false, logger, options...)
-	return &eng
-}
-
 // NewV3Engine creates a new V3Engine instance.
 func NewV3Engine(configV3 clientv3.Config, logger zap.Logger, options ...EngineOption) V3Engine {
 	cl, err := clientv3.New(configV3)
@@ -106,35 +76,11 @@ func NewV3Engine(configV3 clientv3.Config, logger zap.Logger, options ...EngineO
 
 // NewV3EngineWithClient creates a new V3Engine instance with the provided etcd v3 client instance.
 func NewV3EngineWithClient(cl *clientv3.Client, configV3 clientv3.Config, logger zap.Logger, options ...EngineOption) V3Engine {
-	eng := newV3Engine(client.Config{}, configV3, true, logger, cl, options...)
+	eng := newV3Engine(configV3, logger, cl, options...)
 	return &eng
 }
 
-func newEngine(config client.Config, configV3 clientv3.Config, useV3 bool, logger zap.Logger, options ...EngineOption) engine {
-	opts := makeEngineOptions(options...)
-	ruleMgr := newRuleManager(map[string]constraint{}, opts.enhancedRuleFilter)
-	channel := make(chan ruleWork, opts.ruleWorkBuffer)
-	keyProc := newKeyProcessor(channel, config, &ruleMgr)
-	eng := engine{
-		baseEngine: baseEngine{
-			cCloser: func() {
-				close(channel)
-			},
-			keyProc:      &keyProc,
-			logger:       logger,
-			options:      opts,
-			ruleLockTTLs: map[int]int{},
-			ruleMgr:      ruleMgr,
-		},
-		config:         config,
-		keyProc:        keyProc,
-		workChannel:    channel,
-		keysAPIWrapper: defaultWrapKeysAPI,
-	}
-	return eng
-}
-
-func newV3Engine(config client.Config, configV3 clientv3.Config, useV3 bool, logger zap.Logger, cl *clientv3.Client, options ...EngineOption) v3Engine {
+func newV3Engine(configV3 clientv3.Config, logger zap.Logger, cl *clientv3.Client, options ...EngineOption) v3Engine {
 	opts := makeEngineOptions(options...)
 	ruleMgr := newRuleManager(opts.constraints, opts.enhancedRuleFilter)
 	channel := make(chan v3RuleWork)
@@ -159,19 +105,8 @@ func newV3Engine(config client.Config, configV3 clientv3.Config, useV3 bool, log
 	return eng
 }
 
-func (e *engine) SetKeysAPIWrapper(keysAPIWrapper WrapKeysAPI) {
-	e.keysAPIWrapper = keysAPIWrapper
-}
-
 func (e *v3Engine) SetKVWrapper(kvWrapper WrapKV) {
 	e.kvWrapper = kvWrapper
-}
-
-func (e *engine) AddRule(rule DynamicRule,
-	lockPattern string,
-	callback RuleTaskCallback,
-	options ...RuleOption) {
-	e.addRuleWithIface(rule, lockPattern, callback, options...)
 }
 
 func (e *v3Engine) AddRule(rule DynamicRule,
@@ -253,25 +188,6 @@ func (e *baseEngine) addRuleWithIface(rule DynamicRule, lockPattern string, call
 	}
 }
 
-func (e *engine) AddPolling(namespacePattern string, preconditions DynamicRule, ttl int, callback RuleTaskCallback) error {
-	if !strings.HasSuffix(namespacePattern, "/") {
-		namespacePattern = namespacePattern + "/"
-	}
-	ttlPathPattern := namespacePattern + "ttl"
-	ttlRule, err := NewEqualsLiteralRule(ttlPathPattern, nil)
-	if err != nil {
-		return err
-	}
-	rule := NewAndRule(preconditions, ttlRule)
-	cbw := callbackWrapper{
-		callback:       callback,
-		ttl:            ttl,
-		ttlPathPattern: ttlPathPattern,
-	}
-	e.AddRule(rule, namespacePattern+"lock", cbw.doRule)
-	return nil
-}
-
 func (e *v3Engine) AddPolling(namespacePattern string, preconditions DynamicRule, ttl int, callback V3RuleTaskCallback) error {
 	if !strings.HasSuffix(namespacePattern, "/") {
 		namespacePattern = namespacePattern + "/"
@@ -312,63 +228,6 @@ func (e *baseEngine) addRule(rule DynamicRule,
 	e.keyProc.setCallback(ruleIndex, callback)
 	e.keyProc.setLockKeyPattern(ruleIndex, lockPattern)
 	e.keyProc.setContextProvider(ruleIndex, contextProvider)
-}
-
-func (e *engine) Run() {
-	rulePatterns := getRulePatterns(e.ruleMgr.rules)
-	sort.Strings(rulePatterns)
-	for _, pattern := range rulePatterns {
-		e.logger.Info("Rule matcher", zap.String("pattern", pattern))
-	}
-	crawlGuides := e.options.crawlGuides
-	if len(crawlGuides) == 0 && e.options.autoCrawlGuides {
-		crawlGuides = getCrawlGuidesForRules(e.ruleMgr.rules)
-	}
-	if len(crawlGuides) > 0 {
-		sort.Strings(crawlGuides)
-		for _, guide := range crawlGuides {
-			e.logger.Info("Crawl guide", zap.String("pattern", guide))
-		}
-	}
-	prefixes := e.ruleMgr.prefixes
-
-	// This is a map; used to ensure there are no duplicates
-	for prefix := range prefixes {
-		logger := e.logger.With(zap.String("prefix", prefix))
-		c, err1 := newCrawler(
-			e.config,
-			logger,
-			prefix,
-			e.options.syncInterval,
-			e.baseEngine.keyProc,
-			e.keysAPIWrapper,
-			e.options.syncDelay,
-			crawlGuides,
-		)
-		if err1 != nil {
-			e.logger.Fatal("Failed to initialize crawler", zap.String("prefix", prefix), zap.Error(err1))
-		}
-		e.crawlers = append(e.crawlers, c)
-		go c.run()
-		w, err := newWatcher(e.config, prefix, logger, e.baseEngine.keyProc, e.options.watchTimeout, e.keysAPIWrapper)
-		if err != nil {
-			e.logger.Fatal("Failed to initialize watcher", zap.String("prefix", prefix))
-		}
-		e.watchers = append(e.watchers, &w)
-		go w.run()
-	}
-
-	e.logger.Info("Starting workers", zap.Int("count", e.options.concurrency))
-	for i := 0; i < e.options.concurrency; i++ {
-		id := fmt.Sprintf("worker%d", i)
-		w, err := newWorker(id, e)
-		if err != nil {
-			e.logger.Fatal("Failed to start worker", zap.String("worker", id), zap.Error(err))
-		}
-		e.workers = append(e.workers, &w)
-		go w.run()
-	}
-
 }
 
 func (e *v3Engine) Run() {
@@ -418,12 +277,6 @@ func (e *baseEngine) getLockTTLForRule(index int) int {
 	return e.ruleLockTTLs[index]
 }
 
-type callbackWrapper struct {
-	ttlPathPattern string
-	callback       RuleTaskCallback
-	ttl            int
-}
-
 type v3CallbackWrapper struct {
 	ttlPathPattern string
 	callback       V3RuleTaskCallback
@@ -431,28 +284,6 @@ type v3CallbackWrapper struct {
 	kv             clientv3.KV
 	lease          clientv3.Lease
 	engine         *v3Engine
-}
-
-func (cbw *callbackWrapper) doRule(task *RuleTask) {
-	logger := task.Logger
-	cbw.callback(task)
-	c, err := client.New(task.Conf)
-	if err != nil {
-		logger.Error("Error obtaining client", zap.Error(err))
-		return
-	}
-	kapi := client.NewKeysAPI(c)
-	path := task.Attr.Format(cbw.ttlPathPattern)
-	logger.Debug("Setting polling TTL", zap.String("path", path))
-	_, setErr := kapi.Set(
-		context.Background(),
-		path,
-		"",
-		&client.SetOptions{TTL: time.Duration(cbw.ttl) * time.Second},
-	)
-	if setErr != nil {
-		logger.Error("Error setting polling TTL", zap.Error(setErr), zap.String("path", path))
-	}
 }
 
 func (cbw *v3CallbackWrapper) doRule(task *V3RuleTask) {

@@ -1,7 +1,6 @@
 package rules
 
 import (
-	"github.com/coreos/etcd/client"
 	"github.com/coreos/etcd/clientv3"
 	"github.com/uber-go/zap"
 	"golang.org/x/net/context"
@@ -16,17 +15,6 @@ type Attributes interface {
 	Format(string) string
 }
 
-// RuleTask instances contain contextual object instances and metadata
-// for use by rule callbacks.
-type RuleTask struct {
-	Attr     Attributes
-	Conf     client.Config
-	Logger   zap.Logger
-	Context  context.Context
-	cancel   context.CancelFunc
-	Metadata map[string]string
-}
-
 // V3RuleTask instances contain contextual object instances and metadata
 // for use by rule callbacks.
 type V3RuleTask struct {
@@ -38,28 +26,10 @@ type V3RuleTask struct {
 	Metadata map[string]string
 }
 
-// RuleTaskCallback is the function type for functions that are called
-// as a result of a specified rule being satisfied.
-type RuleTaskCallback func(task *RuleTask)
-
 // V3RuleTaskCallback is the function type for functions that are called
 // as a reulst of a specified rule being satisfied using the etcd v3
 // API.
 type V3RuleTaskCallback func(task *V3RuleTask)
-
-//type baseWork struct {
-//	attr Attributes
-//	logger zap.Logger
-//}
-
-type ruleWork struct {
-	//	baseWork
-	rule             staticRule
-	ruleTask         RuleTask
-	ruleTaskCallback RuleTaskCallback
-	ruleIndex        int
-	lockKey          string
-}
 
 type v3RuleWork struct {
 	//	baseWork

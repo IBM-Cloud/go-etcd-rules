@@ -3,7 +3,6 @@ package rules
 import (
 	"sync"
 
-	"github.com/coreos/etcd/client"
 	"github.com/uber-go/zap"
 )
 
@@ -15,36 +14,9 @@ type baseWorker struct {
 	stopped  uint32
 }
 
-type worker struct {
-	baseWorker
-	engine *engine
-}
-
 type v3Worker struct {
 	baseWorker
 	engine *v3Engine
-}
-
-func newWorker(workerID string, engine *engine) (worker, error) {
-	var api readAPI
-	var locker ruleLocker
-	c, err := client.New(engine.config)
-	if err != nil {
-		return worker{}, err
-	}
-	locker = newLockLocker(c)
-	api = &etcdReadAPI{
-		keysAPI: client.NewKeysAPI(c),
-	}
-	w := worker{
-		baseWorker: baseWorker{
-			api:      api,
-			locker:   locker,
-			workerID: workerID,
-		},
-		engine: engine,
-	}
-	return w, nil
 }
 
 func newV3Worker(workerID string, engine *v3Engine) (v3Worker, error) {
@@ -66,14 +38,6 @@ func newV3Worker(workerID string, engine *v3Engine) (v3Worker, error) {
 		engine: engine,
 	}
 	return w, nil
-}
-
-func (w *worker) run() {
-	atomicSet(&w.stopped, false)
-	for !is(&w.stopping) {
-		w.singleRun()
-	}
-	atomicSet(&w.stopped, true)
 }
 
 func (w *v3Worker) run() {
@@ -127,18 +91,6 @@ func (bw *baseWorker) doWork(loggerPtr *zap.Logger,
 
 func (bw *baseWorker) addWorkerID(ruleContext map[string]string) {
 	ruleContext["rule_worker"] = bw.workerID
-}
-
-func (w *worker) singleRun() {
-	work := <-w.engine.workChannel
-	task := work.ruleTask
-	if is(&w.stopping) {
-		return
-	}
-	w.addWorkerID(task.Metadata)
-	task.Logger = task.Logger.With(zap.String("worker", w.workerID))
-	w.doWork(&task.Logger, &work.rule, w.engine.getLockTTLForRule(work.ruleIndex), func() { work.ruleTaskCallback(&task) }, work.lockKey)
-	work.ruleTask.cancel()
 }
 
 func (w *v3Worker) singleRun() {

@@ -3,13 +3,8 @@ import:
 - package: golang.org/x/net
   subpackages:
   - context
-- package: github.com/IBM-Cloud/go-etcd-lock
-  subpackages:
-  - lock
 - package: github.com/coreos/etcd
   version: ~3.2.7
-  subpackages:
-  - client
 - package: github.com/uber-go/zap
   version: ~0.1.0-beta.1
 testImport:

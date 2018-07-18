@@ -1,7 +1,6 @@
 package rules
 
 import (
-	"github.com/coreos/etcd/client"
 	"github.com/coreos/etcd/clientv3"
 	"github.com/uber-go/zap"
 )
@@ -21,26 +20,6 @@ type workDispatcher interface {
 	dispatchWork(index int, rule staticRule, logger zap.Logger, keyPattern string, metadata map[string]string)
 }
 
-func (kp *keyProcessor) dispatchWork(index int, rule staticRule, logger zap.Logger, keyPattern string, metadata map[string]string) {
-	ctx, cancel := kp.contextProviders[index]()
-	task := RuleTask{
-		Attr:     rule.getAttributes(),
-		Conf:     kp.config,
-		Logger:   logger,
-		Context:  ctx,
-		cancel:   cancel,
-		Metadata: metadata,
-	}
-	work := ruleWork{
-		rule:             rule,
-		ruleIndex:        index,
-		ruleTask:         task,
-		ruleTaskCallback: kp.callbacks[index],
-		lockKey:          FormatWithAttributes(keyPattern, rule.getAttributes()),
-	}
-	kp.channel <- work
-}
-
 type baseKeyProcessor struct {
 	contextProviders map[int]ContextProvider
 	lockKeyPatterns  map[int]string
@@ -53,17 +32,6 @@ func (bkp *baseKeyProcessor) setLockKeyPattern(index int, pattern string) {
 
 func (bkp *baseKeyProcessor) setContextProvider(index int, cp ContextProvider) {
 	bkp.contextProviders[index] = cp
-}
-
-type keyProcessor struct {
-	baseKeyProcessor
-	callbacks map[int]RuleTaskCallback
-	channel   chan ruleWork
-	config    client.Config
-}
-
-func (kp *keyProcessor) setCallback(index int, callback interface{}) {
-	kp.callbacks[index] = callback.(RuleTaskCallback)
 }
 
 type v3KeyProcessor struct {
@@ -99,20 +67,6 @@ func (v3kp *v3KeyProcessor) dispatchWork(index int, rule staticRule, logger zap.
 	v3kp.channel <- work
 }
 
-func newKeyProcessor(channel chan ruleWork, config client.Config, rm *ruleManager) keyProcessor {
-	kp := keyProcessor{
-		baseKeyProcessor: baseKeyProcessor{
-			contextProviders: map[int]ContextProvider{},
-			lockKeyPatterns:  map[int]string{},
-			rm:               rm,
-		},
-		callbacks: map[int]RuleTaskCallback{},
-		channel:   channel,
-		config:    config,
-	}
-	return kp
-}
-
 func newV3KeyProcessor(channel chan v3RuleWork, config *clientv3.Config, rm *ruleManager) v3KeyProcessor {
 	kp := v3KeyProcessor{
 		baseKeyProcessor: baseKeyProcessor{
@@ -125,10 +79,6 @@ func newV3KeyProcessor(channel chan v3RuleWork, config *clientv3.Config, rm *rul
 		config:    config,
 	}
 	return kp
-}
-
-func (kp *keyProcessor) processKey(key string, value *string, api readAPI, logger zap.Logger, metadata map[string]string) {
-	kp.baseKeyProcessor.processKey(key, value, api, logger, kp, metadata)
 }
 
 func (v3kp *v3KeyProcessor) processKey(key string, value *string, api readAPI, logger zap.Logger, metadata map[string]string) {

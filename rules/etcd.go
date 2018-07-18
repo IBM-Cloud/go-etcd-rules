@@ -2,11 +2,9 @@ package rules
 
 import (
 	"errors"
-	"strings"
 	"sync"
 	"time"
 
-	"github.com/coreos/etcd/client"
 	"github.com/coreos/etcd/clientv3"
 	"golang.org/x/net/context"
 )
@@ -24,29 +22,6 @@ func (bra *baseReadAPI) getContext() context.Context {
 
 func (bra *baseReadAPI) cancel() {
 	bra.cancelFunc()
-}
-
-type etcdReadAPI struct {
-	baseReadAPI
-	keysAPI  client.KeysAPI
-	noQuorum bool
-}
-
-func (edra *etcdReadAPI) get(key string) (*string, error) {
-	ctx := edra.getContext()
-	defer edra.cancel()
-	options := &client.GetOptions{Quorum: true}
-	if edra.noQuorum {
-		options = nil
-	}
-	resp, err := edra.keysAPI.Get(ctx, key, options)
-	if err != nil {
-		if !strings.HasPrefix(err.Error(), "100") {
-			return nil, err
-		}
-		return nil, nil
-	}
-	return &resp.Node.Value, nil
 }
 
 type etcdV3ReadAPI struct {
@@ -71,21 +46,6 @@ func (edv3ra *etcdV3ReadAPI) get(key string) (*string, error) {
 type keyWatcher interface {
 	next() (string, *string, error)
 	cancel()
-}
-
-func newEtcdKeyWatcher(api client.KeysAPI, prefix string, timeout time.Duration) keyWatcher {
-	w := api.Watcher(prefix, &client.WatcherOptions{
-		Recursive: true,
-	})
-	watcher := etcdKeyWatcher{
-		baseKeyWatcher: baseKeyWatcher{
-			prefix:  prefix,
-			timeout: timeout,
-		},
-		api: api,
-		w:   w,
-	}
-	return &watcher
 }
 
 func newEtcdV3KeyWatcher(watcher clientv3.Watcher, prefix string, timeout time.Duration) *etcdV3KeyWatcher {
@@ -121,28 +81,6 @@ func (bkw *baseKeyWatcher) getContext() context.Context {
 	}
 	ctx = SetMethod(ctx, "watcher")
 	return ctx
-}
-
-type etcdKeyWatcher struct {
-	baseKeyWatcher
-	api client.KeysAPI
-	w   client.Watcher
-}
-
-func (ekw *etcdKeyWatcher) next() (string, *string, error) {
-	resp, err := ekw.w.Next(ekw.getContext())
-	if err != nil {
-		// Get a new watcher to clear the event index
-		ekw.w = ekw.api.Watcher(ekw.prefix, &client.WatcherOptions{
-			Recursive: true,
-		})
-		return "", nil, err
-	}
-	node := resp.Node
-	if resp.Action == "delete" || resp.Action == "expire" {
-		return node.Key, nil, nil
-	}
-	return node.Key, &node.Value, nil
 }
 
 func (bkw *baseKeyWatcher) cancel() {

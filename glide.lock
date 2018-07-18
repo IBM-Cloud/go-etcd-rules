@@ -1,24 +1,16 @@
-hash: 1e35e74c57e1a891c2fe74a9f2c3c1a6acf5b1f0e5aae64f859c63578eb3235f
-updated: 2018-01-30T13:28:37.454747-05:00
+hash: 1190f2d9cfad5c3efd600125236c93b69be592ddfae7f105633967be347d40d0
+updated: 2018-07-17T08:54:53.832118-04:00
 imports:
 - name: github.com/coreos/etcd
-  version: 1b3ac99e8a431b381e633802cc42fe70e663baf5
+  version: c9504f61fc7f29b0ad30bf8bab02d9e1b600e962
   subpackages:
   - auth/authpb
-  - client
   - clientv3
   - clientv3/concurrency
   - etcdserver/api/v3rpc/rpctypes
   - etcdserver/etcdserverpb
   - mvcc/mvccpb
-  - pkg/pathutil
-  - pkg/srv
   - pkg/types
-  - version
-- name: github.com/coreos/go-semver
-  version: 8ab6407b697782a06568d4b7f1db25550ec2e4c6
-  subpackages:
-  - semver
 - name: github.com/golang/protobuf
   version: 5a0f697c9ed9d68fef0116532c6e05cfeae00e55
   subpackages:
@@ -29,18 +21,10 @@ imports:
   - ptypes/any
   - ptypes/duration
   - ptypes/timestamp
-- name: github.com/IBM-Cloud/go-etcd-lock
-  version: 13b15af9f038cc85209460fd6c43f879bbc37fdd
-  subpackages:
-  - lock
 - name: github.com/uber-go/atomic
   version: 54f72d32435d760d5604f17a82e2435b28dc4ba5
 - name: github.com/uber-go/zap
   version: c064b5c44b285a7e2fd5c9b26e8c38228ce2bccb
-- name: github.com/ugorji/go
-  version: ded73eae5db7e7a0ef6f55aace87a2873c5d2b74
-  subpackages:
-  - codec
 - name: golang.org/x/net
   version: 66aacef3dd8a676686c7ae3716979581e8b03c47
   subpackages:
@@ -84,8 +68,6 @@ imports:
   - status
   - tap
   - transport
-- name: gopkg.in/errgo.v1
-  version: 442357a80af5c6bf9b6d51ae791a39c3421004f3
 testImports:
 - name: github.com/davecgh/go-spew
   version: 6d212800a42e8ab5c146b8ace3490ee17e5225f9
