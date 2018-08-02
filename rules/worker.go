@@ -3,7 +3,7 @@ package rules
 import (
 	"sync"
 
-	"github.com/uber-go/zap"
+	"go.uber.org/zap"
 )
 
 type baseWorker struct {
@@ -58,7 +58,7 @@ func (bw *baseWorker) isStopped() bool {
 	return is(&bw.stopped)
 }
 
-func (bw *baseWorker) doWork(loggerPtr *zap.Logger,
+func (bw *baseWorker) doWork(loggerPtr **zap.Logger,
 	rulePtr *staticRule, lockTTL int, callback workCallback,
 	lockKey string) {
 	logger := *loggerPtr
@@ -108,7 +108,7 @@ func (w *v3Worker) singleRun() {
 		defer func() {
 			wg.Done()
 			if r := recover(); r != nil {
-				task.Logger.Error("Panic", zap.Object("recover", r))
+				task.Logger.Error("Panic", zap.Any("recover", r))
 			}
 		}()
 		w.doWork(&task.Logger, &work.rule, w.engine.getLockTTLForRule(work.ruleIndex), func() { work.ruleTaskCallback(&task) }, work.lockKey)

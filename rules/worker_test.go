@@ -5,7 +5,6 @@ import (
 
 	"github.com/coreos/etcd/clientv3"
 	"github.com/stretchr/testify/assert"
-	"github.com/uber-go/zap"
 	"golang.org/x/net/context"
 )
 
@@ -38,7 +37,7 @@ func TestWorkerSingleRun(t *testing.T) {
 	task := V3RuleTask{
 		Attr:     &attr,
 		Conf:     &clientv3.Config{},
-		Logger:   zap.New(zap.NewTextEncoder()),
+		Logger:   getTestLogger(),
 		Metadata: map[string]string{},
 		Context:  ctx,
 		cancel:   cancel,

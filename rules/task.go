@@ -2,7 +2,7 @@ package rules
 
 import (
 	"github.com/coreos/etcd/clientv3"
-	"github.com/uber-go/zap"
+	"go.uber.org/zap"
 	"golang.org/x/net/context"
 )
 
@@ -20,7 +20,7 @@ type Attributes interface {
 type V3RuleTask struct {
 	Attr     Attributes
 	Conf     *clientv3.Config
-	Logger   zap.Logger
+	Logger   *zap.Logger
 	Context  context.Context
 	cancel   context.CancelFunc
 	Metadata map[string]string

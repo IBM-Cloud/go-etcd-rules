@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/coreos/etcd/clientv3"
-	"github.com/uber-go/zap"
+	"go.uber.org/zap"
 	"golang.org/x/net/context"
 )
 
@@ -30,7 +30,7 @@ type BaseEngine interface {
 type baseEngine struct {
 	cCloser      channelCloser
 	keyProc      setableKeyProcessor
-	logger       zap.Logger
+	logger       *zap.Logger
 	options      engineOptions
 	ruleLockTTLs map[int]int
 	ruleMgr      ruleManager
@@ -66,7 +66,7 @@ type V3Engine interface {
 }
 
 // NewV3Engine creates a new V3Engine instance.
-func NewV3Engine(configV3 clientv3.Config, logger zap.Logger, options ...EngineOption) V3Engine {
+func NewV3Engine(configV3 clientv3.Config, logger *zap.Logger, options ...EngineOption) V3Engine {
 	cl, err := clientv3.New(configV3)
 	if err != nil {
 		logger.Fatal("Failed to connect to etcd", zap.Error(err))
@@ -75,12 +75,12 @@ func NewV3Engine(configV3 clientv3.Config, logger zap.Logger, options ...EngineO
 }
 
 // NewV3EngineWithClient creates a new V3Engine instance with the provided etcd v3 client instance.
-func NewV3EngineWithClient(cl *clientv3.Client, configV3 clientv3.Config, logger zap.Logger, options ...EngineOption) V3Engine {
+func NewV3EngineWithClient(cl *clientv3.Client, configV3 clientv3.Config, logger *zap.Logger, options ...EngineOption) V3Engine {
 	eng := newV3Engine(configV3, logger, cl, options...)
 	return &eng
 }
 
-func newV3Engine(configV3 clientv3.Config, logger zap.Logger, cl *clientv3.Client, options ...EngineOption) v3Engine {
+func newV3Engine(configV3 clientv3.Config, logger *zap.Logger, cl *clientv3.Client, options ...EngineOption) v3Engine {
 	opts := makeEngineOptions(options...)
 	ruleMgr := newRuleManager(opts.constraints, opts.enhancedRuleFilter)
 	channel := make(chan v3RuleWork)

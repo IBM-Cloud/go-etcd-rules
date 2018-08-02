@@ -2,11 +2,11 @@ package rules
 
 import (
 	"github.com/coreos/etcd/clientv3"
-	"github.com/uber-go/zap"
+	"go.uber.org/zap"
 )
 
 type keyProc interface {
-	processKey(key string, value *string, api readAPI, logger zap.Logger, metadata map[string]string)
+	processKey(key string, value *string, api readAPI, logger *zap.Logger, metadata map[string]string)
 }
 
 type setableKeyProcessor interface {
@@ -17,7 +17,7 @@ type setableKeyProcessor interface {
 }
 
 type workDispatcher interface {
-	dispatchWork(index int, rule staticRule, logger zap.Logger, keyPattern string, metadata map[string]string)
+	dispatchWork(index int, rule staticRule, logger *zap.Logger, keyPattern string, metadata map[string]string)
 }
 
 type baseKeyProcessor struct {
@@ -45,7 +45,7 @@ func (v3kp *v3KeyProcessor) setCallback(index int, callback interface{}) {
 	v3kp.callbacks[index] = callback.(V3RuleTaskCallback)
 }
 
-func (v3kp *v3KeyProcessor) dispatchWork(index int, rule staticRule, logger zap.Logger, keyPattern string, metadata map[string]string) {
+func (v3kp *v3KeyProcessor) dispatchWork(index int, rule staticRule, logger *zap.Logger, keyPattern string, metadata map[string]string) {
 	context, cancelFunc := v3kp.contextProviders[index]()
 	task := V3RuleTask{
 		Attr: rule.getAttributes(),
@@ -81,11 +81,11 @@ func newV3KeyProcessor(channel chan v3RuleWork, config *clientv3.Config, rm *rul
 	return kp
 }
 
-func (v3kp *v3KeyProcessor) processKey(key string, value *string, api readAPI, logger zap.Logger, metadata map[string]string) {
+func (v3kp *v3KeyProcessor) processKey(key string, value *string, api readAPI, logger *zap.Logger, metadata map[string]string) {
 	v3kp.baseKeyProcessor.processKey(key, value, api, logger, v3kp, metadata)
 }
 
-func (bkp *baseKeyProcessor) processKey(key string, value *string, api readAPI, logger zap.Logger, dispatcher workDispatcher, metadata map[string]string) {
+func (bkp *baseKeyProcessor) processKey(key string, value *string, api readAPI, logger *zap.Logger, dispatcher workDispatcher, metadata map[string]string) {
 	logger.Debug("Processing key", zap.String("key", key))
 	rules := bkp.rm.getStaticRules(key, value)
 	for rule, index := range rules {

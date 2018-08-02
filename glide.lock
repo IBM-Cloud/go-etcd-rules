@@ -1,8 +1,8 @@
-hash: 1190f2d9cfad5c3efd600125236c93b69be592ddfae7f105633967be347d40d0
-updated: 2018-07-17T08:54:53.832118-04:00
+hash: 3bbf7d01c4511f73fa40b777fda928fa9fd233f277bb345feacace0aef305e0a
+updated: 2018-08-02T13:39:54.855131-04:00
 imports:
 - name: github.com/coreos/etcd
-  version: c9504f61fc7f29b0ad30bf8bab02d9e1b600e962
+  version: 420a452267a7ce45b3fcbed04d54030d69964fc1
   subpackages:
   - auth/authpb
   - clientv3
@@ -21,10 +21,18 @@ imports:
   - ptypes/any
   - ptypes/duration
   - ptypes/timestamp
-- name: github.com/uber-go/atomic
-  version: 54f72d32435d760d5604f17a82e2435b28dc4ba5
-- name: github.com/uber-go/zap
-  version: c064b5c44b285a7e2fd5c9b26e8c38228ce2bccb
+- name: go.uber.org/atomic
+  version: 1ea20fb1cbb1cc08cbd0d913a96dead89aa18289
+- name: go.uber.org/multierr
+  version: 3c4937480c32f4c13a875a1829af76c98ca3d40a
+- name: go.uber.org/zap
+  version: 35aad584952c3e7020db7b839f6b102de6271f89
+  subpackages:
+  - buffer
+  - internal/bufferpool
+  - internal/color
+  - internal/exit
+  - zapcore
 - name: golang.org/x/net
   version: 66aacef3dd8a676686c7ae3716979581e8b03c47
   subpackages:
