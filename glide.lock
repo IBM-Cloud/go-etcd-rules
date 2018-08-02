@@ -1,5 +1,5 @@
 hash: 3bbf7d01c4511f73fa40b777fda928fa9fd233f277bb345feacace0aef305e0a
-updated: 2018-08-02T12:28:46.154146-04:00
+updated: 2018-08-02T13:39:54.855131-04:00
 imports:
 - name: github.com/coreos/etcd
   version: 420a452267a7ce45b3fcbed04d54030d69964fc1
@@ -21,10 +21,6 @@ imports:
   - ptypes/any
   - ptypes/duration
   - ptypes/timestamp
-- name: github.com/uber-go/atomic
-  version: 54f72d32435d760d5604f17a82e2435b28dc4ba5
-- name: github.com/uber-go/zap
-  version: c064b5c44b285a7e2fd5c9b26e8c38228ce2bccb
 - name: go.uber.org/atomic
   version: 1ea20fb1cbb1cc08cbd0d913a96dead89aa18289
 - name: go.uber.org/multierr
