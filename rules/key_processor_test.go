@@ -5,20 +5,20 @@ import (
 
 	"github.com/coreos/etcd/clientv3"
 	"github.com/stretchr/testify/assert"
-	"github.com/uber-go/zap"
+	"go.uber.org/zap"
 )
 
 type testKeyProcessor struct {
 	apis    []readAPI
 	keys    []string
-	loggers []zap.Logger
+	loggers []*zap.Logger
 	values  []*string
 }
 
 func (tkp *testKeyProcessor) processKey(key string,
 	value *string,
 	api readAPI,
-	logger zap.Logger,
+	logger *zap.Logger,
 	metadata map[string]string) {
 	tkp.keys = append(tkp.keys, key)
 	tkp.values = append(tkp.values, value)
@@ -26,8 +26,9 @@ func (tkp *testKeyProcessor) processKey(key string,
 	tkp.loggers = append(tkp.loggers, logger)
 }
 
-func getTestLogger() zap.Logger {
-	return zap.New(zap.NewTextEncoder())
+func getTestLogger() *zap.Logger {
+	logger, _ := zap.NewDevelopment()
+	return logger
 }
 
 func TestV3KeyProcessor(t *testing.T) {

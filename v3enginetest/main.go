@@ -7,7 +7,7 @@ import (
 
 	"github.com/IBM-Cloud/go-etcd-rules/rules"
 	"github.com/coreos/etcd/clientv3"
-	"github.com/uber-go/zap"
+	"go.uber.org/zap"
 )
 
 var (
@@ -32,11 +32,8 @@ func check(err error) {
 }
 
 func main() {
-	logger := zap.New(
-		zap.NewJSONEncoder(zap.RFC3339Formatter("ts")),
-		zap.AddCaller(),
-		zap.DebugLevel,
-	)
+	logger, err := zap.NewDevelopment()
+	check(err)
 	cfg := clientv3.Config{Endpoints: []string{"http://127.0.0.1:2379"}}
 	cl, err := clientv3.New(cfg)
 	check(err)

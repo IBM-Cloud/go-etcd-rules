@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/coreos/etcd/clientv3"
-	"github.com/uber-go/zap"
+	"go.uber.org/zap"
 	"golang.org/x/net/context"
 )
 
@@ -13,7 +13,7 @@ func newIntCrawler(
 	cl *clientv3.Client,
 	interval int,
 	kp extKeyProc,
-	logger zap.Logger,
+	logger *zap.Logger,
 	mutex *string,
 	mutexTTL int,
 	prefixes []string,
@@ -65,7 +65,7 @@ type intCrawler struct {
 	interval    int
 	kp          extKeyProc
 	kv          clientv3.KV
-	logger      zap.Logger
+	logger      *zap.Logger
 	mutex       *string
 	mutexTTL    int
 	prefixes    []string
@@ -95,7 +95,7 @@ func (ic *intCrawler) run() {
 	for !ic.isStopping() {
 		logger := ic.logger.With(
 			zap.String("source", "crawler"),
-			zap.Object("crawler_start", time.Now()),
+			zap.String("crawler_start", time.Now().Format("2006-01-02T15:04:05-0700")),
 		)
 		logger.Info("Starting crawler run")
 		if ic.mutex == nil {
@@ -124,7 +124,7 @@ func (ic *intCrawler) run() {
 	atomicSet(&ic.stopped, true)
 }
 
-func (ic *intCrawler) singleRun(logger zap.Logger) {
+func (ic *intCrawler) singleRun(logger *zap.Logger) {
 	if ic.isStopping() {
 		return
 	}
@@ -148,7 +148,7 @@ func (ic *intCrawler) singleRun(logger zap.Logger) {
 	}
 	ic.processData(values, logger)
 }
-func (ic *intCrawler) processData(values map[string]string, logger zap.Logger) {
+func (ic *intCrawler) processData(values map[string]string, logger *zap.Logger) {
 	api := &cacheReadAPI{values: values}
 	for k, v := range values {
 		if ic.isStopping() {

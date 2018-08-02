@@ -5,10 +5,10 @@ import (
 	"time"
 
 	"github.com/coreos/etcd/clientv3"
-	"github.com/uber-go/zap"
+	"go.uber.org/zap"
 )
 
-func newV3Watcher(ec *clientv3.Client, prefix string, logger zap.Logger, proc keyProc, watchTimeout int, kvWrapper WrapKV) (watcher, error) {
+func newV3Watcher(ec *clientv3.Client, prefix string, logger *zap.Logger, proc keyProc, watchTimeout int, kvWrapper WrapKV) (watcher, error) {
 	api := etcdV3ReadAPI{
 		baseReadAPI: baseReadAPI{},
 		kV:          kvWrapper(ec),
@@ -26,7 +26,7 @@ type watcher struct {
 	api      readAPI
 	kw       keyWatcher
 	kp       keyProc
-	logger   zap.Logger
+	logger   *zap.Logger
 	stopping uint32
 	stopped  uint32
 }
