@@ -4,7 +4,7 @@ import:
   subpackages:
   - context
 - package: github.com/coreos/etcd
-  version: ~3.2.7
+  version: ~3.3.0
 - package: go.uber.org/zap
   version: ~1.7.1
 testImport:

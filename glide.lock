@@ -1,8 +1,8 @@
-hash: 3bbf7d01c4511f73fa40b777fda928fa9fd233f277bb345feacace0aef305e0a
-updated: 2018-08-02T13:39:54.855131-04:00
+hash: b9c648dde20dfd66406c767f50d3e0ed4a025c2aa2c26f2ba2acdc1c27732391
+updated: 2018-08-15T14:22:30.475863-04:00
 imports:
 - name: github.com/coreos/etcd
-  version: 420a452267a7ce45b3fcbed04d54030d69964fc1
+  version: fca8add78a9d926166eb739b8e4a124434025ba3
   subpackages:
   - auth/authpb
   - clientv3
@@ -11,12 +11,17 @@ imports:
   - etcdserver/etcdserverpb
   - mvcc/mvccpb
   - pkg/types
+- name: github.com/gogo/protobuf
+  version: 342cbe0a04158f6dcb03ca0079991a51a4248c02
+  subpackages:
+  - gogoproto
+  - proto
+  - protoc-gen-gogo/descriptor
 - name: github.com/golang/protobuf
-  version: 5a0f697c9ed9d68fef0116532c6e05cfeae00e55
+  version: 1e59b77b52bf8e4b449a57e6f79f21226d571845
   subpackages:
   - jsonpb
   - proto
-  - protoc-gen-go/descriptor
   - ptypes
   - ptypes/any
   - ptypes/duration
@@ -44,7 +49,7 @@ imports:
   - lex/httplex
   - trace
 - name: golang.org/x/text
-  version: 4ee4af566555f5fbe026368b75596286a312663a
+  version: b19bf474d317b857955b12035d2c5acb57ce8b01
   subpackages:
   - secure/bidirule
   - transform
@@ -53,7 +58,6 @@ imports:
 - name: google.golang.org/genproto
   version: 09f6ed296fc66555a25fe4ce95173148778dfa85
   subpackages:
-  - googleapis/api/annotations
   - googleapis/rpc/status
 - name: google.golang.org/grpc
   version: 5b3c4e850e90a4cf6a20ebd46c8b32a0a3afcb9e
