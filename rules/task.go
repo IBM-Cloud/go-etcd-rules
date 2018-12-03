@@ -1,7 +1,6 @@
 package rules
 
 import (
-	"github.com/coreos/etcd/clientv3"
 	"go.uber.org/zap"
 	"golang.org/x/net/context"
 )
@@ -19,7 +18,6 @@ type Attributes interface {
 // for use by rule callbacks.
 type V3RuleTask struct {
 	Attr     Attributes
-	Conf     *clientv3.Config
 	Logger   *zap.Logger
 	Context  context.Context
 	cancel   context.CancelFunc

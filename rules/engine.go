@@ -44,7 +44,6 @@ type channelCloser func()
 
 type v3Engine struct {
 	baseEngine
-	configV3    clientv3.Config
 	keyProc     v3KeyProcessor
 	workChannel chan v3RuleWork
 	kvWrapper   WrapKV
@@ -71,20 +70,20 @@ func NewV3Engine(configV3 clientv3.Config, logger *zap.Logger, options ...Engine
 	if err != nil {
 		logger.Fatal("Failed to connect to etcd", zap.Error(err))
 	}
-	return NewV3EngineWithClient(cl, configV3, logger, options...)
+	return NewV3EngineWithClient(cl, logger, options...)
 }
 
 // NewV3EngineWithClient creates a new V3Engine instance with the provided etcd v3 client instance.
-func NewV3EngineWithClient(cl *clientv3.Client, configV3 clientv3.Config, logger *zap.Logger, options ...EngineOption) V3Engine {
-	eng := newV3Engine(configV3, logger, cl, options...)
+func NewV3EngineWithClient(cl *clientv3.Client, logger *zap.Logger, options ...EngineOption) V3Engine {
+	eng := newV3Engine(logger, cl, options...)
 	return &eng
 }
 
-func newV3Engine(configV3 clientv3.Config, logger *zap.Logger, cl *clientv3.Client, options ...EngineOption) v3Engine {
+func newV3Engine(logger *zap.Logger, cl *clientv3.Client, options ...EngineOption) v3Engine {
 	opts := makeEngineOptions(options...)
 	ruleMgr := newRuleManager(opts.constraints, opts.enhancedRuleFilter)
 	channel := make(chan v3RuleWork)
-	keyProc := newV3KeyProcessor(channel, &configV3, &ruleMgr)
+	keyProc := newV3KeyProcessor(channel, &ruleMgr)
 	eng := v3Engine{
 		baseEngine: baseEngine{
 			cCloser: func() {
@@ -96,7 +95,6 @@ func newV3Engine(configV3 clientv3.Config, logger *zap.Logger, cl *clientv3.Clie
 			ruleLockTTLs: map[int]int{},
 			ruleMgr:      ruleMgr,
 		},
-		configV3:    configV3,
 		keyProc:     keyProc,
 		workChannel: channel,
 		kvWrapper:   defaultWrapKV,

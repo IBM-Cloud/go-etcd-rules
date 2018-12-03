@@ -73,11 +73,10 @@ func TestV3EngineConstructor(t *testing.T) {
 }
 
 func TestV3CallbackWrapper(t *testing.T) {
-	cfg, c := initV3Etcd()
+	_, c := initV3Etcd()
 	defer c.Close()
 	task := V3RuleTask{
 		Attr:   &mapAttributes{values: map[string]string{"a": "b"}},
-		Conf:   &cfg,
 		Logger: getTestLogger(),
 	}
 	cbw := v3CallbackWrapper{

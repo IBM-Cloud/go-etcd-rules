@@ -3,7 +3,6 @@ package rules
 import (
 	"testing"
 
-	"github.com/coreos/etcd/clientv3"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/zap"
 )
@@ -51,7 +50,6 @@ func TestV3KeyProcessor(t *testing.T) {
 		},
 		callbacks: callbacks,
 		channel:   channel,
-		config:    &clientv3.Config{},
 	}
 	logger := getTestLogger()
 	go kp.processKey("/test/key", &value, api, logger, map[string]string{})
