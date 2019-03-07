@@ -10,7 +10,7 @@ import (
 	"golang.org/x/net/context"
 )
 
-type stopable interface {
+type stoppable interface {
 	stop()
 	isStopped() bool
 }
@@ -35,9 +35,9 @@ type baseEngine struct {
 	ruleLockTTLs map[int]int
 	ruleMgr      ruleManager
 	stopped      uint32
-	crawlers     []stopable
-	watchers     []stopable
-	workers      []stopable
+	crawlers     []stoppable
+	watchers     []stoppable
+	workers      []stoppable
 }
 
 type channelCloser func()
@@ -141,9 +141,9 @@ func (e *baseEngine) Shutdown(ctx context.Context) error {
 
 func (e *baseEngine) stop() {
 	e.logger.Debug("Stopping crawlers")
-	stopStopables(e.crawlers)
+	stopstoppables(e.crawlers)
 	e.logger.Debug("Stopping watchers")
-	stopStopables(e.watchers)
+	stopstoppables(e.watchers)
 	e.logger.Debug("Stopping workers")
 	for _, worker := range e.workers {
 		worker.stop()
@@ -153,19 +153,19 @@ func (e *baseEngine) stop() {
 	// Ensure workers are stopped; the "stop" method is called again, but
 	// that is idempotent.  The workers' "stop" method must be called before
 	// the channel is closed in order to avoid nil pointer dereference panics.
-	stopStopables(e.workers)
+	stopstoppables(e.workers)
 	atomicSet(&e.stopped, true)
 	e.logger.Info("Engine stopped")
 }
 
-func stopStopables(stopables []stopable) {
-	for _, s := range stopables {
+func stopstoppables(stoppables []stoppable) {
+	for _, s := range stoppables {
 		s.stop()
 	}
 	allStopped := false
 	for !allStopped {
 		allStopped = true
-		for _, s := range stopables {
+		for _, s := range stoppables {
 			allStopped = allStopped && s.isStopped()
 		}
 	}
@@ -212,16 +212,17 @@ func (e *baseEngine) addRule(rule DynamicRule,
 	lockPattern string,
 	callback interface{},
 	options ...RuleOption) {
-	ruleIndex := e.ruleMgr.addRule(rule)
 	opts := makeRuleOptions(options...)
 	ttl := e.options.lockTimeout
 	if opts.lockTimeout > 0 {
 		ttl = opts.lockTimeout
 	}
 	contextProvider := opts.contextProvider
+	watcherOnly := opts.watcherOnly
 	if contextProvider == nil {
 		contextProvider = e.options.contextProvider
 	}
+	ruleIndex := e.ruleMgr.addRule(rule, watcherOnly)
 	e.ruleLockTTLs[ruleIndex] = ttl
 	e.keyProc.setCallback(ruleIndex, callback)
 	e.keyProc.setLockKeyPattern(ruleIndex, lockPattern)
@@ -229,11 +230,10 @@ func (e *baseEngine) addRule(rule DynamicRule,
 }
 
 func (e *v3Engine) Run() {
-	prefixSlice := []string{}
-	prefixes := e.ruleMgr.prefixes
+	watcherPrefixes := e.ruleMgr.watcherPrefixes
+	crawlerPrefixes := e.ruleMgr.crawlerPrefixes
 	// This is a map; used to ensure there are no duplicates
-	for prefix := range prefixes {
-		prefixSlice = append(prefixSlice, prefix)
+	for prefix := range watcherPrefixes.prefixes {
 		logger := e.logger.With(zap.String("prefix", prefix))
 		w, err := newV3Watcher(e.cl, prefix, logger, e.baseEngine.keyProc, e.options.watchTimeout, e.kvWrapper)
 		if err != nil {
@@ -242,6 +242,11 @@ func (e *v3Engine) Run() {
 		e.watchers = append(e.watchers, &w)
 		go w.run()
 	}
+	crawlerPrefixSlice := []string{}
+	//build prefix slice for the crawler
+	for prefix := range crawlerPrefixes.prefixes {
+		crawlerPrefixSlice = append(crawlerPrefixSlice, prefix)
+	}
 	logger := e.logger
 	c, err := newIntCrawler(e.cl,
 		e.options.syncInterval,
@@ -249,7 +254,7 @@ func (e *v3Engine) Run() {
 		logger,
 		e.options.crawlMutex,
 		e.options.crawlerTTL,
-		prefixSlice,
+		crawlerPrefixSlice,
 		e.kvWrapper,
 		e.options.syncDelay)
 	if err != nil {

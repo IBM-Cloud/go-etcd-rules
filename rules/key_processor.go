@@ -13,6 +13,7 @@ type setableKeyProcessor interface {
 	setCallback(int, interface{})
 	setContextProvider(int, ContextProvider)
 	setLockKeyPattern(int, string)
+	setWatcherOnly(int, bool)
 }
 
 type workDispatcher interface {
@@ -22,6 +23,7 @@ type workDispatcher interface {
 type baseKeyProcessor struct {
 	contextProviders map[int]ContextProvider
 	lockKeyPatterns  map[int]string
+	watcherOnly map[int]bool
 	rm               *ruleManager
 }
 
@@ -31,6 +33,10 @@ func (bkp *baseKeyProcessor) setLockKeyPattern(index int, pattern string) {
 
 func (bkp *baseKeyProcessor) setContextProvider(index int, cp ContextProvider) {
 	bkp.contextProviders[index] = cp
+}
+
+func (bkp *baseKeyProcessor) setWatcherOnly(index int, wo bool) {
+	bkp.watcherOnly[index] = wo
 }
 
 type v3KeyProcessor struct {

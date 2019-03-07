@@ -197,6 +197,7 @@ func EngineEnhancedRuleFilter(enhancedRuleFilter bool) EngineOption {
 type ruleOptions struct {
 	lockTimeout     int
 	contextProvider ContextProvider
+	watcherOnly bool
 }
 
 func makeRuleOptions(options ...RuleOption) ruleOptions {
@@ -233,5 +234,13 @@ func RuleLockTimeout(lockTimeout int) RuleOption {
 func RuleContextProvider(cp ContextProvider) RuleOption {
 	return ruleOptionFunction(func(o *ruleOptions) {
 		o.contextProvider = cp
+	})
+}
+
+// RuleWatcherOnly sets whether or not the rule should be
+// checked by the watcher only and not the crawler
+func RuleWatcherOnly(watcherOnly bool) RuleOption {
+	return ruleOptionFunction(func(o *ruleOptions) {
+		o.watcherOnly = watcherOnly
 	})
 }

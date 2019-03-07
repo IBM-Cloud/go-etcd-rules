@@ -4,11 +4,28 @@ import (
 	"strings"
 )
 
+type prefixMap struct {
+	prefixes     map[string]string
+	currentIndex int
+}
+
+func NewPrefixMap() prefixMap {
+	return prefixMap{
+		prefixes:     map[string]string{},
+		currentIndex: 0,
+	}
+}
+
+func (p *prefixMap) Set(prefix, value string) {
+	p.prefixes[prefix] = value
+}
+
 type ruleManager struct {
 	constraints        map[string]constraint
 	currentIndex       int
 	rulesBySlashCount  map[int]map[DynamicRule]int
-	prefixes           map[string]string
+	watcherPrefixes    prefixMap
+	crawlerPrefixes    prefixMap
 	rules              []DynamicRule
 	enhancedRuleFilter bool
 }
@@ -16,7 +33,8 @@ type ruleManager struct {
 func newRuleManager(constraints map[string]constraint, enhancedRuleFilter bool) ruleManager {
 	rm := ruleManager{
 		rulesBySlashCount:  map[int]map[DynamicRule]int{},
-		prefixes:           map[string]string{},
+		watcherPrefixes:    NewPrefixMap(),
+		crawlerPrefixes:    NewPrefixMap(),
 		constraints:        constraints,
 		currentIndex:       0,
 		rules:              []DynamicRule{},
@@ -49,7 +67,11 @@ func (rm *ruleManager) getStaticRules(key string, value *string) map[staticRule]
 	return out
 }
 
-func (rm *ruleManager) addRule(rule DynamicRule) int {
+func (rm *ruleManager) addRule(rule DynamicRule, watcherOnly bool) int {
+	p := &rm.watcherPrefixes
+	if !watcherOnly {
+		p = &rm.crawlerPrefixes
+	}
 	rm.rules = append(rm.rules, rule)
 	for _, pattern := range rule.getPatterns() {
 		slashCount := strings.Count(pattern, "/")
@@ -61,11 +83,11 @@ func (rm *ruleManager) addRule(rule DynamicRule) int {
 		rules[rule] = rm.currentIndex
 	}
 	for _, prefix := range rule.getPrefixesWithConstraints(rm.constraints) {
-		rm.prefixes[prefix] = ""
+		p.Set(prefix, "")
 	}
-	rm.prefixes = reducePrefixes(rm.prefixes)
-	lastIndex := rm.currentIndex
-	rm.currentIndex = rm.currentIndex + 1
+	p.prefixes = reducePrefixes(p.prefixes)
+	lastIndex := p.currentIndex
+	p.currentIndex = p.currentIndex + 1
 	return lastIndex
 }
 

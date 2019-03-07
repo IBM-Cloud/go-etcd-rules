@@ -128,7 +128,7 @@ func (ic *intCrawler) singleRun(logger *zap.Logger) {
 	if ic.isStopping() {
 		return
 	}
-	//logger := ic.logger.With(zap.String("source", "crawler"))
+
 	ctx, cancelFunc := context.WithTimeout(context.Background(), time.Duration(1)*time.Minute)
 	defer cancelFunc()
 	ctx = SetMethod(ctx, "crawler")
