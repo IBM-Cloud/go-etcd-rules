@@ -32,7 +32,7 @@ func TestBasic(t *testing.T) {
 		t.Fail()
 	}
 	prefixes := km.getPrefixesWithConstraints(map[string]constraint{
-		"name": constraint{
+		"name": {
 			prefix: "xy",
 			chars:  [][]rune{{'a', 'b'}, {'a', 'b'}},
 		},
