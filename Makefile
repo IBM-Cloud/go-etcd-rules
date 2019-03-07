@@ -21,3 +21,7 @@ test:
 .PHONY: vet
 vet:
 	go vet ${GOPACKAGES}
+
+.PHONY: dofmt
+dofmt:
+	gofmt -l -s -w ${GOFILES}

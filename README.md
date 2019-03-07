@@ -10,15 +10,13 @@ of keys based on the gin attribute syntax and the comparison to literals or othe
 keys.  These rules can be nested inside of AND, OR and NOT rules to enable the expression
 of complex relationships of values in etcd and the actions to be triggered when a set
 of conditions has been met.  The engine watches etcd for updates and crawls the data tree
-at configurable intervals so that changes that occurred beyond the watch time scope are picked
-up and actions triggered by watches that initially failed can be retried without being lost.
-This library makes use of the IBM-Cloud/go-etcd-lock library to enable concurrent monitoring
-by multiple application instances without collisions--the first client to obtain the lock
-processes the change while the others quickly fail to acquire the lock and move on.  A trigger
-callback function should update the model if the action is successful so it is not retriggered.
-Recurring actions, such as continuous polling, can be implemented with rules that reference
-nodes with TTLs such that the expiration of a node triggers a rule and the callback adds back
-a node with the same key and TTL.
+at configurable intervals. This library makes use of the IBM-Cloud/go-etcd-lock library 
+to enable concurrent monitoring by multiple application instances without collisions--the 
+first client to obtain the lock processes the change while the others quickly fail to acquire 
+the lock and move on.  A trigger callback function should update the model if the action 
+is successful so it is not retriggered. Recurring actions, such as continuous polling, 
+can be implemented with rules that reference nodes with TTLs such that the expiration of 
+a node triggers a rule and the callback adds back a node with the same key and TTL.
 
 Import
 ------
