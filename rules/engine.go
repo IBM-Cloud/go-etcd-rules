@@ -10,7 +10,7 @@ import (
 	"golang.org/x/net/context"
 )
 
-type stopable interface {
+type stoppable interface {
 	stop()
 	isStopped() bool
 }
@@ -35,9 +35,9 @@ type baseEngine struct {
 	ruleLockTTLs map[int]int
 	ruleMgr      ruleManager
 	stopped      uint32
-	crawlers     []stopable
-	watchers     []stopable
-	workers      []stopable
+	crawlers     []stoppable
+	watchers     []stoppable
+	workers      []stoppable
 }
 
 type channelCloser func()
@@ -141,9 +141,9 @@ func (e *baseEngine) Shutdown(ctx context.Context) error {
 
 func (e *baseEngine) stop() {
 	e.logger.Debug("Stopping crawlers")
-	stopStopables(e.crawlers)
+	stopstoppables(e.crawlers)
 	e.logger.Debug("Stopping watchers")
-	stopStopables(e.watchers)
+	stopstoppables(e.watchers)
 	e.logger.Debug("Stopping workers")
 	for _, worker := range e.workers {
 		worker.stop()
@@ -153,19 +153,19 @@ func (e *baseEngine) stop() {
 	// Ensure workers are stopped; the "stop" method is called again, but
 	// that is idempotent.  The workers' "stop" method must be called before
 	// the channel is closed in order to avoid nil pointer dereference panics.
-	stopStopables(e.workers)
+	stopstoppables(e.workers)
 	atomicSet(&e.stopped, true)
 	e.logger.Info("Engine stopped")
 }
 
-func stopStopables(stopables []stopable) {
-	for _, s := range stopables {
+func stopstoppables(stoppables []stoppable) {
+	for _, s := range stoppables {
 		s.stop()
 	}
 	allStopped := false
 	for !allStopped {
 		allStopped = true
-		for _, s := range stopables {
+		for _, s := range stoppables {
 			allStopped = allStopped && s.isStopped()
 		}
 	}
