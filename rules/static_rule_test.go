@@ -614,7 +614,7 @@ func TestCompoundQSatisfiable(t *testing.T) {
 	key1 := "key1"
 	rules := map[string]staticRule{}
 	testCases := []*srtc{
-		&srtc{
+		{
 			name: "dummyTrue",
 			rule: func() staticRule {
 				return &dummyRule{
@@ -626,7 +626,7 @@ func TestCompoundQSatisfiable(t *testing.T) {
 			value:  &value,
 			qState: qTrue,
 		},
-		&srtc{
+		{
 			name: "dummyFalse",
 			rule: func() staticRule {
 				return &dummyRule{
@@ -638,7 +638,7 @@ func TestCompoundQSatisfiable(t *testing.T) {
 			value:  &value,
 			qState: qFalse,
 		},
-		&srtc{
+		{
 			name: "dummyMaybe",
 			rule: func() staticRule {
 				return &dummyRule{
@@ -650,7 +650,7 @@ func TestCompoundQSatisfiable(t *testing.T) {
 
 			qState: qMaybe,
 		},
-		&srtc{
+		{
 			name: "dummyNone",
 			rule: func() staticRule {
 				return &dummyRule{
@@ -661,158 +661,158 @@ func TestCompoundQSatisfiable(t *testing.T) {
 			},
 			qState: qNone,
 		},
-		&srtc{
+		{
 			name:   "TrueAndTrue",
 			rule:   func() staticRule { return asrfn(rules["dummyTrue"], rules["dummyTrue"]) },
 			qState: qTrue,
 		},
-		&srtc{
+		{
 			name:   "TrueAndFalse",
 			rule:   func() staticRule { return asrfn(rules["dummyTrue"], rules["dummyFalse"]) },
 			qState: qFalse,
 		},
-		&srtc{
+		{
 			name:   "TrueAndMaybe",
 			rule:   func() staticRule { return asrfn(rules["dummyTrue"], rules["dummyMaybe"]) },
 			qState: qTrue,
 		},
-		&srtc{
+		{
 			name:   "TrueAndNone",
 			rule:   func() staticRule { return asrfn(rules["dummyTrue"], rules["dummyMaybe"]) },
 			qState: qTrue,
 		},
-		&srtc{
+		{
 			name:   "FalseAndFalse",
 			rule:   func() staticRule { return asrfn(rules["dummyFalse"], rules["dummyFalse"]) },
 			qState: qFalse,
 		},
-		&srtc{
+		{
 			name:   "FalseAndMaybe",
 			rule:   func() staticRule { return asrfn(rules["dummyFalse"], rules["dummyMaybe"]) },
 			qState: qFalse,
 		},
-		&srtc{
+		{
 			name:   "FalseAndNone",
 			rule:   func() staticRule { return asrfn(rules["dummyFalse"], rules["dummyNone"]) },
 			qState: qFalse,
 		},
-		&srtc{
+		{
 			name:   "MaybeAndMaybe",
 			rule:   func() staticRule { return asrfn(rules["dummyMaybe"], rules["dummyMaybe"]) },
 			qState: qMaybe,
 		},
-		&srtc{
+		{
 			name:   "MaybeAndNone",
 			rule:   func() staticRule { return asrfn(rules["dummyMaybe"], rules["dummyNone"]) },
 			qState: qMaybe,
 		},
-		&srtc{
+		{
 			name:   "TrueOrTrue",
 			rule:   func() staticRule { return osrfn(rules["dummyTrue"], rules["dummyTrue"]) },
 			qState: qTrue,
 		},
-		&srtc{
+		{
 			name:   "TrueOrFalse",
 			rule:   func() staticRule { return osrfn(rules["dummyTrue"], rules["dummyFalse"]) },
 			qState: qTrue,
 		},
-		&srtc{
+		{
 			name:   "TrueOrMaybe",
 			rule:   func() staticRule { return osrfn(rules["dummyTrue"], rules["dummyMaybe"]) },
 			qState: qTrue,
 		},
-		&srtc{
+		{
 			name:   "TrueOrNone",
 			rule:   func() staticRule { return osrfn(rules["dummyTrue"], rules["dummyMaybe"]) },
 			qState: qTrue,
 		},
-		&srtc{
+		{
 			name:   "FalseOrFalse",
 			rule:   func() staticRule { return osrfn(rules["dummyFalse"], rules["dummyFalse"]) },
 			qState: qFalse,
 		},
-		&srtc{
+		{
 			name:   "FalseOrMaybe",
 			rule:   func() staticRule { return osrfn(rules["dummyFalse"], rules["dummyMaybe"]) },
 			qState: qMaybe,
 		},
-		&srtc{
+		{
 			name:   "FalseOrNone",
 			rule:   func() staticRule { return osrfn(rules["dummyFalse"], rules["dummyNone"]) },
 			qState: qFalse,
 		},
-		&srtc{
+		{
 			name:   "MaybeOrMaybe",
 			rule:   func() staticRule { return osrfn(rules["dummyMaybe"], rules["dummyMaybe"]) },
 			qState: qMaybe,
 		},
-		&srtc{
+		{
 			name:   "MaybeOrNone",
 			rule:   func() staticRule { return osrfn(rules["dummyMaybe"], rules["dummyNone"]) },
 			qState: qMaybe,
 		},
-		&srtc{
+		{
 			name:   "NotTrue",
 			rule:   func() staticRule { return &notStaticRule{nested: rules["dummyTrue"]} },
 			qState: qFalse,
 		},
-		&srtc{
+		{
 			name:   "NotFalse",
 			rule:   func() staticRule { return &notStaticRule{nested: rules["dummyFalse"]} },
 			qState: qTrue,
 		},
-		&srtc{
+		{
 			name:   "NotMaybe",
 			rule:   func() staticRule { return &notStaticRule{nested: rules["dummyMaybe"]} },
 			qState: qMaybe,
 		},
-		&srtc{
+		{
 			name:   "NotNone",
 			rule:   func() staticRule { return &notStaticRule{nested: rules["dummyNone"]} },
 			qState: qNone,
 		},
-		&srtc{
+		{
 			name:   "Not(TrueOrFalse) <=> NotTrueAndNotFalse",
 			rule:   func() staticRule { return &notStaticRule{nested: rules["TrueOrFalse"]} },
 			qState: qFalse,
 		},
-		&srtc{
+		{
 			name: "NotTrueAndNotFalse <=> Not(TrueOrFalse)",
 			rule: func() staticRule {
 				return asrfn(&notStaticRule{nested: rules["dummyTrue"]}, &notStaticRule{nested: rules["dummyFalse"]})
 			},
 			qState: qFalse,
 		},
-		&srtc{
+		{
 			name:   "Not(FalseOrFalse) <=> NotFalseAndNotFalse",
 			rule:   func() staticRule { return &notStaticRule{nested: rules["FalseOrFalse"]} },
 			qState: qTrue,
 		},
-		&srtc{
+		{
 			name: "NotFalseAndNotFalse <=> Not(FalseOrFalse)",
 			rule: func() staticRule {
 				return asrfn(&notStaticRule{nested: rules["dummyFalse"]}, &notStaticRule{nested: rules["dummyFalse"]})
 			},
 			qState: qTrue,
 		},
-		&srtc{
+		{
 			name:   "Not(TrueAndFalse) <=> NotTrueOrNotFalse",
 			rule:   func() staticRule { return &notStaticRule{nested: rules["TrueAndFalse"]} },
 			qState: qTrue,
 		},
-		&srtc{
+		{
 			name: "NotTruOrNotFalse <=> Not(TrueAndFalse)",
 			rule: func() staticRule {
 				return osrfn(&notStaticRule{nested: rules["dummyTrue"]}, &notStaticRule{nested: rules["dummyFalse"]})
 			},
 			qState: qTrue,
 		},
-		&srtc{
+		{
 			name:   "Not(TrueAndTrue) <=> NotTrueOrNotTrue",
 			rule:   func() staticRule { return &notStaticRule{nested: rules["TrueAndTrue"]} },
 			qState: qFalse,
 		},
-		&srtc{
+		{
 			name: "NotTrueOrNotTrue <=> Not(TrueOrTrue)",
 			rule: func() staticRule {
 				return asrfn(&notStaticRule{nested: rules["dummyTrue"]}, &notStaticRule{nested: rules["dummyTrue"]})

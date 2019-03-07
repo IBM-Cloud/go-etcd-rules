@@ -23,7 +23,7 @@ type workDispatcher interface {
 type baseKeyProcessor struct {
 	contextProviders map[int]ContextProvider
 	lockKeyPatterns  map[int]string
-	watcherOnly map[int]bool
+	watcherOnly      map[int]bool
 	rm               *ruleManager
 }
 

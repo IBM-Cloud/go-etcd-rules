@@ -246,7 +246,7 @@ func newExpandedEqualsLiteralRule(key string, value *string) DynamicRule {
 	if err != nil {
 		return nil
 	}
-	rules, _ := rule.Expand(map[string][]string{"region": []string{"us"}})
+	rules, _ := rule.Expand(map[string][]string{"region": {"us"}})
 	return rules[0]
 }
 
@@ -255,7 +255,7 @@ func newExpandedEqualsRule(keys []string) DynamicRule {
 	if err != nil {
 		return nil
 	}
-	rules, _ := rule.Expand(map[string][]string{"region": []string{"us"}})
+	rules, _ := rule.Expand(map[string][]string{"region": {"us"}})
 	return rules[0]
 }
 
@@ -358,7 +358,7 @@ func TestRuleSatisfied(t *testing.T) {
 			true,
 			map[string]string{
 				"/emea/branch/parent/fef460923d2248bf99da87f8d4b1c363/child/child-home-fef460923d2248bf99da87f8d4b1c363-c1/attributes/location/value": "home",
-				"/updater/emea/child/location/enabled":                                                                                                "true",
+				"/updater/emea/child/location/enabled": "true",
 			},
 		},
 		{
@@ -370,7 +370,7 @@ func TestRuleSatisfied(t *testing.T) {
 			false,
 			map[string]string{
 				"/emea/branch/parent/fef460923d2248bf99da87f8d4b1c363/child/child-home-fef460923d2248bf99da87f8d4b1c363-c1/attributes/location/value": "home",
-				"/updater/emea/child/location/enabled":                                                                                                "true",
+				"/updater/emea/child/location/enabled": "true",
 			},
 		},
 	}
@@ -465,53 +465,53 @@ func TestGetLeafRepresentationPatternMap(t *testing.T) {
 			nil,
 			func() (DynamicRule, error) { return NewEqualsLiteralRule("/:region/test", nil) },
 			map[string][]string{
-				"/:region/test = <nil>": []string{"/:region/test"},
+				"/:region/test = <nil>": {"/:region/test"},
 			},
 		},
 		{
 			nil,
 			func() (DynamicRule, error) { return NewEqualsLiteralRule("/:region/test2", sTP("value")) },
 			map[string][]string{
-				"/:region/test2 = \"value\"": []string{"/:region/test2"},
+				"/:region/test2 = \"value\"": {"/:region/test2"},
 			},
 		},
 		{
 			func() DynamicRule { return NewAndRule(rules[0], rules[1]) },
 			nil,
 			map[string][]string{
-				"/:region/test = <nil>":      []string{"/:region/test"},
-				"/:region/test2 = \"value\"": []string{"/:region/test2"},
+				"/:region/test = <nil>":      {"/:region/test"},
+				"/:region/test2 = \"value\"": {"/:region/test2"},
 			},
 		},
 		{
 			func() DynamicRule { return NewOrRule(rules[0], rules[1]) },
 			nil,
 			map[string][]string{
-				"/:region/test = <nil>":      []string{"/:region/test"},
-				"/:region/test2 = \"value\"": []string{"/:region/test2"},
+				"/:region/test = <nil>":      {"/:region/test"},
+				"/:region/test2 = \"value\"": {"/:region/test2"},
 			},
 		},
 		{
 			func() DynamicRule { return NewOrRule(rules[2], rules[3]) },
 			nil,
 			map[string][]string{
-				"/:region/test = <nil>":      []string{"/:region/test"},
-				"/:region/test2 = \"value\"": []string{"/:region/test2"},
+				"/:region/test = <nil>":      {"/:region/test"},
+				"/:region/test2 = \"value\"": {"/:region/test2"},
 			},
 		},
 		{
 			func() DynamicRule { return NewNotRule(rules[4]) },
 			nil,
 			map[string][]string{
-				"/:region/test = <nil>":      []string{"/:region/test"},
-				"/:region/test2 = \"value\"": []string{"/:region/test2"},
+				"/:region/test = <nil>":      {"/:region/test"},
+				"/:region/test2 = \"value\"": {"/:region/test2"},
 			},
 		},
 		{
 			nil,
 			func() (DynamicRule, error) { return NewEqualsRule([]string{"/:region/test", "/:region/test2"}) },
 			map[string][]string{
-				"/:region/test = /:region/test2": []string{"/:region/test", "/:region/test2"},
+				"/:region/test = /:region/test2": {"/:region/test", "/:region/test2"},
 			},
 		},
 	}

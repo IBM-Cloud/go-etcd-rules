@@ -51,7 +51,7 @@ func TestCombineRuleData(t *testing.T) {
 		expectedData []string
 	}{
 		{
-			[][]string{[]string{"/a/b/c", "/x/y/z"}, []string{"/a/b/c"}},
+			[][]string{{"/a/b/c", "/x/y/z"}, {"/a/b/c"}},
 			[]string{"/a/b/c", "/x/y/z"},
 		},
 	}

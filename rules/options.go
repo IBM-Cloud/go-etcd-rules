@@ -197,7 +197,7 @@ func EngineEnhancedRuleFilter(enhancedRuleFilter bool) EngineOption {
 type ruleOptions struct {
 	lockTimeout     int
 	contextProvider ContextProvider
-	watcherOnly bool
+	watcherOnly     bool
 }
 
 func makeRuleOptions(options ...RuleOption) ruleOptions {
