@@ -45,7 +45,7 @@ func TestV3KeyProcessor(t *testing.T) {
 	kp := v3KeyProcessor{
 		baseKeyProcessor: baseKeyProcessor{
 			contextProviders: contextProviders,
-			rm:               &rm,
+			rm:               rm,
 			lockKeyPatterns:  lockKeyPatterns,
 		},
 		callbacks: callbacks,

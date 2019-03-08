@@ -1,20 +1,26 @@
 package rules
 
-import (
-	"strings"
-)
+import "strings"
 
-type ruleManager struct {
+type ruleManager interface {
+	getStaticRules(key string, value *string) map[staticRule]int
+	addRule(rule DynamicRule) int
+	getPrefixes() map[string]string
+}
+
+type ruleManagerImpl struct {
 	constraints        map[string]constraint
 	currentIndex       int
 	rulesBySlashCount  map[int]map[DynamicRule]int
 	prefixes           map[string]string
 	rules              []DynamicRule
 	enhancedRuleFilter bool
+	stopping           uint32
+	stopped            uint32
 }
 
 func newRuleManager(constraints map[string]constraint, enhancedRuleFilter bool) ruleManager {
-	rm := ruleManager{
+	rm := ruleManagerImpl{
 		rulesBySlashCount:  map[int]map[DynamicRule]int{},
 		prefixes:           map[string]string{},
 		constraints:        constraints,
@@ -22,10 +28,14 @@ func newRuleManager(constraints map[string]constraint, enhancedRuleFilter bool) 
 		rules:              []DynamicRule{},
 		enhancedRuleFilter: enhancedRuleFilter,
 	}
-	return rm
+	return &rm
 }
 
-func (rm *ruleManager) getStaticRules(key string, value *string) map[staticRule]int {
+func (rm *ruleManagerImpl) getPrefixes() map[string]string {
+	return rm.prefixes
+}
+
+func (rm *ruleManagerImpl) getStaticRules(key string, value *string) map[staticRule]int {
 	slashCount := strings.Count(key, "/")
 	out := make(map[staticRule]int)
 	rules, ok := rm.rulesBySlashCount[slashCount]
@@ -49,7 +59,7 @@ func (rm *ruleManager) getStaticRules(key string, value *string) map[staticRule]
 	return out
 }
 
-func (rm *ruleManager) addRule(rule DynamicRule) int {
+func (rm *ruleManagerImpl) addRule(rule DynamicRule) int {
 	rm.rules = append(rm.rules, rule)
 	for _, pattern := range rule.getPatterns() {
 		slashCount := strings.Count(pattern, "/")

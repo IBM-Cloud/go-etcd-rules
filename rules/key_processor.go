@@ -22,7 +22,7 @@ type workDispatcher interface {
 type baseKeyProcessor struct {
 	contextProviders map[int]ContextProvider
 	lockKeyPatterns  map[int]string
-	rm               *ruleManager
+	rm               ruleManager
 }
 
 func (bkp *baseKeyProcessor) setLockKeyPattern(index int, pattern string) {
@@ -62,7 +62,7 @@ func (v3kp *v3KeyProcessor) dispatchWork(index int, rule staticRule, logger *zap
 	v3kp.channel <- work
 }
 
-func newV3KeyProcessor(channel chan v3RuleWork, rm *ruleManager) v3KeyProcessor {
+func newV3KeyProcessor(channel chan v3RuleWork, rm ruleManager) v3KeyProcessor {
 	kp := v3KeyProcessor{
 		baseKeyProcessor: baseKeyProcessor{
 			contextProviders: map[int]ContextProvider{},

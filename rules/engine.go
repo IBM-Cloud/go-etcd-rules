@@ -35,8 +35,7 @@ type baseEngine struct {
 	ruleLockTTLs map[int]int
 	ruleMgr      ruleManager
 	stopped      uint32
-	crawlers     []stoppable
-	watchers     []stoppable
+	storeMonitor storeMonitor
 	workers      []stoppable
 }
 
@@ -83,7 +82,7 @@ func newV3Engine(logger *zap.Logger, cl *clientv3.Client, options ...EngineOptio
 	opts := makeEngineOptions(options...)
 	ruleMgr := newRuleManager(opts.constraints, opts.enhancedRuleFilter)
 	channel := make(chan v3RuleWork)
-	keyProc := newV3KeyProcessor(channel, &ruleMgr)
+	keyProc := newV3KeyProcessor(channel, ruleMgr)
 	eng := v3Engine{
 		baseEngine: baseEngine{
 			cCloser: func() {
@@ -140,10 +139,7 @@ func (e *baseEngine) Shutdown(ctx context.Context) error {
 }
 
 func (e *baseEngine) stop() {
-	e.logger.Debug("Stopping crawlers")
-	stopstoppables(e.crawlers)
-	e.logger.Debug("Stopping watchers")
-	stopstoppables(e.watchers)
+	e.storeMonitor.stop()
 	e.logger.Debug("Stopping workers")
 	for _, worker := range e.workers {
 		worker.stop()
@@ -229,34 +225,10 @@ func (e *baseEngine) addRule(rule DynamicRule,
 }
 
 func (e *v3Engine) Run() {
-	prefixSlice := []string{}
-	prefixes := e.ruleMgr.prefixes
-	// This is a map; used to ensure there are no duplicates
-	for prefix := range prefixes {
-		prefixSlice = append(prefixSlice, prefix)
-		logger := e.logger.With(zap.String("prefix", prefix))
-		w, err := newV3Watcher(e.cl, prefix, logger, e.baseEngine.keyProc, e.options.watchTimeout, e.kvWrapper)
-		if err != nil {
-			e.logger.Fatal("Failed to initialize watcher", zap.String("prefix", prefix))
-		}
-		e.watchers = append(e.watchers, &w)
-		go w.run()
-	}
-	logger := e.logger
-	c, err := newIntCrawler(e.cl,
-		e.options.syncInterval,
-		e.baseEngine.keyProc,
-		logger,
-		e.options.crawlMutex,
-		e.options.crawlerTTL,
-		prefixSlice,
-		e.kvWrapper,
-		e.options.syncDelay)
-	if err != nil {
-		e.logger.Fatal("Failed to initialize crawler", zap.Error(err))
-	}
-	e.crawlers = append(e.crawlers, c)
-	go c.run()
+	sm := newStoreDualMonitor(e.cl, e.options, e.baseEngine.keyProc, e.logger, e.kvWrapper)
+	e.storeMonitor = sm
+	e.logger.Info("start monitoring key store")
+	sm.monitorStore(e.ruleMgr)
 
 	e.logger.Info("Starting workers", zap.Int("count", e.options.concurrency))
 	for i := 0; i < e.options.concurrency; i++ {
@@ -268,7 +240,6 @@ func (e *v3Engine) Run() {
 		e.workers = append(e.workers, &w)
 		go w.run()
 	}
-
 }
 
 func (e *baseEngine) getLockTTLForRule(index int) int {
