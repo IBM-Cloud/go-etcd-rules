@@ -26,6 +26,7 @@ func TestWorkerSingleRun(t *testing.T) {
 			api:      &api,
 			locker:   &locker,
 			workerID: "testworker",
+			metrics:  newMetricsCollector(),
 		},
 		engine: &e,
 	}

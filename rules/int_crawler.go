@@ -107,7 +107,7 @@ func (ic *intCrawler) run() {
 			mutex := "/crawler/" + *ic.mutex
 			logger.Debug("Attempting to obtain mutex",
 				zap.String("mutex", mutex), zap.Int("TTL", ic.mutexTTL))
-			locker := newV3LockerWithMetrics(ic.cl, ic.metrics)
+			locker := newV3Locker(ic.cl)
 			lock, err := locker.lock(mutex, ic.mutexTTL)
 			if err != nil {
 				logger.Debug("Could not obtain mutex; skipping crawler run", zap.Error(err))
