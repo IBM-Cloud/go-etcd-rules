@@ -3,6 +3,7 @@ package rules
 import (
 	"time"
 
+	"fmt"
 	"github.com/coreos/etcd/clientv3"
 	"golang.org/x/net/context"
 )
@@ -47,4 +48,23 @@ type WrapKV func(clientv3.KV) clientv3.KV
 
 func defaultWrapKV(kv clientv3.KV) clientv3.KV {
 	return kv
+}
+
+// metricsCollector used for collecting metrics, implement this interface using
+// your metrics collector of choice (ie Prometheus)
+type metricsCollector interface {
+	incLockMetric(path string, lockSucceeded bool)
+}
+
+// a no-op metrics collector, used as the default metrics collector
+type metricsCollectorImpl struct {
+}
+
+func newMetricsCollector() metricsCollector {
+	return &metricsCollectorImpl{}
+}
+
+func (m *metricsCollectorImpl) incLockMetric(path string, lockSucceeded bool) {
+	// NOTE - this is just for testing, this will be cleared to no-op
+	fmt.Printf("%s, %t\n", path, lockSucceeded)
 }

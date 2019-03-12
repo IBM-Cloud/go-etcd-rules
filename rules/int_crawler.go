@@ -13,6 +13,7 @@ func newIntCrawler(
 	cl *clientv3.Client,
 	interval int,
 	kp extKeyProc,
+	metrics metricsCollector,
 	logger *zap.Logger,
 	mutex *string,
 	mutexTTL int,
@@ -29,6 +30,7 @@ func newIntCrawler(
 		cl:       cl,
 		interval: interval,
 		kp:       kp,
+		metrics:  metrics,
 		logger:   logger,
 		mutex:    mutex,
 		mutexTTL: mutexTTL,
@@ -65,6 +67,7 @@ type intCrawler struct {
 	interval    int
 	kp          extKeyProc
 	kv          clientv3.KV
+	metrics     metricsCollector
 	logger      *zap.Logger
 	mutex       *string
 	mutexTTL    int
@@ -104,7 +107,7 @@ func (ic *intCrawler) run() {
 			mutex := "/crawler/" + *ic.mutex
 			logger.Debug("Attempting to obtain mutex",
 				zap.String("mutex", mutex), zap.Int("TTL", ic.mutexTTL))
-			locker := newV3Locker(ic.cl)
+			locker := newV3LockerWithMetrics(ic.cl, ic.metrics)
 			lock, err := locker.lock(mutex, ic.mutexTTL)
 			if err != nil {
 				logger.Debug("Could not obtain mutex; skipping crawler run", zap.Error(err))

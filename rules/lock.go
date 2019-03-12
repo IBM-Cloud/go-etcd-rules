@@ -17,13 +17,22 @@ type ruleLock interface {
 }
 
 func newV3Locker(cl *clientv3.Client) ruleLocker {
+	return newV3LockerWithMetrics(cl, nil)
+}
+
+func newV3LockerWithMetrics(cl *clientv3.Client, metrics metricsCollector) ruleLocker {
+	if metrics == nil {
+		metrics = newMetricsCollector()
+	}
 	return &v3Locker{
-		cl: cl,
+		cl:      cl,
+		metrics: metrics,
 	}
 }
 
 type v3Locker struct {
-	cl *clientv3.Client
+	cl      *clientv3.Client
+	metrics metricsCollector
 }
 
 func (v3l *v3Locker) lock(key string, ttl int) (ruleLock, error) {
@@ -34,6 +43,7 @@ func (v3l *v3Locker) lockWithTimeout(key string, ttl int, timeout int) (ruleLock
 	defer cancel()
 	s, err := concurrency.NewSession(v3l.cl, concurrency.WithTTL(ttl), concurrency.WithContext(ctx))
 	if err != nil {
+		v3l.metrics.incLockMetric(key, false)
 		return nil, err
 	}
 	m := concurrency.NewMutex(s, key)
@@ -41,8 +51,10 @@ func (v3l *v3Locker) lockWithTimeout(key string, ttl int, timeout int) (ruleLock
 	defer cancel()
 	err = m.Lock(ctx)
 	if err != nil {
+		v3l.metrics.incLockMetric(key, false)
 		return nil, err
 	}
+	v3l.metrics.incLockMetric(key, true)
 	return &v3Lock{
 		mutex:   m,
 		session: s,

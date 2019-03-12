@@ -13,7 +13,8 @@ func TestV3Locker(t *testing.T) {
 	assert.NoError(t, err)
 	newV3Locker(c)
 	rlckr := v3Locker{
-		cl: cl,
+		cl:      cl,
+		metrics: newMetricsCollector(),
 	}
 	rlck, err1 := rlckr.lock("test", 10)
 	assert.NoError(t, err1)
