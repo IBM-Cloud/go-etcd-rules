@@ -6,6 +6,7 @@ import "fmt"
 // your metrics collector of choice (ie Prometheus)
 type metricsCollector interface {
 	IncLockMetric(pattern string, lockSucceeded bool)
+	IncSatisfiedThenNot(pattern string, phaseName string)
 }
 
 // a no-op metrics collector, used as the default metrics collector
@@ -17,7 +18,11 @@ func newMetricsCollector() metricsCollector {
 }
 
 func (m *defaultMetricsCollector) IncLockMetric(pattern string, lockSucceeded bool) {
+}
+
+// IncSatisfiedThenNot tracks rules that are satisfied initially then further along
+// in processing are no longer true
+func (m *defaultMetricsCollector) IncSatisfiedThenNot(pattern string, phaseName string) {
 	// TODO - can we take in the context here?
-	// NOTE - this is just for testing, this will be cleared to no-op
-	fmt.Printf("%s, %t\n", pattern, lockSucceeded)
+	fmt.Printf("TrueThenEvalFalse: %s, %s\n", pattern, phaseName)
 }

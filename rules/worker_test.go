@@ -12,6 +12,7 @@ func TestWorkerSingleRun(t *testing.T) {
 	conf := clientv3.Config{
 		Endpoints: []string{""},
 	}
+	metrics := newMockMetricsCollector()
 	cl, err := clientv3.New(conf)
 	assert.NoError(t, err)
 	e := newV3Engine(getTestLogger(), cl, nil, EngineLockTimeout(300))
@@ -26,7 +27,7 @@ func TestWorkerSingleRun(t *testing.T) {
 			api:      &api,
 			locker:   &locker,
 			workerID: "testworker",
-			metrics:  newMetricsCollector(),
+			metrics:  &metrics,
 		},
 		engine: &e,
 	}
@@ -46,6 +47,8 @@ func TestWorkerSingleRun(t *testing.T) {
 	callback := testCallback{
 		called: cbChannel,
 	}
+
+	// Test case: happy path
 	rule := dummyRule{
 		satisfiedResponse: true,
 	}
@@ -54,14 +57,24 @@ func TestWorkerSingleRun(t *testing.T) {
 		ruleTask:         task,
 		ruleTaskCallback: callback.callback,
 		lockKey:          "key",
+		keyPattern:       "/test/item",
 	}
+	expectedIncLockMetricsPatterns := []string{"/test/item"}
+	expectedIncLockMetricsLockSuccess := []bool{true}
+
 	go w.singleRun()
 	channel <- rw
 	assert.True(t, <-cbChannel)
 	assert.True(t, <-lockChannel)
+	assert.Equal(t, expectedIncLockMetricsPatterns, metrics.incLockMetricPattern)
+	assert.Equal(t, expectedIncLockMetricsLockSuccess, metrics.incLockMetricLockSuccess)
 
+	// Test case: rule is satisfied but there is an error obtaining the lock
 	errorMsg := "Some error"
 	locker.errorMsg = &errorMsg
+
+	expectedIncLockMetricsPatterns = []string{"/test/item", "/test/item"}
+	expectedIncLockMetricsLockSuccess = []bool{true, false}
 
 	callChannel := make(chan bool)
 
@@ -70,13 +83,24 @@ func TestWorkerSingleRun(t *testing.T) {
 	assert.True(t, <-callChannel)
 	assert.Equal(t, 0, len(cbChannel))
 	assert.Equal(t, 0, len(lockChannel))
+	assert.Equal(t, expectedIncLockMetricsPatterns, metrics.incLockMetricPattern)
+	assert.Equal(t, expectedIncLockMetricsLockSuccess, metrics.incLockMetricLockSuccess)
 
+	// Test case: the rule is immediately not satisfied
 	rule = dummyRule{
 		satisfiedResponse: false,
 	}
+	expectedSatisfiedMetricsPatterns := []string{"/test/item"}
+	expectedSatisfiedMetricsPhase := []string{"worker.doWorkBeforeLock"}
 	go channelWriteAfterCall(callChannel, w.singleRun)
 	channel <- rw
 	assert.True(t, <-callChannel)
 	assert.Equal(t, 0, len(cbChannel))
 	assert.Equal(t, 0, len(lockChannel))
+
+	assert.Equal(t, expectedIncLockMetricsPatterns, metrics.incLockMetricPattern)
+	assert.Equal(t, expectedIncLockMetricsLockSuccess, metrics.incLockMetricLockSuccess)
+
+	assert.Equal(t, expectedSatisfiedMetricsPatterns, metrics.incSatisfiedThenNotPattern)
+	assert.Equal(t, expectedSatisfiedMetricsPhase, metrics.incIncSatisfiedThenNotPhase)
 }

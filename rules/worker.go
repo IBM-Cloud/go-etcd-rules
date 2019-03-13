@@ -70,6 +70,9 @@ func (bw *baseWorker) doWork(loggerPtr **zap.Logger,
 		return
 	}
 	if !sat || is(&bw.stopping) {
+		if !sat {
+			bw.metrics.IncSatisfiedThenNot(keyPattern, "worker.doWorkBeforeLock")
+		}
 		return
 	}
 	l, err2 := bw.locker.lock(lockKey, lockTTL)
@@ -86,6 +89,9 @@ func (bw *baseWorker) doWork(loggerPtr **zap.Logger,
 	if err1 != nil {
 		logger.Error("Error checking rule", zap.Error(err1))
 		return
+	}
+	if !sat {
+		bw.metrics.IncSatisfiedThenNot(keyPattern, "worker.doWorkAfterLock")
 	}
 	if sat && !is(&bw.stopping) {
 		callback()
