@@ -26,25 +26,31 @@ func TestIntCrawler(t *testing.T) {
 	kapi.Put(context.Background(), "/root1/child", "val1")
 
 	kp := testExtKeyProcessor{
-		testKeyProcessor: testKeyProcessor{
-			keys: []string{},
-		},
-		workTrue: map[string]string{"/root/child": ""},
-		workKeys: map[string]string{},
+		testKeyProcessor: newTestKeyProcessor(),
+		workTrue:         map[string]string{"/root/child": ""},
+		workKeys:         map[string]string{},
 	}
+
+	metrics := newMockMetricsCollector()
+	expectedRuleIDs := []string{"/root/child"}
+	expectedCount := []int{1}
 
 	cr := intCrawler{
 		kp:       &kp,
 		logger:   getTestLogger(),
 		prefixes: []string{"/root", "/root1"},
 		kv:       c,
+		metrics:  &metrics,
 	}
 	cr.singleRun(getTestLogger())
 	if assert.Equal(t, 1, len(kp.keys)) {
 		assert.Equal(t, "/root/child", kp.keys[0])
 	}
+
 	assert.Equal(t, map[string]string{
 		"/root/child":  "",
 		"/root1/child": "",
 	}, kp.workKeys)
+	assert.Equal(t, expectedRuleIDs, metrics.timesEvaluatedRuleID)
+	assert.Equal(t, expectedCount, metrics.timesEvaluatedCount)
 }

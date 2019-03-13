@@ -7,6 +7,7 @@ import "fmt"
 type metricsCollector interface {
 	IncLockMetric(pattern string, lockSucceeded bool)
 	IncSatisfiedThenNot(pattern string, phaseName string)
+	TimesEvaluatedCount(ruleID string, count int)
 }
 
 // a no-op metrics collector, used as the default metrics collector
@@ -25,4 +26,8 @@ func (m *defaultMetricsCollector) IncLockMetric(pattern string, lockSucceeded bo
 func (m *defaultMetricsCollector) IncSatisfiedThenNot(pattern string, phaseName string) {
 	// TODO - can we take in the context here?
 	fmt.Printf("TrueThenEvalFalse: %s, %s\n", pattern, phaseName)
+}
+
+func (m *defaultMetricsCollector) TimesEvaluatedCount(ruleID string, count int) {
+	fmt.Printf("TimesEvaluatedCount: %s, %d\n", ruleID, count)
 }

@@ -44,6 +44,9 @@ func newIntCrawler(
 type extKeyProc interface {
 	keyProc
 	isWork(string, *string, readAPI) bool
+	resetRulesProcessedCount()
+	incRuleProcessedCount(ruleID string)
+	getRulesProcessedCount() map[string]int
 }
 
 type cacheReadAPI struct {
@@ -139,6 +142,7 @@ func (ic *intCrawler) singleRun(logger *zap.Logger) {
 	ic.cancelFunc = cancelFunc
 	ic.cancelMutex.Unlock()
 	values := map[string]string{}
+	ic.kp.resetRulesProcessedCount()
 	for _, prefix := range ic.prefixes {
 		resp, err := ic.kv.Get(ctx, prefix, clientv3.WithPrefix())
 		if err != nil {
@@ -150,6 +154,9 @@ func (ic *intCrawler) singleRun(logger *zap.Logger) {
 		}
 	}
 	ic.processData(values, logger)
+	for ruleID, count := range ic.kp.getRulesProcessedCount() {
+		ic.metrics.TimesEvaluatedCount(ruleID, count)
+	}
 }
 func (ic *intCrawler) processData(values map[string]string, logger *zap.Logger) {
 	api := &cacheReadAPI{values: values}

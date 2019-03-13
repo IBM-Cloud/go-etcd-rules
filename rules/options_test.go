@@ -9,6 +9,7 @@ import (
 
 func TestRuleOptions(t *testing.T) {
 	opts := makeRuleOptions()
+	assert.Equal(t, defaultRuleID, opts.ruleID)
 	var defaultLockTimeout int
 	assert.Equal(t, defaultLockTimeout, opts.lockTimeout)
 	opts = makeRuleOptions(RuleLockTimeout(300))
@@ -16,6 +17,9 @@ func TestRuleOptions(t *testing.T) {
 	assert.Equal(t, threeHundred, opts.lockTimeout)
 	opts = makeRuleOptions(RuleContextProvider(getTestContextProvider()))
 	verifyTestContextProvider(t, opts.contextProvider)
+	testRuleID := "super-awesome-rule-id"
+	opts = makeRuleOptions(RuleID(testRuleID))
+	assert.Equal(t, testRuleID, opts.ruleID)
 }
 
 func TestEngineOptions(t *testing.T) {

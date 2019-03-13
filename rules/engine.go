@@ -33,6 +33,7 @@ type baseEngine struct {
 	metrics      metricsCollector
 	logger       *zap.Logger
 	options      engineOptions
+	ruleID       map[int]string
 	ruleLockTTLs map[int]int
 	ruleMgr      ruleManager
 	stopped      uint32
@@ -245,10 +246,12 @@ func (e *baseEngine) addRule(rule DynamicRule,
 	if contextProvider == nil {
 		contextProvider = e.options.contextProvider
 	}
+	ruleID := opts.ruleID
 	e.ruleLockTTLs[ruleIndex] = ttl
 	e.keyProc.setCallback(ruleIndex, callback)
 	e.keyProc.setLockKeyPattern(ruleIndex, lockPattern)
 	e.keyProc.setContextProvider(ruleIndex, contextProvider)
+	e.keyProc.setRuleID(ruleIndex, ruleID)
 }
 
 func (e *v3Engine) Run() {

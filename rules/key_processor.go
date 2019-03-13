@@ -13,6 +13,7 @@ type setableKeyProcessor interface {
 	setCallback(int, interface{})
 	setContextProvider(int, ContextProvider)
 	setLockKeyPattern(int, string)
+	setRuleID(index int, ruleID string)
 }
 
 type workDispatcher interface {
@@ -22,15 +23,34 @@ type workDispatcher interface {
 type baseKeyProcessor struct {
 	contextProviders map[int]ContextProvider
 	lockKeyPatterns  map[int]string
+	ruleIDs          map[int]string
 	rm               *ruleManager
+	// tracks the number of times a rule is processed in a single run
+	rulesProcessedCount map[string]int
 }
 
 func (bkp *baseKeyProcessor) setLockKeyPattern(index int, pattern string) {
 	bkp.lockKeyPatterns[index] = pattern
 }
 
+func (bkp *baseKeyProcessor) setRuleID(index int, ruleID string) {
+	bkp.ruleIDs[index] = ruleID
+}
+
 func (bkp *baseKeyProcessor) setContextProvider(index int, cp ContextProvider) {
 	bkp.contextProviders[index] = cp
+}
+
+func (bkp *baseKeyProcessor) resetRulesProcessedCount() {
+	bkp.rulesProcessedCount = make(map[string]int, 0)
+}
+
+func (bkp *baseKeyProcessor) getRulesProcessedCount() map[string]int {
+	return bkp.rulesProcessedCount
+}
+
+func (bkp *baseKeyProcessor) incRuleProcessedCount(ruleID string) {
+	bkp.rulesProcessedCount[ruleID] = bkp.rulesProcessedCount[ruleID] + 1
 }
 
 type v3KeyProcessor struct {
@@ -70,9 +90,11 @@ func (v3kp *v3KeyProcessor) dispatchWork(index int, rule staticRule, logger *zap
 func newV3KeyProcessor(channel chan v3RuleWork, rm *ruleManager) v3KeyProcessor {
 	kp := v3KeyProcessor{
 		baseKeyProcessor: baseKeyProcessor{
-			contextProviders: map[int]ContextProvider{},
-			lockKeyPatterns:  map[int]string{},
-			rm:               rm,
+			contextProviders:    map[int]ContextProvider{},
+			lockKeyPatterns:     map[int]string{},
+			rm:                  rm,
+			ruleIDs:             make(map[int]string, 0),
+			rulesProcessedCount: make(map[string]int, 0),
 		},
 		callbacks: map[int]V3RuleTaskCallback{},
 		channel:   channel,
@@ -88,6 +110,7 @@ func (bkp *baseKeyProcessor) processKey(key string, value *string, api readAPI, 
 	logger.Debug("Processing key", zap.String("key", key))
 	rules := bkp.rm.getStaticRules(key, value)
 	for rule, index := range rules {
+		bkp.incRuleProcessedCount(bkp.ruleIDs[index])
 		satisfied, _ := rule.satisfied(api)
 		if satisfied {
 			keyPattern, ok := bkp.lockKeyPatterns[index]

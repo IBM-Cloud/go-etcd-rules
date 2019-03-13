@@ -6,6 +6,10 @@ import (
 	"golang.org/x/net/context"
 )
 
+const (
+	defaultRuleID = "NO_ID_SET"
+)
+
 // ContextProvider is used to specify a custom provider of a context
 // for a given rule.
 type ContextProvider func() (context.Context, context.CancelFunc)
@@ -197,11 +201,13 @@ func EngineEnhancedRuleFilter(enhancedRuleFilter bool) EngineOption {
 type ruleOptions struct {
 	lockTimeout     int
 	contextProvider ContextProvider
+	ruleID          string
 }
 
 func makeRuleOptions(options ...RuleOption) ruleOptions {
 	opts := ruleOptions{
 		lockTimeout: 0,
+		ruleID:      defaultRuleID,
 	}
 	for _, opt := range options {
 		opt.apply(&opts)
@@ -233,5 +239,12 @@ func RuleLockTimeout(lockTimeout int) RuleOption {
 func RuleContextProvider(cp ContextProvider) RuleOption {
 	return ruleOptionFunction(func(o *ruleOptions) {
 		o.contextProvider = cp
+	})
+}
+
+// RuleID is the ID associated with the rule
+func RuleID(ruleID string) RuleOption {
+	return ruleOptionFunction(func(o *ruleOptions) {
+		o.ruleID = ruleID
 	})
 }
