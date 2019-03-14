@@ -5,6 +5,7 @@ import (
 
 	"github.com/coreos/etcd/clientv3"
 	"github.com/stretchr/testify/assert"
+	"go.uber.org/zap"
 	"golang.org/x/net/context"
 )
 
@@ -12,7 +13,10 @@ func TestWorkerSingleRun(t *testing.T) {
 	conf := clientv3.Config{
 		Endpoints: []string{""},
 	}
-	metrics := newMockMetricsCollector()
+	lgr, err := zap.NewDevelopment()
+	assert.NoError(t, err)
+	metrics := NewMockMetricsCollector()
+	metrics.SetLogger(lgr)
 	cl, err := clientv3.New(conf)
 	assert.NoError(t, err)
 	e := newV3Engine(getTestLogger(), cl, EngineLockTimeout(300))
@@ -36,6 +40,7 @@ func TestWorkerSingleRun(t *testing.T) {
 		values: attrMap,
 	}
 	ctx, cancel := context.WithCancel(context.Background())
+	ctx = SetMethod(ctx, "workerTest")
 	task := V3RuleTask{
 		Attr:     &attr,
 		Logger:   getTestLogger(),
@@ -67,11 +72,11 @@ func TestWorkerSingleRun(t *testing.T) {
 	channel <- rw
 	assert.True(t, <-cbChannel)
 	assert.True(t, <-lockChannel)
-	assert.Equal(t, expectedIncLockMetricsPatterns, metrics.incLockMetricPattern)
-	assert.Equal(t, expectedIncLockMetricsLockSuccess, metrics.incLockMetricLockSuccess)
-	assert.Equal(t, expectedMethodNames, metrics.incLockMetricMethod)
-	assert.Equal(t, expectedMethodNames, metrics.workerQueueWaitTimeMethod)
-	assert.NotEmpty(t, metrics.workerQueueWaitTime)
+	assert.Equal(t, expectedIncLockMetricsPatterns, metrics.IncLockMetricPattern)
+	assert.Equal(t, expectedIncLockMetricsLockSuccess, metrics.IncLockMetricLockSuccess)
+	assert.Equal(t, expectedMethodNames, metrics.IncLockMetricMethod)
+	assert.Equal(t, expectedMethodNames, metrics.WorkerQueueWaitTimeMethod)
+	assert.NotEmpty(t, metrics.WorkerQueueWaitTime)
 
 	// Test case: rule is satisfied but there is an error obtaining the lock
 	errorMsg := "Some error"
@@ -87,12 +92,12 @@ func TestWorkerSingleRun(t *testing.T) {
 	assert.True(t, <-callChannel)
 	assert.Equal(t, 0, len(cbChannel))
 	assert.Equal(t, 0, len(lockChannel))
-	assert.Equal(t, expectedIncLockMetricsPatterns, metrics.incLockMetricPattern)
-	assert.Equal(t, expectedIncLockMetricsLockSuccess, metrics.incLockMetricLockSuccess)
+	assert.Equal(t, expectedIncLockMetricsPatterns, metrics.IncLockMetricPattern)
+	assert.Equal(t, expectedIncLockMetricsLockSuccess, metrics.IncLockMetricLockSuccess)
 	// not expecting these to change from the first run at all because the rule doesn't make it
 	// all the way through
-	assert.Equal(t, expectedMethodNames, metrics.workerQueueWaitTimeMethod)
-	assert.NotEmpty(t, metrics.workerQueueWaitTime)
+	assert.Equal(t, expectedMethodNames, metrics.WorkerQueueWaitTimeMethod)
+	assert.NotEmpty(t, metrics.WorkerQueueWaitTime)
 
 	// Test case: the rule is immediately not satisfied
 	rule = dummyRule{
@@ -106,14 +111,14 @@ func TestWorkerSingleRun(t *testing.T) {
 	assert.Equal(t, 0, len(cbChannel))
 	assert.Equal(t, 0, len(lockChannel))
 
-	assert.Equal(t, expectedIncLockMetricsPatterns, metrics.incLockMetricPattern)
-	assert.Equal(t, expectedIncLockMetricsLockSuccess, metrics.incLockMetricLockSuccess)
+	assert.Equal(t, expectedIncLockMetricsPatterns, metrics.IncLockMetricPattern)
+	assert.Equal(t, expectedIncLockMetricsLockSuccess, metrics.IncLockMetricLockSuccess)
 
-	assert.Equal(t, expectedSatisfiedMetricsPatterns, metrics.incSatisfiedThenNotPattern)
-	assert.Equal(t, expectedSatisfiedMetricsPhase, metrics.incIncSatisfiedThenNotPhase)
+	assert.Equal(t, expectedSatisfiedMetricsPatterns, metrics.IncSatisfiedThenNotPattern)
+	assert.Equal(t, expectedSatisfiedMetricsPhase, metrics.IncIncSatisfiedThenNotPhase)
 
 	// not expecting these to change from the first run at all because the rule doesn't make it
 	// all the way through
-	assert.Equal(t, expectedMethodNames, metrics.workerQueueWaitTimeMethod)
-	assert.NotEmpty(t, metrics.workerQueueWaitTime)
+	assert.Equal(t, expectedMethodNames, metrics.WorkerQueueWaitTimeMethod)
+	assert.NotEmpty(t, metrics.WorkerQueueWaitTime)
 }

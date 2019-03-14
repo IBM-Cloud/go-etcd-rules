@@ -36,7 +36,7 @@ func newMetricsInfo(ctx context.Context, keyPattern string) metricsInfo {
 type MetricsCollector interface {
 	IncLockMetric(methodName string, pattern string, lockSucceeded bool)
 	IncSatisfiedThenNot(methodName string, pattern string, phaseName string)
-	TimesEvaluatedCount(methodName string, ruleID string, count int)
+	TimesEvaluated(methodName string, ruleID string, count int)
 	WorkerQueueWaitTime(methodName string, startTime time.Time)
 }
 
@@ -58,7 +58,7 @@ func (m *noOpMetricsCollector) IncSatisfiedThenNot(methodName string, pattern st
 
 }
 
-func (m *noOpMetricsCollector) TimesEvaluatedCount(methodName string, ruleID string, count int) {
+func (m *noOpMetricsCollector) TimesEvaluated(methodName string, ruleID string, count int) {
 
 }
 

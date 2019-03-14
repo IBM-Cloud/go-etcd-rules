@@ -159,7 +159,7 @@ func (ic *intCrawler) singleRun(logger *zap.Logger) {
 	}
 	ic.processData(values, logger)
 	for ruleID, count := range ic.kp.getRulesProcessedCount() {
-		ic.metrics.TimesEvaluatedCount(crawelerMethodName, ruleID, count)
+		ic.metrics.TimesEvaluated(crawelerMethodName, ruleID, count)
 	}
 }
 func (ic *intCrawler) processData(values map[string]string, logger *zap.Logger) {

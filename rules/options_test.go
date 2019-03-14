@@ -51,7 +51,7 @@ func TestEngineOptions(t *testing.T) {
 	assert.Equal(t, 0, opts.ruleWorkBuffer)
 	opts = makeEngineOptions(EngineRuleWorkBuffer(10))
 	assert.Equal(t, 10, opts.ruleWorkBuffer)
-	mm := newMockMetricsCollector()
+	mm := NewMockMetricsCollector()
 	mFunc := func() MetricsCollector {
 		return &mm
 	}

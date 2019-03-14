@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"go.uber.org/zap"
 	"golang.org/x/net/context"
 )
 
@@ -31,9 +32,13 @@ func TestIntCrawler(t *testing.T) {
 		workKeys:         map[string]string{},
 	}
 
-	metrics := newMockMetricsCollector()
+	lgr, err := zap.NewDevelopment()
+	assert.NoError(t, err)
+	metrics := NewMockMetricsCollector()
+	metrics.SetLogger(lgr)
 	expectedRuleIDs := []string{"/root/child"}
 	expectedCount := []int{1}
+	expectedMethods := []string{"crawler"}
 
 	cr := intCrawler{
 		kp:       &kp,
@@ -51,6 +56,7 @@ func TestIntCrawler(t *testing.T) {
 		"/root/child":  "",
 		"/root1/child": "",
 	}, kp.workKeys)
-	assert.Equal(t, expectedRuleIDs, metrics.timesEvaluatedRuleID)
-	assert.Equal(t, expectedCount, metrics.timesEvaluatedCount)
+	assert.Equal(t, expectedRuleIDs, metrics.TimesEvaluatedRuleID)
+	assert.Equal(t, expectedCount, metrics.TimesEvaluatedCount)
+	assert.Equal(t, expectedMethods, metrics.TimesEvaluatedMethod)
 }
