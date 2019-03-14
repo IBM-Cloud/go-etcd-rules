@@ -35,6 +35,6 @@ type v3RuleWork struct {
 	ruleTask         V3RuleTask
 	ruleTaskCallback V3RuleTaskCallback
 	ruleIndex        int
-	keyPattern       string
+	metricsInfo      metricsInfo
 	lockKey          string
 }

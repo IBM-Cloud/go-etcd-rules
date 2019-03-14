@@ -65,9 +65,6 @@ func (v3kp *v3KeyProcessor) setCallback(index int, callback interface{}) {
 
 func (v3kp *v3KeyProcessor) dispatchWork(index int, rule staticRule, logger *zap.Logger, keyPattern string, metadata map[string]string) {
 	context, cancelFunc := v3kp.contextProviders[index]()
-
-	// TODO - does this context have the method info that we want???
-
 	task := V3RuleTask{
 		Attr:     rule.getAttributes(),
 		Logger:   logger,
@@ -81,7 +78,7 @@ func (v3kp *v3KeyProcessor) dispatchWork(index int, rule staticRule, logger *zap
 		ruleIndex:        index,
 		ruleTask:         task,
 		ruleTaskCallback: v3kp.callbacks[index],
-		keyPattern:       keyPattern,
+		metricsInfo:      newMetricsInfo(context, keyPattern),
 		lockKey:          FormatWithAttributes(keyPattern, rule.getAttributes()),
 	}
 	v3kp.channel <- work

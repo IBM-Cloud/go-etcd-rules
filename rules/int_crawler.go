@@ -44,6 +44,8 @@ func newIntCrawler(
 type extKeyProc interface {
 	keyProc
 	isWork(string, *string, readAPI) bool
+	// the following functions are for tracking how many times a
+	// single rule was processed during a single run by the crawler
 	resetRulesProcessedCount()
 	incRuleProcessedCount(ruleID string)
 	getRulesProcessedCount() map[string]int
@@ -131,17 +133,19 @@ func (ic *intCrawler) run() {
 }
 
 func (ic *intCrawler) singleRun(logger *zap.Logger) {
+	crawelerMethodName := "crawler"
 	if ic.isStopping() {
 		return
 	}
 	//logger := ic.logger.With(zap.String("source", "crawler"))
 	ctx, cancelFunc := context.WithTimeout(context.Background(), time.Duration(1)*time.Minute)
 	defer cancelFunc()
-	ctx = SetMethod(ctx, "crawler")
+	ctx = SetMethod(ctx, crawelerMethodName)
 	ic.cancelMutex.Lock()
 	ic.cancelFunc = cancelFunc
 	ic.cancelMutex.Unlock()
 	values := map[string]string{}
+	// starting a new run so reset the rules processed count so we get reliable metrics
 	ic.kp.resetRulesProcessedCount()
 	for _, prefix := range ic.prefixes {
 		resp, err := ic.kv.Get(ctx, prefix, clientv3.WithPrefix())
@@ -155,7 +159,7 @@ func (ic *intCrawler) singleRun(logger *zap.Logger) {
 	}
 	ic.processData(values, logger)
 	for ruleID, count := range ic.kp.getRulesProcessedCount() {
-		ic.metrics.TimesEvaluatedCount(ruleID, count)
+		ic.metrics.TimesEvaluatedCount(crawelerMethodName, ruleID, count)
 	}
 }
 func (ic *intCrawler) processData(values map[string]string, logger *zap.Logger) {

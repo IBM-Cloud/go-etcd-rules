@@ -57,7 +57,7 @@ func TestWorkerSingleRun(t *testing.T) {
 		ruleTask:         task,
 		ruleTaskCallback: callback.callback,
 		lockKey:          "key",
-		keyPattern:       "/test/item",
+		metricsInfo:      newMetricsInfo(ctx, "/test/item"),
 	}
 	expectedIncLockMetricsPatterns := []string{"/test/item"}
 	expectedIncLockMetricsLockSuccess := []bool{true}

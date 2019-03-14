@@ -61,7 +61,7 @@ func (bw *baseWorker) isStopped() bool {
 
 func (bw *baseWorker) doWork(loggerPtr **zap.Logger,
 	rulePtr *staticRule, lockTTL int, callback workCallback,
-	keyPattern string, lockKey string) {
+	metricsInfo metricsInfo, lockKey string) {
 	logger := *loggerPtr
 	rule := *rulePtr
 	sat, err1 := rule.satisfied(bw.api)
@@ -71,17 +71,17 @@ func (bw *baseWorker) doWork(loggerPtr **zap.Logger,
 	}
 	if !sat || is(&bw.stopping) {
 		if !sat {
-			bw.metrics.IncSatisfiedThenNot(keyPattern, "worker.doWorkBeforeLock")
+			bw.metrics.IncSatisfiedThenNot(metricsInfo.method, metricsInfo.keyPattern, "worker.doWorkBeforeLock")
 		}
 		return
 	}
 	l, err2 := bw.locker.lock(lockKey, lockTTL)
 	if err2 != nil {
 		logger.Debug("Failed to acquire lock", zap.String("lock_key", lockKey), zap.Error(err2))
-		bw.metrics.IncLockMetric(keyPattern, false)
+		bw.metrics.IncLockMetric(metricsInfo.method, metricsInfo.keyPattern, false)
 		return
 	}
-	bw.metrics.IncLockMetric(keyPattern, true)
+	bw.metrics.IncLockMetric(metricsInfo.method, metricsInfo.keyPattern, true)
 	defer l.unlock()
 	// Check for a second time, since checking and locking
 	// are not atomic.
@@ -91,7 +91,7 @@ func (bw *baseWorker) doWork(loggerPtr **zap.Logger,
 		return
 	}
 	if !sat {
-		bw.metrics.IncSatisfiedThenNot(keyPattern, "worker.doWorkAfterLock")
+		bw.metrics.IncSatisfiedThenNot(metricsInfo.method, metricsInfo.keyPattern, "worker.doWorkAfterLock")
 	}
 	if sat && !is(&bw.stopping) {
 		callback()
@@ -120,7 +120,7 @@ func (w *v3Worker) singleRun() {
 				task.Logger.Error("Panic", zap.Any("recover", r))
 			}
 		}()
-		w.doWork(&task.Logger, &work.rule, w.engine.getLockTTLForRule(work.ruleIndex), func() { work.ruleTaskCallback(&task) }, work.keyPattern, work.lockKey)
+		w.doWork(&task.Logger, &work.rule, w.engine.getLockTTLForRule(work.ruleIndex), func() { work.ruleTaskCallback(&task) }, work.metricsInfo, work.lockKey)
 	}()
 	wg.Wait()
 }
