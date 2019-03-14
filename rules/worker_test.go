@@ -59,6 +59,7 @@ func TestWorkerSingleRun(t *testing.T) {
 		lockKey:          "key",
 		metricsInfo:      newMetricsInfo(ctx, "/test/item"),
 	}
+	expectedMethodNames := []string{notSetMethodName}
 	expectedIncLockMetricsPatterns := []string{"/test/item"}
 	expectedIncLockMetricsLockSuccess := []bool{true}
 
@@ -68,6 +69,9 @@ func TestWorkerSingleRun(t *testing.T) {
 	assert.True(t, <-lockChannel)
 	assert.Equal(t, expectedIncLockMetricsPatterns, metrics.incLockMetricPattern)
 	assert.Equal(t, expectedIncLockMetricsLockSuccess, metrics.incLockMetricLockSuccess)
+	assert.Equal(t, expectedMethodNames, metrics.incLockMetricMethod)
+	assert.Equal(t, expectedMethodNames, metrics.workerQueueWaitTimeMethod)
+	assert.NotEmpty(t, metrics.workerQueueWaitTime)
 
 	// Test case: rule is satisfied but there is an error obtaining the lock
 	errorMsg := "Some error"
@@ -85,6 +89,10 @@ func TestWorkerSingleRun(t *testing.T) {
 	assert.Equal(t, 0, len(lockChannel))
 	assert.Equal(t, expectedIncLockMetricsPatterns, metrics.incLockMetricPattern)
 	assert.Equal(t, expectedIncLockMetricsLockSuccess, metrics.incLockMetricLockSuccess)
+	// not expecting these to change from the first run at all because the rule doesn't make it
+	// all the way through
+	assert.Equal(t, expectedMethodNames, metrics.workerQueueWaitTimeMethod)
+	assert.NotEmpty(t, metrics.workerQueueWaitTime)
 
 	// Test case: the rule is immediately not satisfied
 	rule = dummyRule{
@@ -103,4 +111,9 @@ func TestWorkerSingleRun(t *testing.T) {
 
 	assert.Equal(t, expectedSatisfiedMetricsPatterns, metrics.incSatisfiedThenNotPattern)
 	assert.Equal(t, expectedSatisfiedMetricsPhase, metrics.incIncSatisfiedThenNotPhase)
+
+	// not expecting these to change from the first run at all because the rule doesn't make it
+	// all the way through
+	assert.Equal(t, expectedMethodNames, metrics.workerQueueWaitTimeMethod)
+	assert.NotEmpty(t, metrics.workerQueueWaitTime)
 }

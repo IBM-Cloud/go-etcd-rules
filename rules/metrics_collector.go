@@ -1,6 +1,9 @@
 package rules
 
-import "context"
+import (
+	"context"
+	"time"
+)
 
 const (
 	notSetMethodName = "notSet"
@@ -12,6 +15,8 @@ type metricsInfo struct {
 	keyPattern string
 	// the calling method, retrieved from the context
 	method string
+	// holds a start time if duration is going to be calculated later
+	startTime time.Time
 }
 
 func newMetricsInfo(ctx context.Context, keyPattern string) metricsInfo {
@@ -22,6 +27,7 @@ func newMetricsInfo(ctx context.Context, keyPattern string) metricsInfo {
 	return metricsInfo{
 		keyPattern: keyPattern,
 		method:     methodName,
+		startTime:  time.Now(),
 	}
 }
 
@@ -31,6 +37,7 @@ type MetricsCollector interface {
 	IncLockMetric(methodName string, pattern string, lockSucceeded bool)
 	IncSatisfiedThenNot(methodName string, pattern string, phaseName string)
 	TimesEvaluatedCount(methodName string, ruleID string, count int)
+	WorkerQueueWaitTime(methodName string, startTime time.Time)
 }
 
 // a no-op metrics collector, used as the default metrics collector
@@ -52,5 +59,9 @@ func (m *noOpMetricsCollector) IncSatisfiedThenNot(methodName string, pattern st
 }
 
 func (m *noOpMetricsCollector) TimesEvaluatedCount(methodName string, ruleID string, count int) {
+
+}
+
+func (m *noOpMetricsCollector) WorkerQueueWaitTime(methodName string, startTime time.Time) {
 
 }

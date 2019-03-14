@@ -72,7 +72,6 @@ func (v3kp *v3KeyProcessor) dispatchWork(index int, rule staticRule, logger *zap
 		cancel:   cancelFunc,
 		Metadata: metadata,
 	}
-
 	work := v3RuleWork{
 		rule:             rule,
 		ruleIndex:        index,
