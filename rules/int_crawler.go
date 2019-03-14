@@ -13,7 +13,7 @@ func newIntCrawler(
 	cl *clientv3.Client,
 	interval int,
 	kp extKeyProc,
-	metrics metricsCollector,
+	metrics MetricsCollector,
 	logger *zap.Logger,
 	mutex *string,
 	mutexTTL int,
@@ -70,7 +70,7 @@ type intCrawler struct {
 	interval    int
 	kp          extKeyProc
 	kv          clientv3.KV
-	metrics     metricsCollector
+	metrics     MetricsCollector
 	logger      *zap.Logger
 	mutex       *string
 	mutexTTL    int

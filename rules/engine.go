@@ -30,7 +30,7 @@ type BaseEngine interface {
 type baseEngine struct {
 	cCloser      channelCloser
 	keyProc      setableKeyProcessor
-	metrics      metricsCollector
+	metrics      MetricsCollector
 	logger       *zap.Logger
 	options      engineOptions
 	ruleID       map[int]string
@@ -77,32 +77,11 @@ func NewV3Engine(configV3 clientv3.Config, logger *zap.Logger, options ...Engine
 
 // NewV3EngineWithClient creates a new V3Engine instance with the provided etcd v3 client instance.
 func NewV3EngineWithClient(cl *clientv3.Client, logger *zap.Logger, options ...EngineOption) V3Engine {
-	logger.Warn("metrics collector is null, initializing with default metrics collector")
-	eng := newV3Engine(logger, cl, newMetricsCollector(), options...)
+	eng := newV3Engine(logger, cl, options...)
 	return &eng
 }
 
-// NewV3EngineWithMetrics creates a new V3Engine instance using the provided metrics collector.
-func NewV3EngineWithMetrics(configV3 clientv3.Config, logger *zap.Logger, metrics metricsCollector, options ...EngineOption) V3Engine {
-	cl, err := clientv3.New(configV3)
-	if err != nil {
-		logger.Fatal("Failed to connect to etcd", zap.Error(err))
-	}
-	return NewV3EngineWithClientAndMetrics(cl, logger, metrics, options...)
-}
-
-// NewV3EngineWithClientAndMetrics creates a new V3Engine instance with the provided etcd v3 client instance and
-// metrics collector
-func NewV3EngineWithClientAndMetrics(cl *clientv3.Client, logger *zap.Logger, metrics metricsCollector, options ...EngineOption) V3Engine {
-	if metrics == nil {
-		logger.Warn("metrics collector is null, initializing with default metrics collector")
-		metrics = newMetricsCollector()
-	}
-	eng := newV3Engine(logger, cl, metrics, options...)
-	return &eng
-}
-
-func newV3Engine(logger *zap.Logger, cl *clientv3.Client, metrics metricsCollector, options ...EngineOption) v3Engine {
+func newV3Engine(logger *zap.Logger, cl *clientv3.Client, options ...EngineOption) v3Engine {
 	opts := makeEngineOptions(options...)
 	ruleMgr := newRuleManager(opts.constraints, opts.enhancedRuleFilter)
 	channel := make(chan v3RuleWork)
@@ -113,7 +92,7 @@ func newV3Engine(logger *zap.Logger, cl *clientv3.Client, metrics metricsCollect
 				close(channel)
 			},
 			keyProc:      &keyProc,
-			metrics:      metrics,
+			metrics:      opts.metrics(),
 			logger:       logger,
 			options:      opts,
 			ruleLockTTLs: map[int]int{},

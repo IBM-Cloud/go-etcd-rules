@@ -18,6 +18,12 @@ func defaultContextProvider() (context.Context, context.CancelFunc) {
 	return context.WithTimeout(context.Background(), time.Minute*5)
 }
 
+type MetricsCollectorOpt func() MetricsCollector
+
+func defaultMetricsCollector() MetricsCollector {
+	return newMetricsCollector()
+}
+
 // EngineOptions is used to configure the engine from configuration files
 type EngineOptions struct {
 	Concurrency        *int  `toml:"concurrency"`
@@ -52,6 +58,7 @@ type engineOptions struct {
 	crawlMutex         *string
 	ruleWorkBuffer     int
 	enhancedRuleFilter bool
+	metrics            MetricsCollectorOpt
 }
 
 func makeEngineOptions(options ...EngineOption) engineOptions {
@@ -64,6 +71,7 @@ func makeEngineOptions(options ...EngineOption) engineOptions {
 		syncInterval:    300,
 		syncGetTimeout:  0,
 		watchTimeout:    0,
+		metrics:         defaultMetricsCollector,
 	}
 	for _, opt := range options {
 		opt.apply(&opts)
@@ -163,6 +171,13 @@ func EngineSyncDelay(delay int) EngineOption {
 func EngineContextProvider(cp ContextProvider) EngineOption {
 	return engineOptionFunction(func(o *engineOptions) {
 		o.contextProvider = cp
+	})
+}
+
+// EngineMetricsCollector sets a custom metrics collector
+func EngineMetricsCollector(m MetricsCollectorOpt) EngineOption {
+	return engineOptionFunction(func(o *engineOptions) {
+		o.metrics = m
 	})
 }
 

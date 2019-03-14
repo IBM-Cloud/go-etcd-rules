@@ -8,7 +8,7 @@ import (
 
 type baseWorker struct {
 	locker   ruleLocker
-	metrics  metricsCollector
+	metrics  MetricsCollector
 	api      readAPI
 	workerID string
 	stopping uint32
