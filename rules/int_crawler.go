@@ -133,14 +133,14 @@ func (ic *intCrawler) run() {
 }
 
 func (ic *intCrawler) singleRun(logger *zap.Logger) {
-	crawelerMethodName := "crawler"
+	crawlerMethodName := "crawler"
 	if ic.isStopping() {
 		return
 	}
 	//logger := ic.logger.With(zap.String("source", "crawler"))
 	ctx, cancelFunc := context.WithTimeout(context.Background(), time.Duration(1)*time.Minute)
 	defer cancelFunc()
-	ctx = SetMethod(ctx, crawelerMethodName)
+	ctx = SetMethod(ctx, crawlerMethodName)
 	ic.cancelMutex.Lock()
 	ic.cancelFunc = cancelFunc
 	ic.cancelMutex.Unlock()
@@ -159,7 +159,7 @@ func (ic *intCrawler) singleRun(logger *zap.Logger) {
 	}
 	ic.processData(values, logger)
 	for ruleID, count := range ic.kp.getRulesProcessedCount() {
-		ic.metrics.TimesEvaluated(crawelerMethodName, ruleID, count)
+		ic.metrics.TimesEvaluated(crawlerMethodName, ruleID, count)
 	}
 }
 func (ic *intCrawler) processData(values map[string]string, logger *zap.Logger) {

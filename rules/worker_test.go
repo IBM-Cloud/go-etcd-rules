@@ -64,7 +64,7 @@ func TestWorkerSingleRun(t *testing.T) {
 		lockKey:          "key",
 		metricsInfo:      newMetricsInfo(ctx, "/test/item"),
 	}
-	expectedMethodNames := []string{notSetMethodName}
+	expectedMethodNames := []string{"workerTest"}
 	expectedIncLockMetricsPatterns := []string{"/test/item"}
 	expectedIncLockMetricsLockSuccess := []bool{true}
 
