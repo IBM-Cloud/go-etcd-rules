@@ -25,8 +25,9 @@ type baseKeyProcessor struct {
 	lockKeyPatterns  map[int]string
 	ruleIDs          map[int]string
 	rm               *ruleManager
-	// tracks the number of times a rule is processed in a single run
-	rulesProcessedCount map[string]int
+	// this function is used to increment the number of times a rule is processed, the
+	// data is then used by the metrics collector
+	timesEvalFunc func(ruleID string)
 }
 
 func (bkp *baseKeyProcessor) setLockKeyPattern(index int, pattern string) {
@@ -39,18 +40,6 @@ func (bkp *baseKeyProcessor) setRuleID(index int, ruleID string) {
 
 func (bkp *baseKeyProcessor) setContextProvider(index int, cp ContextProvider) {
 	bkp.contextProviders[index] = cp
-}
-
-func (bkp *baseKeyProcessor) resetRulesProcessedCount() {
-	bkp.rulesProcessedCount = make(map[string]int, 0)
-}
-
-func (bkp *baseKeyProcessor) getRulesProcessedCount() map[string]int {
-	return bkp.rulesProcessedCount
-}
-
-func (bkp *baseKeyProcessor) incRuleProcessedCount(ruleID string) {
-	bkp.rulesProcessedCount[ruleID] = bkp.rulesProcessedCount[ruleID] + 1
 }
 
 type v3KeyProcessor struct {
@@ -86,11 +75,14 @@ func (v3kp *v3KeyProcessor) dispatchWork(index int, rule staticRule, logger *zap
 func newV3KeyProcessor(channel chan v3RuleWork, rm *ruleManager) v3KeyProcessor {
 	kp := v3KeyProcessor{
 		baseKeyProcessor: baseKeyProcessor{
-			contextProviders:    map[int]ContextProvider{},
-			lockKeyPatterns:     map[int]string{},
-			rm:                  rm,
-			ruleIDs:             make(map[int]string, 0),
-			rulesProcessedCount: make(map[string]int, 0),
+			contextProviders: map[int]ContextProvider{},
+			lockKeyPatterns:  map[int]string{},
+			rm:               rm,
+			ruleIDs:          make(map[int]string, 0),
+			// set the default to a no-op since incrementing how many times a
+			// rule was processed only makes sense under certain situations like when
+			// running the crawler
+			timesEvalFunc: noOpTimesEval,
 		},
 		callbacks: map[int]V3RuleTaskCallback{},
 		channel:   channel,
@@ -106,7 +98,7 @@ func (bkp *baseKeyProcessor) processKey(key string, value *string, api readAPI, 
 	logger.Debug("Processing key", zap.String("key", key))
 	rules := bkp.rm.getStaticRules(key, value)
 	for rule, index := range rules {
-		bkp.incRuleProcessedCount(bkp.ruleIDs[index])
+		bkp.timesEvalFunc(bkp.ruleIDs[index])
 		satisfied, _ := rule.satisfied(api)
 		if satisfied {
 			keyPattern, ok := bkp.lockKeyPatterns[index]
@@ -128,4 +120,8 @@ func (bkp *baseKeyProcessor) isWork(key string, value *string, api readAPI) bool
 		}
 	}
 	return false
+}
+
+func (bkp *baseKeyProcessor) setTimesEvalFunc(timesEvalFunc func(ruleID string)) {
+	bkp.timesEvalFunc = timesEvalFunc
 }

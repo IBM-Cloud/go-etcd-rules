@@ -26,29 +26,27 @@ func newIntCrawler(
 		kV: kv,
 	}
 	c := intCrawler{
-		api:      &api,
-		cl:       cl,
-		interval: interval,
-		kp:       kp,
-		metrics:  metrics,
-		logger:   logger,
-		mutex:    mutex,
-		mutexTTL: mutexTTL,
-		prefixes: prefixes,
-		kv:       kv,
-		delay:    delay,
+		api:                 &api,
+		cl:                  cl,
+		interval:            interval,
+		kp:                  kp,
+		metrics:             metrics,
+		logger:              logger,
+		mutex:               mutex,
+		mutexTTL:            mutexTTL,
+		prefixes:            prefixes,
+		kv:                  kv,
+		delay:               delay,
+		rulesProcessedCount: make(map[string]int, 0),
 	}
+	kp.setTimesEvalFunc(c.incRuleProcessedCount)
 	return &c, nil
 }
 
 type extKeyProc interface {
 	keyProc
 	isWork(string, *string, readAPI) bool
-	// the following functions are for tracking how many times a
-	// single rule was processed during a single run by the crawler
-	resetRulesProcessedCount()
-	incRuleProcessedCount(ruleID string)
-	getRulesProcessedCount() map[string]int
+	setTimesEvalFunc(timesEvalFunc func(ruleID string))
 }
 
 type cacheReadAPI struct {
@@ -79,6 +77,8 @@ type intCrawler struct {
 	prefixes    []string
 	stopped     uint32
 	stopping    uint32
+	// tracks the number of times a rule is processed in a single run
+	rulesProcessedCount map[string]int
 }
 
 func (ic *intCrawler) isStopping() bool {
@@ -146,7 +146,7 @@ func (ic *intCrawler) singleRun(logger *zap.Logger) {
 	ic.cancelMutex.Unlock()
 	values := map[string]string{}
 	// starting a new run so reset the rules processed count so we get reliable metrics
-	ic.kp.resetRulesProcessedCount()
+	ic.rulesProcessedCount = make(map[string]int, 0)
 	for _, prefix := range ic.prefixes {
 		resp, err := ic.kv.Get(ctx, prefix, clientv3.WithPrefix())
 		if err != nil {
@@ -158,7 +158,7 @@ func (ic *intCrawler) singleRun(logger *zap.Logger) {
 		}
 	}
 	ic.processData(values, logger)
-	for ruleID, count := range ic.kp.getRulesProcessedCount() {
+	for ruleID, count := range ic.rulesProcessedCount {
 		ic.metrics.TimesEvaluated(crawlerMethodName, ruleID, count)
 	}
 }
@@ -175,4 +175,8 @@ func (ic *intCrawler) processData(values map[string]string, logger *zap.Logger) 
 		}
 		time.Sleep(time.Duration(ic.delay) * time.Millisecond)
 	}
+}
+
+func (ic *intCrawler) incRuleProcessedCount(ruleID string) {
+	ic.rulesProcessedCount[ruleID] = ic.rulesProcessedCount[ruleID] + 1
 }

@@ -15,13 +15,14 @@ type testKeyProcessor struct {
 	// tracks the number of times a rule is processed in a single run
 	rulesProcessedCount map[string]int
 	ruleIDs             map[int]string
+	timesEvalFunc       func(ruleID string)
 }
 
 func newTestKeyProcessor() testKeyProcessor {
 	return testKeyProcessor{
-		keys:                []string{},
-		ruleIDs:             make(map[int]string, 0),
-		rulesProcessedCount: make(map[string]int, 0),
+		keys:          []string{},
+		ruleIDs:       make(map[int]string, 0),
+		timesEvalFunc: noOpTimesEval,
 	}
 }
 func (tkp *testKeyProcessor) processKey(key string,
@@ -33,19 +34,11 @@ func (tkp *testKeyProcessor) processKey(key string,
 	tkp.values = append(tkp.values, value)
 	tkp.apis = append(tkp.apis, api)
 	tkp.loggers = append(tkp.loggers, logger)
-	tkp.rulesProcessedCount[key]++
+	tkp.timesEvalFunc(key)
 }
 
-func (tkp *testKeyProcessor) resetRulesProcessedCount() {
-	tkp.rulesProcessedCount = make(map[string]int, 0)
-}
-
-func (tkp *testKeyProcessor) getRulesProcessedCount() map[string]int {
-	return tkp.rulesProcessedCount
-}
-
-func (tkp *testKeyProcessor) incRuleProcessedCount(ruleID string) {
-	tkp.rulesProcessedCount[ruleID] = tkp.rulesProcessedCount[ruleID] + 1
+func (tkp *testKeyProcessor) setTimesEvalFunc(timeEvalFunc func(ruleID string)) {
+	tkp.timesEvalFunc = timeEvalFunc
 }
 
 func getTestLogger() *zap.Logger {
@@ -68,11 +61,11 @@ func TestV3KeyProcessor(t *testing.T) {
 	channel := make(chan v3RuleWork)
 	kp := v3KeyProcessor{
 		baseKeyProcessor: baseKeyProcessor{
-			contextProviders:    contextProviders,
-			rm:                  &rm,
-			lockKeyPatterns:     lockKeyPatterns,
-			ruleIDs:             ruleIDs,
-			rulesProcessedCount: make(map[string]int, 0),
+			contextProviders: contextProviders,
+			rm:               &rm,
+			lockKeyPatterns:  lockKeyPatterns,
+			ruleIDs:          ruleIDs,
+			timesEvalFunc:    noOpTimesEval,
 		},
 		callbacks: callbacks,
 		channel:   channel,
@@ -81,11 +74,4 @@ func TestV3KeyProcessor(t *testing.T) {
 	go kp.processKey("/test/key", &value, api, logger, map[string]string{})
 	work := <-channel
 	assert.Equal(t, "/test/lock/key", work.lockKey)
-	rulesProcessed := kp.getRulesProcessedCount()
-	count, ok := rulesProcessed["testKey"]
-	if !ok {
-		assert.Fail(t, "rule not in the rules processed map")
-	} else {
-		assert.Equal(t, 1, count)
-	}
 }

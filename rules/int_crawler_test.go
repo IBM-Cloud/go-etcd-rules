@@ -25,10 +25,11 @@ func TestIntCrawler(t *testing.T) {
 	kapi := c
 	kapi.Put(context.Background(), "/root/child", "val1")
 	kapi.Put(context.Background(), "/root1/child", "val1")
+	kapi.Put(context.Background(), "/root2/child", "val1")
 
 	kp := testExtKeyProcessor{
 		testKeyProcessor: newTestKeyProcessor(),
-		workTrue:         map[string]string{"/root/child": ""},
+		workTrue:         map[string]string{"/root/child": "", "/root2/child": ""},
 		workKeys:         map[string]string{},
 	}
 
@@ -36,9 +37,9 @@ func TestIntCrawler(t *testing.T) {
 	assert.NoError(t, err)
 	metrics := NewMockMetricsCollector()
 	metrics.SetLogger(lgr)
-	expectedRuleIDs := []string{"/root/child"}
-	expectedCount := []int{1}
-	expectedMethods := []string{"crawler"}
+	expectedRuleIDs := []string{"/root/child", "/root2/child"}
+	expectedCount := []int{1, 1}
+	expectedMethods := []string{"crawler", "crawler"}
 
 	cr := intCrawler{
 		kp:       &kp,
@@ -47,16 +48,31 @@ func TestIntCrawler(t *testing.T) {
 		kv:       c,
 		metrics:  &metrics,
 	}
+	kp.setTimesEvalFunc(cr.incRuleProcessedCount)
 	cr.singleRun(getTestLogger())
-	if assert.Equal(t, 1, len(kp.keys)) {
+	if assert.Equal(t, 2, len(kp.keys)) {
 		assert.Equal(t, "/root/child", kp.keys[0])
+		assert.Equal(t, "/root2/child", kp.keys[1])
 	}
 
 	assert.Equal(t, map[string]string{
 		"/root/child":  "",
 		"/root1/child": "",
+		"/root2/child": "",
 	}, kp.workKeys)
-	assert.Equal(t, expectedRuleIDs, metrics.TimesEvaluatedRuleID)
+	if assert.Equal(t, len(expectedRuleIDs), 2) {
+		assert.True(t, stringInArray(expectedRuleIDs[0], metrics.TimesEvaluatedRuleID))
+		assert.True(t, stringInArray(expectedRuleIDs[1], metrics.TimesEvaluatedRuleID))
+	}
 	assert.Equal(t, expectedCount, metrics.TimesEvaluatedCount)
 	assert.Equal(t, expectedMethods, metrics.TimesEvaluatedMethod)
+}
+
+func stringInArray(str string, arr []string) bool {
+	for _, s := range arr {
+		if str == s {
+			return true
+		}
+	}
+	return false
 }
