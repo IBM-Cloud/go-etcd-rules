@@ -20,21 +20,23 @@ type testKeyProcessor struct {
 
 func newTestKeyProcessor() testKeyProcessor {
 	return testKeyProcessor{
-		keys:          []string{},
-		ruleIDs:       make(map[int]string, 0),
-		timesEvalFunc: noOpTimesEval,
+		keys:    []string{},
+		ruleIDs: make(map[int]string, 0),
 	}
 }
 func (tkp *testKeyProcessor) processKey(key string,
 	value *string,
 	api readAPI,
 	logger *zap.Logger,
-	metadata map[string]string) {
+	metadata map[string]string,
+	timesEvaluated func(rulesID string)) {
 	tkp.keys = append(tkp.keys, key)
 	tkp.values = append(tkp.values, value)
 	tkp.apis = append(tkp.apis, api)
 	tkp.loggers = append(tkp.loggers, logger)
-	tkp.timesEvalFunc(key)
+	if timesEvaluated != nil {
+		timesEvaluated(key)
+	}
 }
 
 func (tkp *testKeyProcessor) setTimesEvalFunc(timeEvalFunc func(ruleID string)) {
@@ -65,13 +67,12 @@ func TestV3KeyProcessor(t *testing.T) {
 			rm:               &rm,
 			lockKeyPatterns:  lockKeyPatterns,
 			ruleIDs:          ruleIDs,
-			timesEvalFunc:    noOpTimesEval,
 		},
 		callbacks: callbacks,
 		channel:   channel,
 	}
 	logger := getTestLogger()
-	go kp.processKey("/test/key", &value, api, logger, map[string]string{})
+	go kp.processKey("/test/key", &value, api, logger, map[string]string{}, nil)
 	work := <-channel
 	assert.Equal(t, "/test/lock/key", work.lockKey)
 }

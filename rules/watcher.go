@@ -61,5 +61,5 @@ func (w *watcher) singleRun() {
 		}
 		return
 	}
-	w.kp.processKey(key, value, w.api, w.logger, map[string]string{})
+	w.kp.processKey(key, value, w.api, w.logger, map[string]string{}, nil)
 }

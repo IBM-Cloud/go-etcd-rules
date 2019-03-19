@@ -39,14 +39,12 @@ func newIntCrawler(
 		delay:               delay,
 		rulesProcessedCount: make(map[string]int, 0),
 	}
-	kp.setTimesEvalFunc(c.incRuleProcessedCount)
 	return &c, nil
 }
 
 type extKeyProc interface {
 	keyProc
 	isWork(string, *string, readAPI) bool
-	setTimesEvalFunc(timesEvalFunc func(ruleID string))
 }
 
 type cacheReadAPI struct {
@@ -171,7 +169,7 @@ func (ic *intCrawler) processData(values map[string]string, logger *zap.Logger) 
 		// Check to see if any rule is satisfied from cache
 		if ic.kp.isWork(k, &v, api) {
 			// Process key if it is
-			ic.kp.processKey(k, &v, ic.api, logger, map[string]string{"source": "crawler"})
+			ic.kp.processKey(k, &v, ic.api, logger, map[string]string{"source": "crawler"}, ic.incRuleProcessedCount)
 		}
 		time.Sleep(time.Duration(ic.delay) * time.Millisecond)
 	}

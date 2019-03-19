@@ -19,10 +19,6 @@ type metricsInfo struct {
 	startTime time.Time
 }
 
-// no-op function for use when you don't want to increment the number of times a
-// rule was evaluated, for use with the key processor
-func noOpTimesEval(_ string) {}
-
 func newMetricsInfo(ctx context.Context, keyPattern string) metricsInfo {
 	methodName := notSetMethodName
 	if data := GetMetricsMetadata(ctx); data != nil {

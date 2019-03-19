@@ -50,20 +50,18 @@ func TestIntCrawler(t *testing.T) {
 	}
 	kp.setTimesEvalFunc(cr.incRuleProcessedCount)
 	cr.singleRun(getTestLogger())
-	if assert.Equal(t, 2, len(kp.keys)) {
-		assert.Equal(t, "/root/child", kp.keys[0])
-		assert.Equal(t, "/root2/child", kp.keys[1])
-	}
+	assert.True(t, stringInArray("/root/child", kp.keys))
+	assert.True(t, stringInArray("/root2/child", kp.keys))
 
 	assert.Equal(t, map[string]string{
 		"/root/child":  "",
 		"/root1/child": "",
 		"/root2/child": "",
 	}, kp.workKeys)
-	if assert.Equal(t, len(expectedRuleIDs), 2) {
-		assert.True(t, stringInArray(expectedRuleIDs[0], metrics.TimesEvaluatedRuleID))
-		assert.True(t, stringInArray(expectedRuleIDs[1], metrics.TimesEvaluatedRuleID))
-	}
+
+	assert.True(t, stringInArray(expectedRuleIDs[0], metrics.TimesEvaluatedRuleID))
+	assert.True(t, stringInArray(expectedRuleIDs[1], metrics.TimesEvaluatedRuleID))
+
 	assert.Equal(t, expectedCount, metrics.TimesEvaluatedCount)
 	assert.Equal(t, expectedMethods, metrics.TimesEvaluatedMethod)
 }
