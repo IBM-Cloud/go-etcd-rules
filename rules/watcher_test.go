@@ -15,7 +15,7 @@ func TestWatcher(t *testing.T) {
 		errors: []error{nil, errors.New("Error")},
 	}
 	logger := getTestLogger()
-	kp := testKeyProcessor{}
+	kp := newTestKeyProcessor()
 	w := watcher{
 		api:    newMapReadAPI(),
 		kw:     &tkw,

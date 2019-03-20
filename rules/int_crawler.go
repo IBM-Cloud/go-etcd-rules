@@ -13,6 +13,7 @@ func newIntCrawler(
 	cl *clientv3.Client,
 	interval int,
 	kp extKeyProc,
+	metrics MetricsCollector,
 	logger *zap.Logger,
 	mutex *string,
 	mutexTTL int,
@@ -25,16 +26,18 @@ func newIntCrawler(
 		kV: kv,
 	}
 	c := intCrawler{
-		api:      &api,
-		cl:       cl,
-		interval: interval,
-		kp:       kp,
-		logger:   logger,
-		mutex:    mutex,
-		mutexTTL: mutexTTL,
-		prefixes: prefixes,
-		kv:       kv,
-		delay:    delay,
+		api:                 &api,
+		cl:                  cl,
+		interval:            interval,
+		kp:                  kp,
+		metrics:             metrics,
+		logger:              logger,
+		mutex:               mutex,
+		mutexTTL:            mutexTTL,
+		prefixes:            prefixes,
+		kv:                  kv,
+		delay:               delay,
+		rulesProcessedCount: make(map[string]int, 0),
 	}
 	return &c, nil
 }
@@ -65,12 +68,15 @@ type intCrawler struct {
 	interval    int
 	kp          extKeyProc
 	kv          clientv3.KV
+	metrics     MetricsCollector
 	logger      *zap.Logger
 	mutex       *string
 	mutexTTL    int
 	prefixes    []string
 	stopped     uint32
 	stopping    uint32
+	// tracks the number of times a rule is processed in a single run
+	rulesProcessedCount map[string]int
 }
 
 func (ic *intCrawler) isStopping() bool {
@@ -125,17 +131,20 @@ func (ic *intCrawler) run() {
 }
 
 func (ic *intCrawler) singleRun(logger *zap.Logger) {
+	crawlerMethodName := "crawler"
 	if ic.isStopping() {
 		return
 	}
 	//logger := ic.logger.With(zap.String("source", "crawler"))
 	ctx, cancelFunc := context.WithTimeout(context.Background(), time.Duration(1)*time.Minute)
 	defer cancelFunc()
-	ctx = SetMethod(ctx, "crawler")
+	ctx = SetMethod(ctx, crawlerMethodName)
 	ic.cancelMutex.Lock()
 	ic.cancelFunc = cancelFunc
 	ic.cancelMutex.Unlock()
 	values := map[string]string{}
+	// starting a new run so reset the rules processed count so we get reliable metrics
+	ic.rulesProcessedCount = make(map[string]int, 0)
 	for _, prefix := range ic.prefixes {
 		resp, err := ic.kv.Get(ctx, prefix, clientv3.WithPrefix())
 		if err != nil {
@@ -147,6 +156,9 @@ func (ic *intCrawler) singleRun(logger *zap.Logger) {
 		}
 	}
 	ic.processData(values, logger)
+	for ruleID, count := range ic.rulesProcessedCount {
+		ic.metrics.TimesEvaluated(crawlerMethodName, ruleID, count)
+	}
 }
 func (ic *intCrawler) processData(values map[string]string, logger *zap.Logger) {
 	api := &cacheReadAPI{values: values}
@@ -157,8 +169,12 @@ func (ic *intCrawler) processData(values map[string]string, logger *zap.Logger) 
 		// Check to see if any rule is satisfied from cache
 		if ic.kp.isWork(k, &v, api) {
 			// Process key if it is
-			ic.kp.processKey(k, &v, ic.api, logger, map[string]string{"source": "crawler"})
+			ic.kp.processKey(k, &v, ic.api, logger, map[string]string{"source": "crawler"}, ic.incRuleProcessedCount)
 		}
 		time.Sleep(time.Duration(ic.delay) * time.Millisecond)
 	}
+}
+
+func (ic *intCrawler) incRuleProcessedCount(ruleID string) {
+	ic.rulesProcessedCount[ruleID] = ic.rulesProcessedCount[ruleID] + 1
 }

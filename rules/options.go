@@ -6,12 +6,22 @@ import (
 	"golang.org/x/net/context"
 )
 
+const (
+	defaultRuleID = "NO_ID_SET"
+)
+
 // ContextProvider is used to specify a custom provider of a context
 // for a given rule.
 type ContextProvider func() (context.Context, context.CancelFunc)
 
 func defaultContextProvider() (context.Context, context.CancelFunc) {
 	return context.WithTimeout(context.Background(), time.Minute*5)
+}
+
+type MetricsCollectorOpt func() MetricsCollector
+
+func defaultMetricsCollector() MetricsCollector {
+	return newMetricsCollector()
 }
 
 // EngineOptions is used to configure the engine from configuration files
@@ -48,6 +58,7 @@ type engineOptions struct {
 	crawlMutex         *string
 	ruleWorkBuffer     int
 	enhancedRuleFilter bool
+	metrics            MetricsCollectorOpt
 }
 
 func makeEngineOptions(options ...EngineOption) engineOptions {
@@ -60,6 +71,7 @@ func makeEngineOptions(options ...EngineOption) engineOptions {
 		syncInterval:    300,
 		syncGetTimeout:  0,
 		watchTimeout:    0,
+		metrics:         defaultMetricsCollector,
 	}
 	for _, opt := range options {
 		opt.apply(&opts)
@@ -162,6 +174,13 @@ func EngineContextProvider(cp ContextProvider) EngineOption {
 	})
 }
 
+// EngineMetricsCollector sets a custom metrics collector
+func EngineMetricsCollector(m MetricsCollectorOpt) EngineOption {
+	return engineOptionFunction(func(o *engineOptions) {
+		o.metrics = m
+	})
+}
+
 // EngineCrawlMutex sets an application identifier mutex and a TTL value for the mutex
 // to limit the number of instances of an application performing a crawl at any given
 // time to one.  mutexTTL refers to how long the mutex is in effect; if set too short,
@@ -197,11 +216,13 @@ func EngineEnhancedRuleFilter(enhancedRuleFilter bool) EngineOption {
 type ruleOptions struct {
 	lockTimeout     int
 	contextProvider ContextProvider
+	ruleID          string
 }
 
 func makeRuleOptions(options ...RuleOption) ruleOptions {
 	opts := ruleOptions{
 		lockTimeout: 0,
+		ruleID:      defaultRuleID,
 	}
 	for _, opt := range options {
 		opt.apply(&opts)
@@ -233,5 +254,12 @@ func RuleLockTimeout(lockTimeout int) RuleOption {
 func RuleContextProvider(cp ContextProvider) RuleOption {
 	return ruleOptionFunction(func(o *ruleOptions) {
 		o.contextProvider = cp
+	})
+}
+
+// RuleID is the ID associated with the rule
+func RuleID(ruleID string) RuleOption {
+	return ruleOptionFunction(func(o *ruleOptions) {
+		o.ruleID = ruleID
 	})
 }

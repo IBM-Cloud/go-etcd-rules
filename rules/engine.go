@@ -30,8 +30,10 @@ type BaseEngine interface {
 type baseEngine struct {
 	cCloser      channelCloser
 	keyProc      setableKeyProcessor
+	metrics      MetricsCollector
 	logger       *zap.Logger
 	options      engineOptions
+	ruleID       map[int]string
 	ruleLockTTLs map[int]int
 	ruleMgr      ruleManager
 	stopped      uint32
@@ -90,6 +92,7 @@ func newV3Engine(logger *zap.Logger, cl *clientv3.Client, options ...EngineOptio
 				close(channel)
 			},
 			keyProc:      &keyProc,
+			metrics:      opts.metrics(),
 			logger:       logger,
 			options:      opts,
 			ruleLockTTLs: map[int]int{},
@@ -222,10 +225,12 @@ func (e *baseEngine) addRule(rule DynamicRule,
 	if contextProvider == nil {
 		contextProvider = e.options.contextProvider
 	}
+	ruleID := opts.ruleID
 	e.ruleLockTTLs[ruleIndex] = ttl
 	e.keyProc.setCallback(ruleIndex, callback)
 	e.keyProc.setLockKeyPattern(ruleIndex, lockPattern)
 	e.keyProc.setContextProvider(ruleIndex, contextProvider)
+	e.keyProc.setRuleID(ruleIndex, ruleID)
 }
 
 func (e *v3Engine) Run() {
@@ -246,6 +251,7 @@ func (e *v3Engine) Run() {
 	c, err := newIntCrawler(e.cl,
 		e.options.syncInterval,
 		e.baseEngine.keyProc,
+		e.metrics,
 		logger,
 		e.options.crawlMutex,
 		e.options.crawlerTTL,

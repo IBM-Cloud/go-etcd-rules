@@ -8,6 +8,7 @@ import (
 
 type baseWorker struct {
 	locker   ruleLocker
+	metrics  MetricsCollector
 	api      readAPI
 	workerID string
 	stopping uint32
@@ -22,7 +23,6 @@ type v3Worker struct {
 func newV3Worker(workerID string, engine *v3Engine) (v3Worker, error) {
 	var api readAPI
 	var locker ruleLocker
-
 	c := engine.cl
 	kv := engine.kvWrapper(c)
 	locker = newV3Locker(c)
@@ -33,6 +33,7 @@ func newV3Worker(workerID string, engine *v3Engine) (v3Worker, error) {
 		baseWorker: baseWorker{
 			api:      api,
 			locker:   locker,
+			metrics:  engine.metrics,
 			workerID: workerID,
 		},
 		engine: engine,
@@ -60,7 +61,7 @@ func (bw *baseWorker) isStopped() bool {
 
 func (bw *baseWorker) doWork(loggerPtr **zap.Logger,
 	rulePtr *staticRule, lockTTL int, callback workCallback,
-	lockKey string) {
+	metricsInfo metricsInfo, lockKey string) {
 	logger := *loggerPtr
 	rule := *rulePtr
 	sat, err1 := rule.satisfied(bw.api)
@@ -69,13 +70,18 @@ func (bw *baseWorker) doWork(loggerPtr **zap.Logger,
 		return
 	}
 	if !sat || is(&bw.stopping) {
+		if !sat {
+			bw.metrics.IncSatisfiedThenNot(metricsInfo.method, metricsInfo.keyPattern, "worker.doWorkBeforeLock")
+		}
 		return
 	}
 	l, err2 := bw.locker.lock(lockKey, lockTTL)
 	if err2 != nil {
 		logger.Debug("Failed to acquire lock", zap.String("lock_key", lockKey), zap.Error(err2))
+		bw.metrics.IncLockMetric(metricsInfo.method, metricsInfo.keyPattern, false)
 		return
 	}
+	bw.metrics.IncLockMetric(metricsInfo.method, metricsInfo.keyPattern, true)
 	defer l.unlock()
 	// Check for a second time, since checking and locking
 	// are not atomic.
@@ -84,6 +90,10 @@ func (bw *baseWorker) doWork(loggerPtr **zap.Logger,
 		logger.Error("Error checking rule", zap.Error(err1))
 		return
 	}
+	if !sat {
+		bw.metrics.IncSatisfiedThenNot(metricsInfo.method, metricsInfo.keyPattern, "worker.doWorkAfterLock")
+	}
+	bw.metrics.WorkerQueueWaitTime(metricsInfo.method, metricsInfo.startTime)
 	if sat && !is(&bw.stopping) {
 		callback()
 	}
@@ -111,7 +121,7 @@ func (w *v3Worker) singleRun() {
 				task.Logger.Error("Panic", zap.Any("recover", r))
 			}
 		}()
-		w.doWork(&task.Logger, &work.rule, w.engine.getLockTTLForRule(work.ruleIndex), func() { work.ruleTaskCallback(&task) }, work.lockKey)
+		w.doWork(&task.Logger, &work.rule, w.engine.getLockTTLForRule(work.ruleIndex), func() { work.ruleTaskCallback(&task) }, work.metricsInfo, work.lockKey)
 	}()
 	wg.Wait()
 }

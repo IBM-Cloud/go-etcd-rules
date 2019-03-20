@@ -9,6 +9,7 @@ import (
 
 func TestRuleOptions(t *testing.T) {
 	opts := makeRuleOptions()
+	assert.Equal(t, defaultRuleID, opts.ruleID)
 	var defaultLockTimeout int
 	assert.Equal(t, defaultLockTimeout, opts.lockTimeout)
 	opts = makeRuleOptions(RuleLockTimeout(300))
@@ -16,12 +17,17 @@ func TestRuleOptions(t *testing.T) {
 	assert.Equal(t, threeHundred, opts.lockTimeout)
 	opts = makeRuleOptions(RuleContextProvider(getTestContextProvider()))
 	verifyTestContextProvider(t, opts.contextProvider)
+	testRuleID := "super-awesome-rule-id"
+	opts = makeRuleOptions(RuleID(testRuleID))
+	assert.Equal(t, testRuleID, opts.ruleID)
 }
 
 func TestEngineOptions(t *testing.T) {
+	var noOp noOpMetricsCollector
 	opts := makeEngineOptions(EngineSyncInterval(5))
 	assert.Equal(t, 5, opts.syncInterval)
 	assert.Equal(t, 1, opts.syncDelay)
+	assert.IsType(t, &noOp, opts.metrics())
 	opts = makeEngineOptions(EngineConcurrency(10))
 	assert.Equal(t, 10, opts.concurrency)
 	keyExp1 := KeyExpansion(map[string][]string{"key1": {"val1"}, "key2": {"val2"}})
@@ -45,6 +51,12 @@ func TestEngineOptions(t *testing.T) {
 	assert.Equal(t, 0, opts.ruleWorkBuffer)
 	opts = makeEngineOptions(EngineRuleWorkBuffer(10))
 	assert.Equal(t, 10, opts.ruleWorkBuffer)
+	mm := NewMockMetricsCollector()
+	mFunc := func() MetricsCollector {
+		return &mm
+	}
+	opts = makeEngineOptions(EngineMetricsCollector(mFunc))
+	assert.IsType(t, &mm, opts.metrics())
 }
 
 var contextKeyTest = contextKey("test")
