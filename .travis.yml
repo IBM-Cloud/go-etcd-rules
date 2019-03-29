@@ -1,6 +1,6 @@
 language: go
 go:
-  - 1.11.5
+  - 1.11.6
   - tip
 
 matrix:
@@ -11,14 +11,9 @@ matrix:
 sudo: true
 
 before_install:
-  - sudo add-apt-repository ppa:masterminds/glide -y && sudo apt-get update -q
-  - sudo apt-get install glide -y
   - curl -L  https://github.com/coreos/etcd/releases/download/v3.3.3/etcd-v3.3.3-linux-amd64.tar.gz -o etcd-v3.3.3-linux-amd64.tar.gz
   - tar xzvf etcd-v3.3.3-linux-amd64.tar.gz
   - ./etcd-v3.3.3-linux-amd64/etcd &
-
-before_script:
-  - make deps
 
 script:
   - make test

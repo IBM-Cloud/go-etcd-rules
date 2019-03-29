@@ -1,8 +1,8 @@
-hash: b9c648dde20dfd66406c767f50d3e0ed4a025c2aa2c26f2ba2acdc1c27732391
-updated: 2018-08-15T14:22:30.475863-04:00
+hash: 7a5bf07a7f614156c2fcadde6aa648b4cba67f69da34f9deb5ac6b16bb75d915
+updated: 2019-03-29T17:36:10.368305-05:00
 imports:
 - name: github.com/coreos/etcd
-  version: fca8add78a9d926166eb739b8e4a124434025ba3
+  version: d57e8b8d97adfc4a6c224fe116714bf1a1f3beb9
   subpackages:
   - auth/authpb
   - clientv3
@@ -31,7 +31,7 @@ imports:
 - name: go.uber.org/multierr
   version: 3c4937480c32f4c13a875a1829af76c98ca3d40a
 - name: go.uber.org/zap
-  version: 35aad584952c3e7020db7b839f6b102de6271f89
+  version: ff33455a0e382e8a81d14dd7c922020b6b5e7982
   subpackages:
   - buffer
   - internal/bufferpool
