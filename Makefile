@@ -1,6 +1,5 @@
 GO111MODULE := on
 export
-GOPACKAGES=$(shell glide novendor | grep -v enginetest)
 GOFILES=$(shell find . -type f -name '*.go' -not -path "./vendor/*")
 
 .PHONY: all
@@ -28,8 +27,8 @@ test: deps
 
 .PHONY: vet
 vet:
-	go vet ${GOPACKAGES}
+	go vet ./...
 
 .PHONY: dofmt
 dofmt:
-	gofmt -l -s -w ${GOFILES}
+	go fmt ./...
