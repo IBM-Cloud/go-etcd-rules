@@ -23,7 +23,7 @@ fmt:
 
 .PHONY: test
 test: deps
-	echo 'mode: atomic' > cover.out && glide novendor | grep -v enginetest | xargs -n1 -I{} sh -c 'go test -v -race -covermode=atomic -coverprofile=coverage.tmp {} && tail -n +2 coverage.tmp >> cover.out' && rm coverage.tmp
+	go test -v -race -covermode=atomic -coverprofile=coverage.out ./rules/...
 	go run v3enginetest/main.go
 
 .PHONY: vet
