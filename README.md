@@ -2,7 +2,7 @@ etcd-rules
 ==========
 
 [![Build Status](https://travis-ci.org/IBM-Cloud/go-etcd-rules.svg?branch=master)](https://travis-ci.org/IBM-Cloud/go-etcd-rules)
-[![Coverage Status](https://coveralls.io/repos/github/IBM-Cloud/go-etcd-rules/badge.svg?branch=master)](https://coveralls.io/github/IBM-Cloud/go-etcd-rules?branch=master)
+[![Coverage Status](https://coveralls.io/repos/github/IBM-Bluemix/go-etcd-rules/badge.svg?branch=master)](https://coveralls.io/github/IBM-Bluemix/go-etcd-rules?branch=master)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
 This is a rules engine for use with etcd.  Simple dynamic rules allow the specification
