@@ -1,5 +1,5 @@
-hash: 7a5bf07a7f614156c2fcadde6aa648b4cba67f69da34f9deb5ac6b16bb75d915
-updated: 2019-03-29T17:36:10.368305-05:00
+hash: 55432f403e1c261bb45c15972fffddcfdc754358dc1148085866f3f5bf3370b9
+updated: 2019-04-03T17:15:54.079582-05:00
 imports:
 - name: github.com/coreos/etcd
   version: d57e8b8d97adfc4a6c224fe116714bf1a1f3beb9
@@ -26,6 +26,8 @@ imports:
   - ptypes/any
   - ptypes/duration
   - ptypes/timestamp
+- name: github.com/ugorji/go
+  version: b4c50a2b199d93b13dc15e78929cfb23bfdf21ab
 - name: go.uber.org/atomic
   version: 1ea20fb1cbb1cc08cbd0d913a96dead89aa18289
 - name: go.uber.org/multierr
