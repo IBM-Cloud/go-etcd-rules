@@ -118,7 +118,7 @@ func (w *v3Worker) singleRun() {
 		defer func() {
 			wg.Done()
 			if r := recover(); r != nil {
-				task.Logger.Error("Panic", zap.Any("recover", r))
+				task.Logger.Error("Panic", zap.Any("recover", r), zap.Stack("stack"))
 			}
 		}()
 		w.doWork(&task.Logger, &work.rule, w.engine.getLockTTLForRule(work.ruleIndex), func() { work.ruleTaskCallback(&task) }, work.metricsInfo, work.lockKey)
