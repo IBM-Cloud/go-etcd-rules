@@ -1,13 +1,16 @@
 GO111MODULE := on
 export
-GOFILES=$(shell find . -type f -name '*.go' -not -path "./vendor/*")
+LINT_VERSION="1.21.0"
 
 .PHONY: all
-all: deps fmt vet test
+all: deps fmt lint test
 
 .PHONY: deps
 deps:
 	go get github.com/mattn/goveralls
+	@if ! which golangci-lint >/dev/null || [[ "$$(golangci-lint --version)" != *${LINT_VERSION}* ]]; then \
+		curl -sfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(shell go env GOPATH)/bin v${LINT_VERSION}; \
+	fi
 
 .PHONY: update-deps
 update-deps:
@@ -16,19 +19,15 @@ update-deps:
 	glide update -v
 	go get -u ./...
 
-.PHONY: fmt
-fmt:
-	@if [ -n "$$(gofmt -l ${GOFILES})" ]; then echo 'The following files have errors. Please run gofmt -l -w on your code.' && gofmt -l ${GOFILES} && exit 1; fi
+.PHONY: lint-fix
+lint-fix: deps
+	golangci-lint run --fix  # Attempts to fix some lint errors
+
+.PHONY: lint
+lint: deps
+	golangci-lint run
 
 .PHONY: test
-test: deps
+test:
 	go test -v -race -covermode=atomic -coverprofile=coverage.out ./rules/...
 	go run v3enginetest/main.go
-
-.PHONY: vet
-vet:
-	go vet ./...
-
-.PHONY: dofmt
-dofmt:
-	go fmt ./...

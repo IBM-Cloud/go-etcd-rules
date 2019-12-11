@@ -19,7 +19,6 @@ var errorAPI = errorReadAPI{}
 var errAPI = errors.New("API Error")
 
 type dummyRule struct {
-	baseRule
 	satisfiableResponse, satisfiedResponse bool
 	key                                    string
 	attr                                   Attributes
@@ -48,7 +47,7 @@ func (dr *dummyRule) qSatisfiable(key string, value *string) quadState {
 				panic("Value did not match")
 			}
 		} else {
-			if value == nil || (value != nil && *value != *eVal) {
+			if value == nil || *value != *eVal {
 				panic("Value did not match")
 			}
 		}

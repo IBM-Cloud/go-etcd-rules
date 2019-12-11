@@ -8,20 +8,18 @@ import (
 )
 
 type testKeyProcessor struct {
-	apis    []readAPI
-	keys    []string
-	loggers []*zap.Logger
-	values  []*string
-	// tracks the number of times a rule is processed in a single run
-	rulesProcessedCount map[string]int
-	ruleIDs             map[int]string
-	timesEvalFunc       func(ruleID string)
+	apis          []readAPI
+	keys          []string
+	loggers       []*zap.Logger
+	values        []*string
+	ruleIDs       map[int]string
+	timesEvalFunc func(ruleID string)
 }
 
 func newTestKeyProcessor() testKeyProcessor {
 	return testKeyProcessor{
 		keys:    []string{},
-		ruleIDs: make(map[int]string, 0),
+		ruleIDs: make(map[int]string),
 	}
 }
 func (tkp *testKeyProcessor) processKey(key string,

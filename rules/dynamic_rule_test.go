@@ -11,19 +11,8 @@ import (
 var (
 	expansionMap        = map[string][]string{"a": {"first", "second"}, "b": {"third", "fourth"}, "c": {"x", "y"}}
 	expansionPatterns1  = []string{"/first/third/a/attr1", "/first/fourth/b/attr1", "/second/third/c/attr1", "/second/fourth/d/attr1"}
-	expansionPatterns2  = []string{"/first/third/a/attr2", "/first/fourth/b/attr2", "/second/third/c/attr2", "/second/fourth/d/attr2"}
 	expansionAttributes = []map[string]string{{"a": "first", "b": "third"}, {"a": "first", "b": "fourth"}, {"a": "second", "b": "third"}, {"a": "second", "b": "fourth"}}
 )
-
-type dummyRuleTrueFactory struct {
-}
-
-func (drtf *dummyRuleTrueFactory) newRule(keys []string) staticRule {
-	return &dummyRule{
-		satisfiableResponse: true,
-		satisfiedResponse:   true,
-	}
-}
 
 func (a attributeInstance) String() string {
 	value := "<nil>"

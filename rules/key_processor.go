@@ -78,7 +78,7 @@ func newV3KeyProcessor(channel chan v3RuleWork, rm *ruleManager) v3KeyProcessor 
 			contextProviders: map[int]ContextProvider{},
 			lockKeyPatterns:  map[int]string{},
 			rm:               rm,
-			ruleIDs:          make(map[int]string, 0),
+			ruleIDs:          make(map[int]string),
 		},
 		callbacks: map[int]V3RuleTaskCallback{},
 		channel:   channel,

@@ -8,8 +8,6 @@ matrix:
   allow_failures:
   - go: tip
 
-sudo: true
-
 before_install:
   - curl -L  https://github.com/coreos/etcd/releases/download/v3.3.3/etcd-v3.3.3-linux-amd64.tar.gz -o etcd-v3.3.3-linux-amd64.tar.gz
   - tar xzvf etcd-v3.3.3-linux-amd64.tar.gz
@@ -17,7 +15,7 @@ before_install:
 
 script:
   - make test
-  - make vet
+  - make lint
   - make fmt
 
 after_success:

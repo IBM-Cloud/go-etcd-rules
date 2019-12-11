@@ -40,7 +40,8 @@ func main() {
 	cl, err := clientv3.New(cfg)
 	check(err)
 	kv := clientv3.NewKV(cl)
-	kv.Delete(context.Background(), "/rulesEngine", clientv3.WithPrefix())
+	_, err = kv.Delete(context.Background(), "/rulesEngine", clientv3.WithPrefix())
+	check(err)
 
 	// build the rules engine options, include a metrics collector and
 	// a context provider which includes a method named later used when
@@ -64,11 +65,12 @@ func main() {
 	done := make(chan *polled)
 	for i := 0; i < idCount; i++ {
 		id := fmt.Sprint(i)
-		kv.Put(context.Background(), "/rulesEngine/data/"+id, "0")
+		_, err := kv.Put(context.Background(), "/rulesEngine/data/"+id, "0")
+		check(err)
 		p := polled{ID: id}
 		ps[id] = &p
 	}
-	engine.AddPolling("/rulesEnginePolling/:id", preReq, 2, func(task *rules.V3RuleTask) {
+	err = engine.AddPolling("/rulesEnginePolling/:id", preReq, 2, func(task *rules.V3RuleTask) {
 		p := ps[*task.Attr.GetAttribute("id")]
 		path := task.Attr.Format(dataPath)
 		task.Logger.Info("polling", zap.String("id", p.ID), zap.String("path", path))
@@ -92,6 +94,7 @@ func main() {
 		_, err = kv.Put(task.Context, path, fmt.Sprint(p.pollCount))
 		check(err)
 	})
+	check(err)
 	engine.Run()
 	for i := 0; i < idCount; i++ {
 		p := <-done
@@ -99,5 +102,5 @@ func main() {
 	}
 	ctx, cancel = context.WithTimeout(context.Background(), time.Duration(30)*time.Second)
 	defer cancel()
-	engine.Shutdown(ctx)
+	_ = engine.Shutdown(ctx)
 }

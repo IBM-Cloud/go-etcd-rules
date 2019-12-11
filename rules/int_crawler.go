@@ -37,7 +37,7 @@ func newIntCrawler(
 		prefixes:            prefixes,
 		kv:                  kv,
 		delay:               delay,
-		rulesProcessedCount: make(map[string]int, 0),
+		rulesProcessedCount: make(map[string]int),
 	}
 	return &c, nil
 }
@@ -144,7 +144,7 @@ func (ic *intCrawler) singleRun(logger *zap.Logger) {
 	ic.cancelMutex.Unlock()
 	values := map[string]string{}
 	// starting a new run so reset the rules processed count so we get reliable metrics
-	ic.rulesProcessedCount = make(map[string]int, 0)
+	ic.rulesProcessedCount = make(map[string]int)
 	for _, prefix := range ic.prefixes {
 		resp, err := ic.kv.Get(ctx, prefix, clientv3.WithPrefix())
 		if err != nil {
