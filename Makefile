@@ -28,6 +28,16 @@ lint: deps
 	golangci-lint run
 
 .PHONY: test
-test:
-	go test -v -race -covermode=atomic -coverprofile=coverage.out ./rules/...
+test: int-setup
+	go test -race -covermode=atomic -coverprofile=coverage.out ./rules/...
 	go run v3enginetest/main.go
+
+.PHONY: int-setup
+int-setup: int-teardown
+	docker run -d -p 2379:2379 --name etcd quay.io/coreos/etcd:v3.2.9 \
+		/usr/local/bin/etcd --listen-client-urls http://0.0.0.0:2379 \
+		--advertise-client-urls http://0.0.0.0:2379
+
+.PHONY: int-teardown
+int-teardown:
+	docker rm -f etcd || true
