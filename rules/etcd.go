@@ -2,7 +2,6 @@ package rules
 
 import (
 	"errors"
-	"sync"
 	"time"
 
 	"github.com/coreos/etcd/clientv3"
@@ -63,34 +62,9 @@ func newEtcdV3KeyWatcher(watcher clientv3.Watcher, prefix string, timeout time.D
 }
 
 type baseKeyWatcher struct {
-	cancelFunc  context.CancelFunc
-	cancelMutex sync.Mutex
-	prefix      string
-	timeout     time.Duration
-	stopping    uint32
-}
-
-func (bkw *baseKeyWatcher) getContext() context.Context {
-	ctx := context.Background()
-	bkw.cancelMutex.Lock()
-	defer bkw.cancelMutex.Unlock()
-	if bkw.timeout > 0 {
-		ctx, bkw.cancelFunc = context.WithTimeout(ctx, bkw.timeout)
-	} else {
-		ctx, bkw.cancelFunc = context.WithCancel(ctx)
-	}
-	ctx = SetMethod(ctx, "watcher")
-	return ctx
-}
-
-func (bkw *baseKeyWatcher) cancel() {
-	atomicSet(&bkw.stopping, true)
-	bkw.cancelMutex.Lock()
-	defer bkw.cancelMutex.Unlock()
-	if bkw.cancelFunc != nil {
-		bkw.cancelFunc()
-		bkw.cancelFunc = nil
-	}
+	cancelFunc context.CancelFunc
+	prefix     string
+	timeout    time.Duration
 }
 
 type etcdV3KeyWatcher struct {

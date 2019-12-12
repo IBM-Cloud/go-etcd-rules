@@ -8,17 +8,12 @@ matrix:
   allow_failures:
   - go: tip
 
-sudo: true
-
-before_install:
-  - curl -L  https://github.com/coreos/etcd/releases/download/v3.3.3/etcd-v3.3.3-linux-amd64.tar.gz -o etcd-v3.3.3-linux-amd64.tar.gz
-  - tar xzvf etcd-v3.3.3-linux-amd64.tar.gz
-  - ./etcd-v3.3.3-linux-amd64/etcd &
+services:
+  - docker
 
 script:
   - make test
-  - make vet
-  - make fmt
+  - make lint
 
 after_success:
     - 'if [ "$TRAVIS_PULL_REQUEST" = "false" ]; then goveralls -coverprofile=coverage.out -service=travis-ci -repotoken $COVERALLS_TOKEN; fi'

@@ -6,24 +6,27 @@ import (
 
 	"github.com/coreos/etcd/clientv3"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"golang.org/x/net/context"
 )
 
-func initV3Etcd() (clientv3.Config, *clientv3.Client) {
+func initV3Etcd(t *testing.T) (clientv3.Config, *clientv3.Client) {
 	cfg := clientv3.Config{
 		Endpoints: []string{"http://127.0.0.1:2379"},
 	}
 	c, _ := clientv3.New(cfg)
-	c.Delete(context.Background(), "/", clientv3.WithPrefix())
+	_, err := c.Delete(context.Background(), "/", clientv3.WithPrefix())
+	require.NoError(t, err)
 	return cfg, c
 }
 
 func TestV3EtcdReadAPI(t *testing.T) {
-	_, c := initV3Etcd()
+	_, c := initV3Etcd(t)
 	kV := clientv3.NewKV(c)
 	api := etcdV3ReadAPI{kV: kV}
 
-	kV.Put(context.Background(), "/test0", "value")
+	_, err := kV.Put(context.Background(), "/test0", "value")
+	require.NoError(t, err)
 
 	val, err := api.get("/test0")
 	assert.NoError(t, err)
@@ -37,17 +40,19 @@ func TestV3EtcdReadAPI(t *testing.T) {
 }
 
 func TestEctdV3Watcher(t *testing.T) {
-	_, cl := initV3Etcd()
+	_, cl := initV3Etcd(t)
 	w := clientv3.NewWatcher(cl)
 	watcher := newEtcdV3KeyWatcher(w, "/pre", time.Duration(60)*time.Second)
 	done := make(chan bool)
 	go checkWatcher1(done, t, watcher)
 	time.Sleep(time.Duration(3) * time.Second)
-	cl.Put(context.Background(), "/pre/test", "value")
+	_, err := cl.Put(context.Background(), "/pre/test", "value")
+	require.NoError(t, err)
 	<-done
 	go checkWatcher2(done, t, watcher)
 	time.Sleep(time.Duration(3) * time.Second)
-	cl.Delete(context.Background(), "/pre/test")
+	_, err = cl.Delete(context.Background(), "/pre/test")
+	require.NoError(t, err)
 	<-done
 }
 

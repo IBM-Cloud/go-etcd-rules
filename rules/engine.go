@@ -33,7 +33,6 @@ type baseEngine struct {
 	metrics      MetricsCollector
 	logger       *zap.Logger
 	options      engineOptions
-	ruleID       map[int]string
 	ruleLockTTLs map[int]int
 	ruleMgr      ruleManager
 	stopped      uint32

@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
 	"golang.org/x/net/context"
 )
@@ -21,11 +22,14 @@ func (tekp *testExtKeyProcessor) isWork(key string, value *string, r readAPI) bo
 }
 
 func TestIntCrawler(t *testing.T) {
-	_, c := initV3Etcd()
+	_, c := initV3Etcd(t)
 	kapi := c
-	kapi.Put(context.Background(), "/root/child", "val1")
-	kapi.Put(context.Background(), "/root1/child", "val1")
-	kapi.Put(context.Background(), "/root2/child", "val1")
+	_, err := kapi.Put(context.Background(), "/root/child", "val1")
+	require.NoError(t, err)
+	_, err = kapi.Put(context.Background(), "/root1/child", "val1")
+	require.NoError(t, err)
+	_, err = kapi.Put(context.Background(), "/root2/child", "val1")
+	require.NoError(t, err)
 
 	kp := testExtKeyProcessor{
 		testKeyProcessor: newTestKeyProcessor(),

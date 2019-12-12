@@ -102,11 +102,9 @@ func processBooleanMap(keys []string, parent map[string]bool, value bool, proc f
 }
 
 func (krp *dynamicRule) getLeafRepresentationPatternMap() map[string][]string {
-	out := map[string][]string{krp.rep: {}}
-	for _, pattern := range krp.patterns {
-		out[krp.rep] = append(out[krp.rep], pattern)
+	return map[string][]string{
+		krp.rep: krp.patterns,
 	}
-	return out
 }
 
 func (krp *dynamicRule) getLeafRepresentations() []string {

@@ -8,7 +8,7 @@ import (
 )
 
 func TestV3Locker(t *testing.T) {
-	cfg, cl := initV3Etcd()
+	cfg, cl := initV3Etcd(t)
 	c, err := clientv3.New(cfg)
 	assert.NoError(t, err)
 	newV3Locker(c)

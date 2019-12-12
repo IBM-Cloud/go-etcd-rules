@@ -106,14 +106,6 @@ func sortPrefixesByLength(prefixes map[string]string) []string {
 	return out
 }
 
-func getCrawlGuidesForRules(rules []DynamicRule) []string {
-	return combineRuleData(rules, getCrawlerPatterns)
-}
-
-func getRulePatterns(rules []DynamicRule) []string {
-	return combineRuleData(rules, func(rule DynamicRule) []string { return rule.getPatterns() })
-}
-
 func combineRuleData(rules []DynamicRule, source func(DynamicRule) []string) []string {
 	crawlGuides := []string{}
 	for _, rule := range rules {
