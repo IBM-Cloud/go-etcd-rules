@@ -17,6 +17,7 @@ func newIntCrawler(
 	logger *zap.Logger,
 	mutex *string,
 	mutexTTL int,
+	mutexTimeout int,
 	prefixes []string,
 	kvWrapper WrapKV,
 	delay int,
@@ -34,6 +35,7 @@ func newIntCrawler(
 		logger:              logger,
 		mutex:               mutex,
 		mutexTTL:            mutexTTL,
+		mutexTimeout:        mutexTimeout,
 		prefixes:            prefixes,
 		kv:                  kv,
 		delay:               delay,
@@ -60,21 +62,22 @@ func (cra *cacheReadAPI) get(key string) (*string, error) {
 }
 
 type intCrawler struct {
-	api         readAPI
-	cancelFunc  context.CancelFunc
-	cancelMutex sync.Mutex
-	cl          *clientv3.Client
-	delay       int
-	interval    int
-	kp          extKeyProc
-	kv          clientv3.KV
-	metrics     MetricsCollector
-	logger      *zap.Logger
-	mutex       *string
-	mutexTTL    int
-	prefixes    []string
-	stopped     uint32
-	stopping    uint32
+	api          readAPI
+	cancelFunc   context.CancelFunc
+	cancelMutex  sync.Mutex
+	cl           *clientv3.Client
+	delay        int
+	interval     int
+	kp           extKeyProc
+	kv           clientv3.KV
+	metrics      MetricsCollector
+	logger       *zap.Logger
+	mutex        *string
+	mutexTTL     int
+	mutexTimeout int
+	prefixes     []string
+	stopped      uint32
+	stopping     uint32
 	// tracks the number of times a rule is processed in a single run
 	rulesProcessedCount map[string]int
 }
@@ -109,8 +112,8 @@ func (ic *intCrawler) run() {
 		} else {
 			mutex := "/crawler/" + *ic.mutex
 			logger.Debug("Attempting to obtain mutex",
-				zap.String("mutex", mutex), zap.Int("TTL", ic.mutexTTL))
-			locker := newV3Locker(ic.cl)
+				zap.String("mutex", mutex), zap.Int("TTL", ic.mutexTTL), zap.Int("Timeout", ic.mutexTimeout))
+			locker := newV3Locker(ic.cl, ic.mutexTimeout)
 			lock, err := locker.lock(mutex, ic.mutexTTL)
 			if err != nil {
 				logger.Debug("Could not obtain mutex; skipping crawler run", zap.Error(err))

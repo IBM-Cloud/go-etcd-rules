@@ -25,7 +25,7 @@ func newV3Worker(workerID string, engine *v3Engine) (v3Worker, error) {
 	var locker ruleLocker
 	c := engine.cl
 	kv := engine.kvWrapper(c)
-	locker = newV3Locker(c)
+	locker = newV3Locker(c, engine.options.lockAcquisitionTimeout)
 	api = &etcdV3ReadAPI{
 		kV: kv,
 	}

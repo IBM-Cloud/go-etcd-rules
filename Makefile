@@ -3,7 +3,7 @@ export
 LINT_VERSION="1.21.0"
 
 .PHONY: all
-all: deps fmt lint test
+all: deps lint test
 
 .PHONY: deps
 deps:

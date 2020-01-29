@@ -16,18 +16,20 @@ type ruleLock interface {
 	unlock()
 }
 
-func newV3Locker(cl *clientv3.Client) ruleLocker {
+func newV3Locker(cl *clientv3.Client, lockTimeout int) ruleLocker {
 	return &v3Locker{
-		cl: cl,
+		cl:          cl,
+		lockTimeout: lockTimeout,
 	}
 }
 
 type v3Locker struct {
-	cl *clientv3.Client
+	cl          *clientv3.Client
+	lockTimeout int
 }
 
 func (v3l *v3Locker) lock(key string, ttl int) (ruleLock, error) {
-	return v3l.lockWithTimeout(key, ttl, 5)
+	return v3l.lockWithTimeout(key, ttl, v3l.lockTimeout)
 }
 func (v3l *v3Locker) lockWithTimeout(key string, ttl int, timeout int) (ruleLock, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(ttl)*time.Second)
@@ -56,6 +58,10 @@ type v3Lock struct {
 
 func (v3l *v3Lock) unlock() {
 	if v3l.mutex != nil {
+		// TODO: Should the timeout for this be configurable too? Or use the same value as lock?
+		//       It's a slightly different case in that here we want to make sure the unlock
+		//       succeeds to free it for the use of others. In the lock case we want to give up
+		//       early if someone already has the lock.
 		ctx, cancel := context.WithTimeout(context.Background(), time.Duration(5)*time.Second)
 		defer cancel()
 		err := v3l.mutex.Unlock(ctx)
