@@ -254,6 +254,7 @@ func (e *v3Engine) Run() {
 		logger,
 		e.options.crawlMutex,
 		e.options.crawlerTTL,
+		e.options.lockAcquisitionTimeout,
 		prefixSlice,
 		e.kvWrapper,
 		e.options.syncDelay)

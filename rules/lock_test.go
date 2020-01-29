@@ -11,9 +11,9 @@ func TestV3Locker(t *testing.T) {
 	cfg, cl := initV3Etcd(t)
 	c, err := clientv3.New(cfg)
 	assert.NoError(t, err)
-	newV3Locker(c)
 	rlckr := v3Locker{
-		cl: cl,
+		cl:          cl,
+		lockTimeout: 5,
 	}
 	rlck, err1 := rlckr.lock("test", 10)
 	assert.NoError(t, err1)
@@ -25,7 +25,7 @@ func TestV3Locker(t *testing.T) {
 	done2 := make(chan bool)
 
 	go func() {
-		lckr := newV3Locker(c)
+		lckr := newV3Locker(c, 5)
 		lck, lErr := lckr.lock("test1", 10)
 		assert.NoError(t, lErr)
 		done1 <- true

@@ -18,6 +18,7 @@ func defaultContextProvider() (context.Context, context.CancelFunc) {
 	return context.WithTimeout(context.Background(), time.Minute*5)
 }
 
+// MetricsCollectorOpt ...
 type MetricsCollectorOpt func() MetricsCollector
 
 func defaultMetricsCollector() MetricsCollector {
@@ -50,28 +51,30 @@ type engineOptions struct {
 	syncGetTimeout,
 	syncInterval,
 	watchTimeout int
-	syncDelay          int
-	constraints        map[string]constraint
-	contextProvider    ContextProvider
-	keyExpansion       map[string][]string
-	lockTimeout        int
-	crawlMutex         *string
-	ruleWorkBuffer     int
-	enhancedRuleFilter bool
-	metrics            MetricsCollectorOpt
+	syncDelay              int
+	constraints            map[string]constraint
+	contextProvider        ContextProvider
+	keyExpansion           map[string][]string
+	lockTimeout            int
+	lockAcquisitionTimeout int
+	crawlMutex             *string
+	ruleWorkBuffer         int
+	enhancedRuleFilter     bool
+	metrics                MetricsCollectorOpt
 }
 
 func makeEngineOptions(options ...EngineOption) engineOptions {
 	opts := engineOptions{
-		concurrency:     5,
-		constraints:     map[string]constraint{},
-		contextProvider: defaultContextProvider,
-		syncDelay:       1,
-		lockTimeout:     30,
-		syncInterval:    300,
-		syncGetTimeout:  0,
-		watchTimeout:    0,
-		metrics:         defaultMetricsCollector,
+		concurrency:            5,
+		constraints:            map[string]constraint{},
+		contextProvider:        defaultContextProvider,
+		syncDelay:              1,
+		lockTimeout:            30,
+		lockAcquisitionTimeout: 5,
+		syncInterval:           300,
+		syncGetTimeout:         0,
+		watchTimeout:           0,
+		metrics:                defaultMetricsCollector,
 	}
 	for _, opt := range options {
 		opt.apply(&opts)
@@ -96,6 +99,14 @@ func (f engineOptionFunction) apply(o *engineOptions) {
 func EngineLockTimeout(lockTimeout int) EngineOption {
 	return engineOptionFunction(func(o *engineOptions) {
 		o.lockTimeout = lockTimeout
+	})
+}
+
+// EngineLockAcquisitionTimeout controls the length of time we
+// wait to acquire a lock.
+func EngineLockAcquisitionTimeout(lockAcquisitionTimeout int) EngineOption {
+	return engineOptionFunction(func(o *engineOptions) {
+		o.lockAcquisitionTimeout = lockAcquisitionTimeout
 	})
 }
 
