@@ -1,6 +1,7 @@
 package rules
 
 import (
+	"crypto/sha256"
 	"fmt"
 	"strings"
 	"time"
@@ -239,7 +240,7 @@ func (e *v3Engine) Run() {
 	for prefix := range prefixes {
 		prefixSlice = append(prefixSlice, prefix)
 		logger := e.logger.With(zap.String("prefix", prefix))
-		w, err := newV3Watcher(e.cl, prefix, logger, e.baseEngine.keyProc, e.options.watchTimeout, e.kvWrapper)
+		w, err := newV3Watcher(e.cl, prefix, logger, e.baseEngine.keyProc, e.options.watchTimeout, e.kvWrapper, e.metrics)
 		if err != nil {
 			e.logger.Fatal("Failed to initialize watcher", zap.String("prefix", prefix))
 		}
@@ -313,4 +314,14 @@ func (cbw *v3CallbackWrapper) doRule(task *V3RuleTask) {
 	if setErr != nil {
 		logger.Error("Error setting polling TTL", zap.Error(setErr), zap.String("path", path))
 	}
+}
+
+func shortHash(data string) string {
+	h := sha256.New()
+	_, err := h.Write([]byte(data + "Pacific")) // at time of writing, no write error is possible
+	if err != nil {
+		panic(err)
+	}
+	bs := h.Sum(nil)
+	return fmt.Sprintf("%x", bs)
 }

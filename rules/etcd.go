@@ -2,6 +2,7 @@ package rules
 
 import (
 	"errors"
+	"github.com/coreos/etcd/mvcc/mvccpb"
 	"time"
 
 	"github.com/coreos/etcd/clientv3"
@@ -9,13 +10,18 @@ import (
 )
 
 type baseReadAPI struct {
+	method     string
 	cancelFunc context.CancelFunc
 }
 
 func (bra *baseReadAPI) getContext() context.Context {
 	var ctx context.Context
 	ctx, bra.cancelFunc = context.WithTimeout(context.Background(), time.Duration(60)*time.Second)
-	ctx = SetMethod(ctx, "rule_eval")
+	method := "rule_eval"
+	if bra.method != "" {
+		method = bra.method
+	}
+	ctx = SetMethod(ctx, method)
 	return ctx
 }
 
@@ -47,13 +53,14 @@ type keyWatcher interface {
 	cancel()
 }
 
-func newEtcdV3KeyWatcher(watcher clientv3.Watcher, prefix string, timeout time.Duration) *etcdV3KeyWatcher {
+func newEtcdV3KeyWatcher(watcher clientv3.Watcher, prefix string, timeout time.Duration, metrics MetricsCollector) *etcdV3KeyWatcher {
 	_, cancel := context.WithCancel(context.Background())
 	kw := etcdV3KeyWatcher{
 		baseKeyWatcher: baseKeyWatcher{
 			prefix:     prefix,
 			timeout:    timeout,
 			cancelFunc: cancel,
+			metrics:    metrics,
 		},
 		w:      watcher,
 		stopCh: make(chan bool),
@@ -65,6 +72,7 @@ type baseKeyWatcher struct {
 	cancelFunc context.CancelFunc
 	prefix     string
 	timeout    time.Duration
+	metrics    MetricsCollector
 }
 
 type etcdV3KeyWatcher struct {
@@ -117,6 +125,15 @@ func (ev3kw *etcdV3KeyWatcher) next() (string, *string, error) {
 		ev3kw.ch = nil
 		return "", nil, errors.New("No events received from watcher channel; instantiating new channel")
 	}
+
+	// observe event metrics when they are received
+	var events, size int
+	for _, event := range ev3kw.events {
+		events++
+		size += (*mvccpb.Event)(event).Size()
+	}
+	ev3kw.metrics.ObserveWatchEvents(ev3kw.prefix, events, size)
+
 	event := ev3kw.events[0]
 	ev3kw.events = ev3kw.events[1:]
 	key := string(event.Kv.Key)

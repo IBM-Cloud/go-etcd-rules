@@ -23,6 +23,10 @@ type MockMetricsCollector struct {
 	// store what the WorkerQueueWaitTime was called with
 	WorkerQueueWaitTimeTimes  []time.Time
 	WorkerQueueWaitTimeMethod []string
+	// store what the ObserveWatchEvents was called with
+	ObserveWatchEventsPrefixes   []string
+	ObserveWatchEventsEvents     []int
+	ObserveWatchEventsTotalBytes []int
 }
 
 func NewMockMetricsCollector() MockMetricsCollector {
@@ -67,4 +71,14 @@ func (m *MockMetricsCollector) WorkerQueueWaitTime(methodName string, startTime 
 	}
 	m.WorkerQueueWaitTimeTimes = append(m.WorkerQueueWaitTimeTimes, startTime)
 	m.WorkerQueueWaitTimeMethod = append(m.WorkerQueueWaitTimeMethod, methodName)
+}
+
+func (m *MockMetricsCollector) ObserveWatchEvents(prefix string, events, totalBytes int) {
+	if m.logger != nil {
+		m.logger.Info("metrics.ObserveWatchEvents", zap.String("prefix", prefix), zap.Int("events", events), zap.Int("totalBytes", totalBytes))
+	}
+	m.ObserveWatchEventsPrefixes = append(m.ObserveWatchEventsPrefixes, prefix)
+	m.ObserveWatchEventsEvents = append(m.ObserveWatchEventsEvents, events)
+	m.ObserveWatchEventsTotalBytes = append(m.ObserveWatchEventsTotalBytes, totalBytes)
+
 }

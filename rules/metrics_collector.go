@@ -38,6 +38,7 @@ type MetricsCollector interface {
 	IncSatisfiedThenNot(methodName string, pattern string, phaseName string)
 	TimesEvaluated(methodName string, ruleID string, count int)
 	WorkerQueueWaitTime(methodName string, startTime time.Time)
+	ObserveWatchEvents(prefix string, events, totalBytes int)
 }
 
 // a no-op metrics collector, used as the default metrics collector
@@ -63,5 +64,9 @@ func (m *noOpMetricsCollector) TimesEvaluated(methodName string, ruleID string, 
 }
 
 func (m *noOpMetricsCollector) WorkerQueueWaitTime(methodName string, startTime time.Time) {
+
+}
+
+func (m *noOpMetricsCollector) ObserveWatchEvents(prefix string, events, totalBytes int) {
 
 }
