@@ -10,18 +10,13 @@ import (
 )
 
 type baseReadAPI struct {
-	method     string
 	cancelFunc context.CancelFunc
 }
 
 func (bra *baseReadAPI) getContext() context.Context {
 	var ctx context.Context
 	ctx, bra.cancelFunc = context.WithTimeout(context.Background(), time.Duration(60)*time.Second)
-	method := "rule_eval"
-	if bra.method != "" {
-		method = bra.method
-	}
-	ctx = SetMethod(ctx, method)
+	ctx = SetMethod(ctx, "rule_eval")
 	return ctx
 }
 
