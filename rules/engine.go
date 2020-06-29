@@ -30,7 +30,7 @@ type BaseEngine interface {
 type baseEngine struct {
 	cCloser      channelCloser
 	keyProc      setableKeyProcessor
-	metrics      MetricsCollector
+	metrics      AdvancedMetricsCollector
 	logger       *zap.Logger
 	options      engineOptions
 	ruleLockTTLs map[int]int
@@ -85,13 +85,22 @@ func newV3Engine(logger *zap.Logger, cl *clientv3.Client, options ...EngineOptio
 	ruleMgr := newRuleManager(opts.constraints, opts.enhancedRuleFilter)
 	channel := make(chan v3RuleWork)
 	keyProc := newV3KeyProcessor(channel, &ruleMgr)
+
+	baseMetrics := opts.metrics()
+	metrics, ok := baseMetrics.(AdvancedMetricsCollector)
+	if !ok {
+		metrics = advancedMetricsCollectorAdaptor{
+			MetricsCollector: baseMetrics,
+		}
+	}
+
 	eng := v3Engine{
 		baseEngine: baseEngine{
 			cCloser: func() {
 				close(channel)
 			},
 			keyProc:      &keyProc,
-			metrics:      opts.metrics(),
+			metrics:      metrics,
 			logger:       logger,
 			options:      opts,
 			ruleLockTTLs: map[int]int{},

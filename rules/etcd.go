@@ -53,7 +53,7 @@ type keyWatcher interface {
 	cancel()
 }
 
-func newEtcdV3KeyWatcher(watcher clientv3.Watcher, prefix string, timeout time.Duration, metrics MetricsCollector) *etcdV3KeyWatcher {
+func newEtcdV3KeyWatcher(watcher clientv3.Watcher, prefix string, timeout time.Duration, metrics AdvancedMetricsCollector) *etcdV3KeyWatcher {
 	_, cancel := context.WithCancel(context.Background())
 	kw := etcdV3KeyWatcher{
 		baseKeyWatcher: baseKeyWatcher{
@@ -72,7 +72,7 @@ type baseKeyWatcher struct {
 	cancelFunc context.CancelFunc
 	prefix     string
 	timeout    time.Duration
-	metrics    MetricsCollector
+	metrics    AdvancedMetricsCollector
 }
 
 type etcdV3KeyWatcher struct {

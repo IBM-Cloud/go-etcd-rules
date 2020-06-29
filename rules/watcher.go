@@ -8,7 +8,7 @@ import (
 	"go.uber.org/zap"
 )
 
-func newV3Watcher(ec *clientv3.Client, prefix string, logger *zap.Logger, proc keyProc, watchTimeout int, kvWrapper WrapKV, metrics MetricsCollector) (watcher, error) {
+func newV3Watcher(ec *clientv3.Client, prefix string, logger *zap.Logger, proc keyProc, watchTimeout int, kvWrapper WrapKV, metrics AdvancedMetricsCollector) (watcher, error) {
 	api := etcdV3ReadAPI{
 		baseReadAPI: baseReadAPI{},
 		kV:          kvWrapper(ec),
