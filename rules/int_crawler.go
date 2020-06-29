@@ -148,7 +148,7 @@ func (ic *intCrawler) singleRun(logger *zap.Logger) {
 	// starting a new run so reset the rules processed count so we get reliable metrics
 	ic.rulesProcessedCount = make(map[string]int)
 	for _, prefix := range ic.prefixes {
-		pCtx := SetMethod(ctx, crawlerMethodName + "-" + prefix)
+		pCtx := SetMethod(ctx, crawlerMethodName+"-"+prefix)
 		resp, err := ic.kv.Get(pCtx, prefix, clientv3.WithPrefix())
 		if err != nil {
 			logger.Error("Error retrieving prefix", zap.String("prefix", prefix), zap.Error(err))
