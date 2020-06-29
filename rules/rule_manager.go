@@ -8,7 +8,7 @@ type ruleManager struct {
 	constraints        map[string]constraint
 	currentIndex       int
 	rulesBySlashCount  map[int]map[DynamicRule]int
-	prefixes           map[string]int
+	prefixes           map[string]string
 	rules              []DynamicRule
 	enhancedRuleFilter bool
 }
@@ -16,7 +16,7 @@ type ruleManager struct {
 func newRuleManager(constraints map[string]constraint, enhancedRuleFilter bool) ruleManager {
 	rm := ruleManager{
 		rulesBySlashCount:  map[int]map[DynamicRule]int{},
-		prefixes:           map[string]int{},
+		prefixes:           map[string]string{},
 		constraints:        constraints,
 		currentIndex:       0,
 		rules:              []DynamicRule{},
@@ -60,20 +60,19 @@ func (rm *ruleManager) addRule(rule DynamicRule) int {
 		}
 		rules[rule] = rm.currentIndex
 	}
-	lastIndex := rm.currentIndex
 	for _, prefix := range rule.getPrefixesWithConstraints(rm.constraints) {
-		// the last rule added "owns" the prefix with
-		rm.prefixes[prefix] = lastIndex
+		rm.prefixes[prefix] = ""
 	}
 	rm.prefixes = reducePrefixes(rm.prefixes)
+	lastIndex := rm.currentIndex
 	rm.currentIndex = rm.currentIndex + 1
 	return lastIndex
 }
 
 // Removes any path prefixes that have other path prefixes as
 // string prefixes
-func reducePrefixes(prefixes map[string]int) map[string]int {
-	out := map[string]int{}
+func reducePrefixes(prefixes map[string]string) map[string]string {
+	out := map[string]string{}
 	sorted := sortPrefixesByLength(prefixes)
 	for _, prefix := range sorted {
 		add := true
@@ -83,14 +82,14 @@ func reducePrefixes(prefixes map[string]int) map[string]int {
 			}
 		}
 		if add {
-			out[prefix] = prefixes[prefix]
+			out[prefix] = ""
 		}
 	}
 	return out
 }
 
 // Sorts prefixes shortest to longest
-func sortPrefixesByLength(prefixes map[string]int) []string {
+func sortPrefixesByLength(prefixes map[string]string) []string {
 	out := []string{}
 	for prefix := range prefixes {
 		out = append(out, prefix)

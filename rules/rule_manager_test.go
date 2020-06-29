@@ -30,15 +30,15 @@ func TestRuleManager(t *testing.T) {
 }
 
 func TestReducePrefixes(t *testing.T) {
-	prefixes := map[string]int{"/servers/internal/states": 0, "/servers/internal": 1, "/servers": 1}
+	prefixes := map[string]string{"/servers/internal/states": "", "/servers/internal": "", "/servers": ""}
 	prefixes = reducePrefixes(prefixes)
 	assert.Equal(t, 1, len(prefixes))
-	assert.Equal(t, 1, prefixes["/servers"])
+	assert.Equal(t, "", prefixes["/servers"])
 
 }
 
 func TestSortPrefixesByLength(t *testing.T) {
-	prefixes := map[string]int{"/servers/internal": 0, "/servers/internal/states": 1, "/servers": 2}
+	prefixes := map[string]string{"/servers/internal": "", "/servers/internal/states": "", "/servers": ""}
 	sorted := sortPrefixesByLength(prefixes)
 	assert.Equal(t, "/servers/internal/states", sorted[2])
 	assert.Equal(t, "/servers/internal", sorted[1])
