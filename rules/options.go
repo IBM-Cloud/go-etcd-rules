@@ -185,7 +185,8 @@ func EngineContextProvider(cp ContextProvider) EngineOption {
 	})
 }
 
-// EngineMetricsCollector sets a custom metrics collector
+// EngineMetricsCollector sets a custom metrics collector. The MetricsCollector returned by the MetricsCollectorOpt
+// will be upgraded to an AdvancedMetricsCollector is possible.
 func EngineMetricsCollector(m MetricsCollectorOpt) EngineOption {
 	return engineOptionFunction(func(o *engineOptions) {
 		o.metrics = m

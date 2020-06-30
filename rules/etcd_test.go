@@ -42,7 +42,7 @@ func TestV3EtcdReadAPI(t *testing.T) {
 func TestEctdV3Watcher(t *testing.T) {
 	_, cl := initV3Etcd(t)
 	w := clientv3.NewWatcher(cl)
-	watcher := newEtcdV3KeyWatcher(w, "/pre", time.Duration(60)*time.Second)
+	watcher := newEtcdV3KeyWatcher(w, "/pre", time.Duration(60)*time.Second, newMetricsCollector())
 	done := make(chan bool)
 	go checkWatcher1(done, t, watcher)
 	time.Sleep(time.Duration(3) * time.Second)

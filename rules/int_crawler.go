@@ -141,7 +141,6 @@ func (ic *intCrawler) singleRun(logger *zap.Logger) {
 	//logger := ic.logger.With(zap.String("source", "crawler"))
 	ctx, cancelFunc := context.WithTimeout(context.Background(), time.Duration(1)*time.Minute)
 	defer cancelFunc()
-	ctx = SetMethod(ctx, crawlerMethodName)
 	ic.cancelMutex.Lock()
 	ic.cancelFunc = cancelFunc
 	ic.cancelMutex.Unlock()
@@ -149,7 +148,8 @@ func (ic *intCrawler) singleRun(logger *zap.Logger) {
 	// starting a new run so reset the rules processed count so we get reliable metrics
 	ic.rulesProcessedCount = make(map[string]int)
 	for _, prefix := range ic.prefixes {
-		resp, err := ic.kv.Get(ctx, prefix, clientv3.WithPrefix())
+		pCtx := SetMethod(ctx, crawlerMethodName+"-"+prefix)
+		resp, err := ic.kv.Get(pCtx, prefix, clientv3.WithPrefix())
 		if err != nil {
 			logger.Error("Error retrieving prefix", zap.String("prefix", prefix), zap.Error(err))
 			return

@@ -31,7 +31,7 @@ func newMetricsInfo(ctx context.Context, keyPattern string) metricsInfo {
 	}
 }
 
-// metricsCollector used for collecting metrics, implement this interface using
+// MetricsCollector used for collecting metrics, implement this interface using
 // your metrics collector of choice (ie Prometheus)
 type MetricsCollector interface {
 	IncLockMetric(methodName string, pattern string, lockSucceeded bool)
@@ -40,11 +40,18 @@ type MetricsCollector interface {
 	WorkerQueueWaitTime(methodName string, startTime time.Time)
 }
 
+// AdvancedMetricsCollector used for collecting metrics additional metrics beyond those required by the base
+// MetricsCollector, implement this interface using your metrics collector of choice (ie Prometheus)
+type AdvancedMetricsCollector interface {
+	MetricsCollector
+	ObserveWatchEvents(prefix string, events, totalBytes int)
+}
+
 // a no-op metrics collector, used as the default metrics collector
 type noOpMetricsCollector struct {
 }
 
-func newMetricsCollector() MetricsCollector {
+func newMetricsCollector() AdvancedMetricsCollector {
 	return &noOpMetricsCollector{}
 }
 
@@ -64,4 +71,16 @@ func (m *noOpMetricsCollector) TimesEvaluated(methodName string, ruleID string, 
 
 func (m *noOpMetricsCollector) WorkerQueueWaitTime(methodName string, startTime time.Time) {
 
+}
+
+func (m *noOpMetricsCollector) ObserveWatchEvents(prefix string, events, totalBytes int) {
+
+}
+
+type advancedMetricsCollectorAdaptor struct {
+	MetricsCollector
+}
+
+func (amca advancedMetricsCollectorAdaptor) ObserveWatchEvents(prefix string, events, totalBytes int) {
+	// do nothing
 }
