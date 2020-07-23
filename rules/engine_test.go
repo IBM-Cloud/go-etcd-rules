@@ -64,7 +64,7 @@ func TestV3EngineConstructor(t *testing.T) {
 	eng.Run()
 	eng.Stop()
 	stopped := false
-	for i := 0; i < 40; i++ {
+	for i := 0; i < 60; i++ {
 		stopped = eng.IsStopped()
 		if stopped {
 			break
