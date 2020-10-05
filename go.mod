@@ -21,6 +21,7 @@ require (
 	github.com/jonboulle/clockwork v0.1.0 // indirect
 	github.com/json-iterator/go v1.1.6 // indirect
 	github.com/konsorten/go-windows-terminal-sequences v1.0.2 // indirect
+	github.com/mattn/goveralls v0.0.7 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.1 // indirect
 	github.com/pkg/errors v0.8.1 // indirect
@@ -37,11 +38,11 @@ require (
 	go.uber.org/atomic v1.4.0 // indirect
 	go.uber.org/multierr v1.1.0 // indirect
 	go.uber.org/zap v1.10.0
-	golang.org/x/crypto v0.0.0-20190426145343-a29dc8fdc734 // indirect
-	golang.org/x/net v0.0.0-20190503192946-f4e77d36d62c
+	golang.org/x/net v0.0.0-20200226121028-0de0cce0169b
 	golang.org/x/sys v0.0.0-20190502175342-a43fa875dd82 // indirect
 	golang.org/x/text v0.3.2 // indirect
 	golang.org/x/time v0.0.0-20190308202827-9d24e82272b4 // indirect
+	google.golang.org/appengine v1.4.0 // indirect
 	google.golang.org/genproto v0.0.0-20190502173448-54afdca5d873 // indirect
 	google.golang.org/grpc v1.20.1 // indirect
 	gopkg.in/yaml.v2 v2.2.2 // indirect
