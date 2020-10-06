@@ -85,10 +85,10 @@ func TestV3EngineWorkBuffer(t *testing.T) {
 	eng, ok := engI.(*v3Engine)
 	require.True(t, ok)
 	select {
-		case eng.workChannel <- v3RuleWork{}:
-			t.Fatal("unbuffered engine work channel should block")
-		default:
-			// work channel not ready to read
+	case eng.workChannel <- v3RuleWork{}:
+		t.Fatal("unbuffered engine work channel should block")
+	default:
+		// work channel not ready to read
 	}
 
 	// buffered engine work channel can accept values
