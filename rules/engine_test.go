@@ -2,6 +2,7 @@ package rules
 
 import (
 	"errors"
+	"github.com/stretchr/testify/require"
 	"testing"
 	"time"
 
@@ -72,6 +73,45 @@ func TestV3EngineConstructor(t *testing.T) {
 		time.Sleep(time.Second)
 	}
 	assert.True(t, stopped)
+}
+
+func TestV3EngineWorkBuffer(t *testing.T) {
+	// verifies the work channel buffer behavior based on the engine setting.  since we don't start the engine in this
+	// test case, there are no workers to read from the work channel; therefore, only the channel buffering is tested.
+	cfg, _ := initV3Etcd(t)
+
+	// unbuffered engine work channel blocks
+	engI := NewV3Engine(cfg, getTestLogger())
+	eng, ok := engI.(*v3Engine)
+	require.True(t, ok)
+	select {
+		case eng.workChannel <- v3RuleWork{}:
+			t.Fatal("unbuffered engine work channel should block")
+		default:
+			// work channel not ready to read
+	}
+
+	// buffered engine work channel can accept values
+	bufSize := 3
+	engI = NewV3Engine(cfg, getTestLogger(), EngineRuleWorkBuffer(bufSize))
+	eng, ok = engI.(*v3Engine)
+	require.True(t, ok)
+	for i := 0; i < bufSize+1; i++ {
+		select {
+		case eng.workChannel <- v3RuleWork{}:
+			if i == bufSize {
+				t.Fatal("work channel buffer should be full but value accepted")
+				continue
+			}
+			t.Log("accepted work")
+		default:
+			if i < bufSize {
+				t.Fatal("work channel buffer not full and should accept values")
+				continue
+			}
+			t.Log("work channel full. new work blocking.")
+		}
+	}
 }
 
 func TestV3CallbackWrapper(t *testing.T) {
