@@ -60,6 +60,7 @@ func newEtcdV3KeyWatcher(watcher clientv3.Watcher, prefix string, timeout time.D
 		w:      watcher,
 		stopCh: make(chan bool),
 	}
+	kw.metrics.ObserveWatchEvents(prefix, 0, 0)
 	return &kw
 }
 
