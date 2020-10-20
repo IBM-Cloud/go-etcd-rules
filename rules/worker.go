@@ -71,6 +71,7 @@ func (bw *baseWorker) doWork(loggerPtr **zap.Logger,
 	}
 	if !sat || is(&bw.stopping) {
 		if !sat {
+			incSatisfiedThenNot(metricsInfo.method, metricsInfo.keyPattern, "worker.doWorkBeforeLock")
 			bw.metrics.IncSatisfiedThenNot(metricsInfo.method, metricsInfo.keyPattern, "worker.doWorkBeforeLock")
 		}
 		return
@@ -78,9 +79,11 @@ func (bw *baseWorker) doWork(loggerPtr **zap.Logger,
 	l, err2 := bw.locker.lock(lockKey, lockTTL)
 	if err2 != nil {
 		logger.Debug("Failed to acquire lock", zap.String("lock_key", lockKey), zap.Error(err2))
+		incLockMetric(metricsInfo.method, metricsInfo.keyPattern, false)
 		bw.metrics.IncLockMetric(metricsInfo.method, metricsInfo.keyPattern, false)
 		return
 	}
+	incLockMetric(metricsInfo.method, metricsInfo.keyPattern, true)
 	bw.metrics.IncLockMetric(metricsInfo.method, metricsInfo.keyPattern, true)
 	defer l.unlock()
 	// Check for a second time, since checking and locking
@@ -91,8 +94,10 @@ func (bw *baseWorker) doWork(loggerPtr **zap.Logger,
 		return
 	}
 	if !sat {
+		incSatisfiedThenNot(metricsInfo.method, metricsInfo.keyPattern, "worker.doWorkBeforeLock")
 		bw.metrics.IncSatisfiedThenNot(metricsInfo.method, metricsInfo.keyPattern, "worker.doWorkAfterLock")
 	}
+	workerQueueWaitTime(metricsInfo.method, metricsInfo.startTime)
 	bw.metrics.WorkerQueueWaitTime(metricsInfo.method, metricsInfo.startTime)
 	if sat && !is(&bw.stopping) {
 		callback()

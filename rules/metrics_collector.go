@@ -47,6 +47,11 @@ type AdvancedMetricsCollector interface {
 	ObserveWatchEvents(prefix string, events, totalBytes int)
 }
 
+type metricOption struct {
+	key   string
+	value string
+}
+
 // a no-op metrics collector, used as the default metrics collector
 type noOpMetricsCollector struct {
 }

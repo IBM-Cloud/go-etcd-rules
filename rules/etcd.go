@@ -48,7 +48,7 @@ type keyWatcher interface {
 	cancel()
 }
 
-func newEtcdV3KeyWatcher(watcher clientv3.Watcher, prefix string, timeout time.Duration, metrics AdvancedMetricsCollector) *etcdV3KeyWatcher {
+func newEtcdV3KeyWatcher(watcher clientv3.Watcher, prefix string, timeout time.Duration, metrics AdvancedMetricsCollector, mo ...metricOption) *etcdV3KeyWatcher {
 	_, cancel := context.WithCancel(context.Background())
 	kw := etcdV3KeyWatcher{
 		baseKeyWatcher: baseKeyWatcher{
@@ -56,10 +56,12 @@ func newEtcdV3KeyWatcher(watcher clientv3.Watcher, prefix string, timeout time.D
 			timeout:    timeout,
 			cancelFunc: cancel,
 			metrics:    metrics,
+			metricOpts: mo,
 		},
 		w:      watcher,
 		stopCh: make(chan bool),
 	}
+	observeWatchEvents(prefix, 0, 0, mo...)
 	kw.metrics.ObserveWatchEvents(prefix, 0, 0)
 	return &kw
 }
@@ -69,6 +71,7 @@ type baseKeyWatcher struct {
 	prefix     string
 	timeout    time.Duration
 	metrics    AdvancedMetricsCollector
+	metricOpts []metricOption
 }
 
 type etcdV3KeyWatcher struct {
@@ -128,6 +131,7 @@ func (ev3kw *etcdV3KeyWatcher) next() (string, *string, error) {
 		events++
 		size += (*mvccpb.Event)(event).Size()
 	}
+	observeWatchEvents(ev3kw.prefix, events, size, ev3kw.metricOpts...)
 	ev3kw.metrics.ObserveWatchEvents(ev3kw.prefix, events, size)
 
 	event := ev3kw.events[0]

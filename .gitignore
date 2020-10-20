@@ -31,3 +31,6 @@ cover.*
 coverage.out
 
 *~
+
+# IDE specific configuration files / folders
+.idea

@@ -160,6 +160,7 @@ func (ic *intCrawler) singleRun(logger *zap.Logger) {
 	}
 	ic.processData(values, logger)
 	for ruleID, count := range ic.rulesProcessedCount {
+		timesEvaluated(crawlerMethodName, ruleID, count)
 		ic.metrics.TimesEvaluated(crawlerMethodName, ruleID, count)
 	}
 }
