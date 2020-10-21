@@ -7,17 +7,15 @@ import (
 )
 
 var (
-	labels          = []string{"region", "service", "action", "method", "prefix"}
-	operationLabels = append(labels, "success")
-
-	etcdOperationKeys = prometheus.NewHistogramVec(prometheus.HistogramOpts{
+	operationLabels   = []string{"region", "service", "action", "method", "prefix", "success"}
+	EtcdOperationKeys = prometheus.NewHistogramVec(prometheus.HistogramOpts{
 		Name:      "operation_keys",
 		Subsystem: "etcd",
 		Namespace: "data",
 		Help:      "number of keys received or transmitted in operation",
 		Buckets:   []float64{0, 1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000, 50000},
 	}, operationLabels)
-	etcdOperationSize = prometheus.NewHistogramVec(prometheus.HistogramOpts{
+	EtcdOperationSize = prometheus.NewHistogramVec(prometheus.HistogramOpts{
 		Name:      "operation_bytes",
 		Subsystem: "etcd",
 		Namespace: "data",
@@ -53,8 +51,8 @@ var (
 )
 
 func init() {
-	prometheus.MustRegister(etcdOperationKeys)
-	prometheus.MustRegister(etcdOperationSize)
+	prometheus.MustRegister(EtcdOperationKeys)
+	prometheus.MustRegister(EtcdOperationSize)
 
 	prometheus.MustRegister(rulesEngineLockCount)
 	prometheus.MustRegister(rulesEngineSatisfiedThenNot)
@@ -92,6 +90,6 @@ func observeWatchEvents(prefix string, events, totalBytes int, mo ...metricOptio
 			labels[opt.key] = opt.value
 		}
 	}
-	etcdOperationKeys.With(labels).Observe(float64(events))
-	etcdOperationSize.With(labels).Observe(float64(totalBytes))
+	EtcdOperationKeys.With(labels).Observe(float64(events))
+	EtcdOperationSize.With(labels).Observe(float64(totalBytes))
 }
