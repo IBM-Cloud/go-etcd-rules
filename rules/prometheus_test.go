@@ -16,7 +16,7 @@ var (
 
 func initRouter() *mux.Router {
 	r := mux.NewRouter()
-	r.Handle("/metrics-armada-ingress-secret", promhttp.Handler()).Methods("GET")
+	r.Handle("/metrics-go-etcd-rules", promhttp.Handler()).Methods("GET")
 	return r
 }
 
@@ -31,7 +31,7 @@ func makeTestRequest(t *testing.T, request *http.Request) *httptest.ResponseReco
 }
 
 func checkMetrics(t *testing.T, expectedOutput string) {
-	request, err := http.NewRequest("GET", "/metrics-armada-ingress-secret", nil)
+	request, err := http.NewRequest("GET", "/metrics-go-etcd-rules", nil)
 	assert.NoError(t, err, "Could not create http request with error")
 
 	w := makeTestRequest(t, request)
