@@ -6,8 +6,17 @@ import (
 	"time"
 )
 
+const (
+	region  = "region"
+	service = "service"
+	action  = "action"
+	method  = "method"
+	prefix  = "prefix"
+	success = "success"
+)
+
 var (
-	operationLabels   = []string{"region", "service", "action", "method", "prefix", "success"}
+	operationLabels   = []string{region, service, action, method, prefix, success}
 	EtcdOperationKeys = prometheus.NewHistogramVec(prometheus.HistogramOpts{
 		Name:      "operation_keys",
 		Subsystem: "etcd",
@@ -76,15 +85,22 @@ func workerQueueWaitTime(methodName string, startTime time.Time) {
 	rulesEngineWorkerQueueWait.WithLabelValues(methodName).Observe(float64(time.Since(startTime).Nanoseconds() / 1e6))
 }
 
-func observeWatchEvents(prefix string, events, totalBytes int, mo ...metricOption) {
+func observeWatchEvents(p string, events, totalBytes int, mo ...metricOption) {
 	labels := map[string]string{
-		"region":  "",
-		"service": "",
-		"method":  "rules-engine-watcher",
-		"action":  "watch",
-		"prefix":  prefix,
-		"success": "true",
+		region:  "",
+		service: "",
+		method:  "rules-engine-watcher",
+		action:  "watch",
+		prefix:  p,
+		success: "true",
 	}
+	/*
+		note: due to the inability to register a metric with dynamic
+		sets of labels, all labels must be present in the metric definition.
+		Therefore if a metric option is passed that does not exist in the initialized
+		set of labels it will be ignored. Any client wishing to make use of additional
+		labels will need to initialize them in the metric and above map first
+	*/
 	for _, opt := range mo {
 		if _, ok := labels[opt.key]; ok {
 			labels[opt.key] = opt.value
