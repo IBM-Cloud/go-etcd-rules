@@ -7,12 +7,7 @@ import (
 )
 
 const (
-	region  = "region"
-	service = "service"
-	action  = "action"
-	method  = "method"
-	prefix  = "prefix"
-	success = "success"
+	prefix = "prefix"
 )
 
 var (
