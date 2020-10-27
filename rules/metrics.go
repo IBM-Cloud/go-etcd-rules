@@ -48,3 +48,9 @@ type WrapKV func(clientv3.KV) clientv3.KV
 func defaultWrapKV(kv clientv3.KV) clientv3.KV {
 	return kv
 }
+
+type WrapWatcher func(clientv3.Watcher) clientv3.Watcher
+
+func defaultWrapWatcher(w clientv3.Watcher) clientv3.Watcher {
+	return w
+}

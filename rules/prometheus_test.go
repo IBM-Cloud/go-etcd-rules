@@ -61,13 +61,3 @@ func TestWokerQueueWaitTime(t *testing.T) {
 	workerQueueWaitTime("getKey", time.Now())
 	checkMetrics(t, `rules_etcd_worker_queue_wait_ms_count{method="getKey"} 1`)
 }
-
-func TestObserveWatchEvents(t *testing.T) {
-	observeWatchEvents("key/prefix", 3, 2)
-	observeWatchEvents("/prefix/2", 4, 4, metricOption{key: "service", value: "random-service"}, metricOption{key: "region", value: "random region"})
-	observeWatchEvents("/prefix/3", 5, 5, metricOption{key: "key", value: "value"})
-
-	checkMetrics(t, `data_etcd_operation_keys_count{action="watch",method="rules-engine-watcher",prefix="key/prefix",region="",service="",success="true"} 1`)
-	checkMetrics(t, `data_etcd_operation_keys_count{action="watch",method="rules-engine-watcher",prefix="/prefix/2",region="random region",service="random-service",success="true"} 1`)
-	checkMetrics(t, `data_etcd_operation_keys_count{action="watch",method="rules-engine-watcher",prefix="/prefix/3",region="",service="",success="true"} 1`)
-}

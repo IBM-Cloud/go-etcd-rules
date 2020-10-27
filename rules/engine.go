@@ -48,6 +48,7 @@ type v3Engine struct {
 	keyProc     v3KeyProcessor
 	workChannel chan v3RuleWork
 	kvWrapper   WrapKV
+	kvWatcher   WrapWatcher
 	cl          *clientv3.Client
 }
 
@@ -63,6 +64,7 @@ type V3Engine interface {
 		preconditions DynamicRule,
 		ttl int,
 		callback V3RuleTaskCallback) error
+	SetWatchWrapper(WrapWatcher)
 }
 
 // NewV3Engine creates a new V3Engine instance.
@@ -109,6 +111,7 @@ func newV3Engine(logger *zap.Logger, cl *clientv3.Client, options ...EngineOptio
 		keyProc:     keyProc,
 		workChannel: channel,
 		kvWrapper:   defaultWrapKV,
+		kvWatcher:   defaultWrapWatcher,
 		cl:          cl,
 	}
 	return eng
@@ -116,6 +119,10 @@ func newV3Engine(logger *zap.Logger, cl *clientv3.Client, options ...EngineOptio
 
 func (e *v3Engine) SetKVWrapper(kvWrapper WrapKV) {
 	e.kvWrapper = kvWrapper
+}
+
+func (e *v3Engine) SetWatchWrapper(kvWatcher WrapWatcher) {
+	e.kvWatcher = kvWatcher
 }
 
 func (e *v3Engine) AddRule(rule DynamicRule,
