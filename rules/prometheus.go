@@ -6,10 +6,6 @@ import (
 	"time"
 )
 
-const (
-	prefix = "prefix"
-)
-
 var (
 	rulesEngineLockCount = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Name:      "lock_count",
