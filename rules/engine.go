@@ -121,8 +121,8 @@ func (e *v3Engine) SetKVWrapper(kvWrapper WrapKV) {
 	e.kvWrapper = kvWrapper
 }
 
-func (e *v3Engine) SetWatcherWrapper(kvWatcher WrapWatcher) {
-	e.watcherWrapper = kvWatcher
+func (e *v3Engine) SetWatcherWrapper(watcherWrapper WrapWatcher) {
+	e.watcherWrapper = watcherWrapper
 }
 
 func (e *v3Engine) AddRule(rule DynamicRule,

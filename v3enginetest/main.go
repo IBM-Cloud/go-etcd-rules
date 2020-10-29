@@ -31,6 +31,18 @@ func check(err error) {
 	}
 }
 
+func checkWatchResp(resp []clientv3.WatchResponse) {
+	if len(resp) != 3 {
+		panic(fmt.Errorf("not the correct amount of responses returned from the watch channel"))
+	}
+
+	for _, r := range resp {
+		if len(r.Events) != 1 {
+			panic(fmt.Errorf("incorrect number of events for watch channel response"))
+		}
+	}
+}
+
 func main() {
 	logger, err := zap.NewDevelopment()
 	check(err)
@@ -55,6 +67,12 @@ func main() {
 		return ctx, cancel
 	}
 	engine := rules.NewV3Engine(cfg, logger, rules.EngineContextProvider(cpFunc), rules.EngineMetricsCollector(mFunc))
+	mw := &rules.MockWatcherWrapper{
+		Logger:    logger,
+		Responses: []clientv3.WatchResponse{},
+	}
+	m := rules.MockWatchWrapper{Mww: mw}
+	engine.SetWatcherWrapper(m.WrapWatcher)
 	preReq, err := rules.NewEqualsLiteralRule(dataPath, nil)
 	check(err)
 	preReq = rules.NewNotRule(preReq)
@@ -102,5 +120,6 @@ func main() {
 	}
 	ctx, cancel = context.WithTimeout(context.Background(), time.Duration(30)*time.Second)
 	defer cancel()
+	checkWatchResp(mw.Responses)
 	_ = engine.Shutdown(ctx)
 }
