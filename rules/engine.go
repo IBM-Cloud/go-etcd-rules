@@ -45,10 +45,11 @@ type channelCloser func()
 
 type v3Engine struct {
 	baseEngine
-	keyProc     v3KeyProcessor
-	workChannel chan v3RuleWork
-	kvWrapper   WrapKV
-	cl          *clientv3.Client
+	keyProc        v3KeyProcessor
+	workChannel    chan v3RuleWork
+	kvWrapper      WrapKV
+	watcherWrapper WrapWatcher
+	cl             *clientv3.Client
 }
 
 // V3Engine defines the interactions with a rule engine instance communicating with etcd v3.
@@ -63,6 +64,7 @@ type V3Engine interface {
 		preconditions DynamicRule,
 		ttl int,
 		callback V3RuleTaskCallback) error
+	SetWatcherWrapper(WrapWatcher)
 }
 
 // NewV3Engine creates a new V3Engine instance.
@@ -106,16 +108,21 @@ func newV3Engine(logger *zap.Logger, cl *clientv3.Client, options ...EngineOptio
 			ruleLockTTLs: map[int]int{},
 			ruleMgr:      ruleMgr,
 		},
-		keyProc:     keyProc,
-		workChannel: channel,
-		kvWrapper:   defaultWrapKV,
-		cl:          cl,
+		keyProc:        keyProc,
+		workChannel:    channel,
+		kvWrapper:      defaultWrapKV,
+		watcherWrapper: defaultWrapWatcher,
+		cl:             cl,
 	}
 	return eng
 }
 
 func (e *v3Engine) SetKVWrapper(kvWrapper WrapKV) {
 	e.kvWrapper = kvWrapper
+}
+
+func (e *v3Engine) SetWatcherWrapper(watcherWrapper WrapWatcher) {
+	e.watcherWrapper = watcherWrapper
 }
 
 func (e *v3Engine) AddRule(rule DynamicRule,
@@ -248,7 +255,7 @@ func (e *v3Engine) Run() {
 	for prefix := range prefixes {
 		prefixSlice = append(prefixSlice, prefix)
 		logger := e.logger.With(zap.String("prefix", prefix))
-		w, err := newV3Watcher(e.cl, prefix, logger, e.baseEngine.keyProc, e.options.watchTimeout, e.kvWrapper, e.metrics)
+		w, err := newV3Watcher(e.cl, prefix, logger, e.baseEngine.keyProc, e.options.watchTimeout, e.kvWrapper, e.metrics, e.watcherWrapper)
 		if err != nil {
 			e.logger.Fatal("Failed to initialize watcher", zap.String("prefix", prefix))
 		}

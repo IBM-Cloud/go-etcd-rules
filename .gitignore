@@ -8,6 +8,7 @@
 _obj
 _test
 vendor
+default.etcd
 
 # Architecture specific extensions/prefixes
 *.[568vq]
@@ -31,3 +32,6 @@ cover.*
 coverage.out
 
 *~
+
+# IDE specific configuration files / folders
+.idea

@@ -42,6 +42,7 @@ type MetricsCollector interface {
 
 // AdvancedMetricsCollector used for collecting metrics additional metrics beyond those required by the base
 // MetricsCollector, implement this interface using your metrics collector of choice (ie Prometheus)
+// Deprecated: instead make use of the WrapWatcher to inject metric collection on watch events
 type AdvancedMetricsCollector interface {
 	MetricsCollector
 	ObserveWatchEvents(prefix string, events, totalBytes int)
