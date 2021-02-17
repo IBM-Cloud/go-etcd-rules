@@ -9,6 +9,7 @@ require (
 	github.com/google/uuid v1.1.2 // indirect
 	github.com/gorilla/mux v1.8.0
 	github.com/konsorten/go-windows-terminal-sequences v1.0.2 // indirect
+	github.com/mattn/goveralls v0.0.7 // indirect
 	github.com/prometheus/client_golang v0.9.3
 	github.com/sirupsen/logrus v1.4.1 // indirect
 	github.com/spf13/cobra v1.1.1 // indirect

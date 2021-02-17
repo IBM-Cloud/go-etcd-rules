@@ -166,7 +166,8 @@ func (ic *intCrawler) singleRun(logger *zap.Logger) {
 }
 func (ic *intCrawler) processData(values map[string]string, logger *zap.Logger) {
 	api := &cacheReadAPI{values: values}
-	for k, v := range values {
+	for k := range values {
+		v := values[k]
 		if ic.isStopping() {
 			return
 		}
