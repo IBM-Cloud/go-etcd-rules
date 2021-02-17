@@ -66,7 +66,7 @@ func main() {
 	cpFunc := func() (context.Context, context.CancelFunc) {
 		return ctx, cancel
 	}
-	engine := rules.NewV3Engine(cfg, logger, rules.EngineContextProvider(cpFunc), rules.EngineMetricsCollector(mFunc))
+	engine := rules.NewV3Engine(cfg, logger, rules.EngineContextProvider(cpFunc), rules.EngineMetricsCollector(mFunc), rules.EngineSyncInterval(10))
 	mw := &rules.MockWatcherWrapper{
 		Logger:    logger,
 		Responses: []clientv3.WatchResponse{},

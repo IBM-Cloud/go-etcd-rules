@@ -86,6 +86,7 @@ func TestEctdV3WatcherCancel(t *testing.T) {
 		_, err := cl.Put(context.Background(), "/pre/test", "value")
 		require.NoError(t, err)
 	}
+	time.Sleep(time.Duration(3) * time.Second)
 	watcher.cancel()
 	<-done
 }
