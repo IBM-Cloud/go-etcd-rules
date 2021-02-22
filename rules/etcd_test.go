@@ -74,3 +74,31 @@ func checkWatcher2(done chan bool, t *testing.T, watcher keyWatcher) {
 	assert.Nil(t, value)
 	done <- true
 }
+
+func TestEctdV3WatcherCancel(t *testing.T) {
+	_, cl := initV3Etcd(t)
+	w := clientv3.NewWatcher(cl)
+	watcher := newEtcdV3KeyWatcher(w, "/pre", time.Duration(60)*time.Second, newMetricsCollector())
+	done := make(chan bool)
+	go checkWatcher3(done, t, watcher)
+	time.Sleep(time.Duration(3) * time.Second)
+	for i := 1; i <= 3; i++ {
+		_, err := cl.Put(context.Background(), "/pre/test", "value")
+		require.NoError(t, err)
+	}
+	watcher.cancel()
+	<-done
+}
+
+func checkWatcher3(done chan bool, t *testing.T, watcher keyWatcher) {
+	for i := 1; i <= 3; i++ {
+		key, value, err := watcher.next()
+		assert.NoError(t, err)
+		assert.Equal(t, "/pre/test", key)
+		assert.NotNil(t, value)
+		assert.Equal(t, "value", *value)
+	}
+	_, _, err := watcher.next()
+	assert.EqualError(t, err, "Watcher closing")
+	done <- true
+}

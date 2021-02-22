@@ -49,11 +49,12 @@ type keyWatcher interface {
 }
 
 func newEtcdV3KeyWatcher(watcher clientv3.Watcher, prefix string, timeout time.Duration, metrics AdvancedMetricsCollector) *etcdV3KeyWatcher {
-	_, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(context.Background())
 	kw := etcdV3KeyWatcher{
 		baseKeyWatcher: baseKeyWatcher{
 			prefix:     prefix,
 			timeout:    timeout,
+			ctx:        ctx,
 			cancelFunc: cancel,
 			metrics:    metrics,
 		},
@@ -65,6 +66,7 @@ func newEtcdV3KeyWatcher(watcher clientv3.Watcher, prefix string, timeout time.D
 }
 
 type baseKeyWatcher struct {
+	ctx        context.Context
 	cancelFunc context.CancelFunc
 	prefix     string
 	timeout    time.Duration
@@ -85,7 +87,7 @@ func (ev3kw *etcdV3KeyWatcher) cancel() {
 
 func (ev3kw *etcdV3KeyWatcher) next() (string, *string, error) {
 	if ev3kw.ch == nil {
-		ev3kw.ch = ev3kw.w.Watch(context.Background(), ev3kw.prefix, clientv3.WithPrefix())
+		ev3kw.ch = ev3kw.w.Watch(ev3kw.ctx, ev3kw.prefix, clientv3.WithPrefix())
 	}
 	if ev3kw.events == nil || len(ev3kw.events) == 0 {
 		select {
