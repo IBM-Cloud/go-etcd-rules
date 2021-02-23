@@ -1,6 +1,6 @@
 GO111MODULE := on
 export
-LINT_VERSION="1.21.0"
+LINT_VERSION="1.37.1"
 
 .PHONY: all
 all: deps lint test
