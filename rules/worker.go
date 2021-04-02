@@ -94,7 +94,7 @@ func (bw *baseWorker) doWork(loggerPtr **zap.Logger,
 		return
 	}
 	if !sat {
-		incSatisfiedThenNot(metricsInfo.method, metricsInfo.keyPattern, "worker.doWorkBeforeLock")
+		incSatisfiedThenNot(metricsInfo.method, metricsInfo.keyPattern, "worker.doWorkAfterLock")
 		bw.metrics.IncSatisfiedThenNot(metricsInfo.method, metricsInfo.keyPattern, "worker.doWorkAfterLock")
 	}
 	workerQueueWaitTime(metricsInfo.method, metricsInfo.startTime)

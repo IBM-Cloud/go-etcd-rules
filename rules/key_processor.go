@@ -69,7 +69,14 @@ func (v3kp *v3KeyProcessor) dispatchWork(index int, rule staticRule, logger *zap
 		metricsInfo:      newMetricsInfo(context, keyPattern),
 		lockKey:          FormatWithAttributes(keyPattern, rule.getAttributes()),
 	}
-	v3kp.channel <- work
+
+	select {
+	case v3kp.channel <- work:
+	default:
+		// if the work buffer is full work cannot be added and it will fall through here to log and increment the metric
+		logger.Info("work channel is full, dropping work", zap.String("key_pattern", keyPattern))
+		incWorkBufferFull(work.metricsInfo.method, keyPattern)
+	}
 }
 
 func newV3KeyProcessor(channel chan v3RuleWork, rm *ruleManager) v3KeyProcessor {
