@@ -37,7 +37,7 @@ var (
 		Subsystem: "etcd",
 		Namespace: "rules",
 		Help:      "etcd rules engine work buffer wait time in ms",
-		Buckets:   []float64{1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000},
+		Buckets:   []float64{1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 30000, 60000, 300000, 600000},
 	}, []string{"method", "pattern"})
 )
 
