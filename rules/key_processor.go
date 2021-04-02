@@ -2,6 +2,7 @@ package rules
 
 import (
 	"go.uber.org/zap"
+	"time"
 )
 
 type keyProc interface {
@@ -69,7 +70,11 @@ func (v3kp *v3KeyProcessor) dispatchWork(index int, rule staticRule, logger *zap
 		metricsInfo:      newMetricsInfo(context, keyPattern),
 		lockKey:          FormatWithAttributes(keyPattern, rule.getAttributes()),
 	}
+
+	start := time.Now()
 	v3kp.channel <- work
+	// measures the amount of time work is blocked from being added to the buffer
+	workBufferWaitTime(work.metricsInfo.method, keyPattern, start)
 }
 
 func newV3KeyProcessor(channel chan v3RuleWork, rm *ruleManager) v3KeyProcessor {
