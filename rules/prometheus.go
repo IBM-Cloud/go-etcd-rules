@@ -32,11 +32,12 @@ var (
 		Help:      "etcd rules engine worker queue wait time in ms",
 		Buckets:   []float64{1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000},
 	}, []string{"method"})
-	rulesEngineWorkBufferFull = prometheus.NewCounterVec(prometheus.CounterOpts{
-		Name:      "buffer_full",
+	rulesEngineWorkBufferWaitTime = prometheus.NewHistogramVec(prometheus.HistogramOpts{
+		Name:      "work_buffer_wait_ms",
 		Subsystem: "etcd",
 		Namespace: "rules",
-		Help:      "etcd work buffer full",
+		Help:      "etcd rules engine work buffer wait time in ms",
+		Buckets:   []float64{1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000},
 	}, []string{"method", "pattern"})
 )
 
@@ -45,7 +46,7 @@ func init() {
 	prometheus.MustRegister(rulesEngineSatisfiedThenNot)
 	prometheus.MustRegister(rulesEngineEvaluations)
 	prometheus.MustRegister(rulesEngineWorkerQueueWait)
-	prometheus.MustRegister(rulesEngineWorkBufferFull)
+	prometheus.MustRegister(rulesEngineWorkBufferWaitTime)
 }
 
 func incLockMetric(methodName string, pattern string, lockSucceeded bool) {
@@ -64,6 +65,6 @@ func workerQueueWaitTime(methodName string, startTime time.Time) {
 	rulesEngineWorkerQueueWait.WithLabelValues(methodName).Observe(float64(time.Since(startTime).Nanoseconds() / 1e6))
 }
 
-func incWorkBufferFull(methodName, pattern string) {
-	rulesEngineWorkBufferFull.WithLabelValues(methodName, pattern).Inc()
+func workBufferWaitTime(methodName, pattern string, startTime time.Time) {
+	rulesEngineWorkBufferWaitTime.WithLabelValues(methodName, pattern).Observe(float64(time.Since(startTime).Nanoseconds() / 1e6))
 }
