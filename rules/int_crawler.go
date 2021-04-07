@@ -1,6 +1,7 @@
 package rules
 
 import (
+	"strings"
 	"sync"
 	"time"
 
@@ -155,7 +156,11 @@ func (ic *intCrawler) singleRun(logger *zap.Logger) {
 			return
 		}
 		for _, kv := range resp.Kvs {
-			values[string(kv.Key)] = string(kv.Value)
+			value := strings.Builder{}
+			key := strings.Builder{}
+			value.Write(kv.Value)
+			key.Write(kv.Key)
+			values[key.String()] = value.String()
 		}
 	}
 	ic.processData(values, logger)

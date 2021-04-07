@@ -2,10 +2,11 @@ package rules
 
 import (
 	"errors"
-	"github.com/coreos/etcd/mvcc/mvccpb"
+	"strings"
 	"time"
 
 	"github.com/coreos/etcd/clientv3"
+	"github.com/coreos/etcd/mvcc/mvccpb"
 	"golang.org/x/net/context"
 )
 
@@ -39,7 +40,9 @@ func (edv3ra *etcdV3ReadAPI) get(key string) (*string, error) {
 	if resp.Count == 0 {
 		return nil, nil
 	}
-	val := string(resp.Kvs[0].Value)
+	valBuf := strings.Builder{}
+	valBuf.Write(resp.Kvs[0].Value)
+	val := valBuf.String()
 	return &val, nil
 }
 
@@ -134,10 +137,14 @@ func (ev3kw *etcdV3KeyWatcher) next() (string, *string, error) {
 
 	event := ev3kw.events[0]
 	ev3kw.events = ev3kw.events[1:]
-	key := string(event.Kv.Key)
+	keyBuf := strings.Builder{}
+	keyBuf.Write(event.Kv.Key)
+	key := keyBuf.String()
 	if event.Type == clientv3.EventTypeDelete { // Covers lease expiration
 		return key, nil, nil
 	}
-	val := string(event.Kv.Value)
+	valBuf := strings.Builder{}
+	valBuf.Write(event.Kv.Value)
+	val := valBuf.String()
 	return key, &val, nil
 }
