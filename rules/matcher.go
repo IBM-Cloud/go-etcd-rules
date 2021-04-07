@@ -116,12 +116,12 @@ func FormatWithAttributes(pattern string, m Attributes) string {
 func formatPath(pattern string, m Attributes) (string, bool) {
 	allFound := true
 	paths := strings.Split(pattern, "/")
-	result := ""
+	result := strings.Builder{}
 	for _, path := range paths {
 		if len(path) == 0 {
 			continue
 		}
-		result = result + "/"
+		result.WriteString("/")
 		if strings.HasPrefix(path, ":") {
 			attr := m.GetAttribute(path[1:])
 			if attr == nil {
@@ -129,12 +129,12 @@ func formatPath(pattern string, m Attributes) (string, bool) {
 				attr = &s
 				allFound = false
 			}
-			result = result + *attr
+			result.WriteString(*attr)
 		} else {
-			result = result + path
+			result.WriteString(path)
 		}
 	}
-	return result, allFound
+	return result.String(), allFound
 }
 
 // Keep the bool return value, because it's tricky to check for null
@@ -184,21 +184,21 @@ func (ma *mapAttributes) Format(path string) string {
 
 func parsePath(pattern string) (map[string]int, string) {
 	paths := strings.Split(pattern, "/")
-	regex := ""
+	regex := strings.Builder{}
 	fields := make(map[string]int)
 	fieldIndex := 1
 	for _, path := range paths {
 		if len(path) == 0 {
 			continue
 		}
-		regex = regex + "/"
+		regex.WriteString("/")
 		if strings.HasPrefix(path, ":") {
-			regex = regex + "([^\\/:]+)"
+			regex.WriteString("([^\\/:]+)")
 			fields[path[1:]] = fieldIndex
 			fieldIndex++
 		} else {
-			regex = regex + path
+			regex.WriteString(path)
 		}
 	}
-	return fields, regex
+	return fields, regex.String()
 }

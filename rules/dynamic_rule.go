@@ -460,15 +460,18 @@ func (odr *orDynamicRule) String() string {
 }
 
 func (cdr *compoundDynamicRule) delimitedString(del string) string {
-	out := "("
+	out := strings.Builder{}
+	out.WriteByte('(')
 	for idx, rule := range cdr.nestedDynamicRules {
 		if idx > 0 {
-			out = out + " " + del + " "
+			out.WriteByte(' ')
+			out.WriteString(del)
+			out.WriteByte(' ')
 		}
-		out = out + fmt.Sprintf("%s", rule)
+		out.WriteString(fmt.Sprintf("%s", rule))
 	}
-	out = out + ")"
-	return out
+	out.WriteByte(')')
+	return out.String()
 }
 
 func (adr *andDynamicRule) makeStaticRule(key string, value *string) (staticRule, Attributes, bool) {
