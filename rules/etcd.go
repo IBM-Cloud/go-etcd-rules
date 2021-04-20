@@ -85,6 +85,14 @@ func (ev3kw *etcdV3KeyWatcher) cancel() {
 	ev3kw.stopCh <- true
 }
 
+func (ev3kw *etcdV3KeyWatcher) reset() {
+	// Cancel existing watcher channel to release resources
+	ev3kw.cancelFunc()
+	// Force a new watcher channel to be created with new context
+	ev3kw.ch = nil
+	ev3kw.ctx, ev3kw.cancelFunc = context.WithCancel(context.Background())
+}
+
 func (ev3kw *etcdV3KeyWatcher) next() (string, *string, error) {
 	if ev3kw.ch == nil {
 		ev3kw.ch = ev3kw.w.Watch(ev3kw.ctx, ev3kw.prefix, clientv3.WithPrefix())
@@ -113,14 +121,14 @@ func (ev3kw *etcdV3KeyWatcher) next() (string, *string, error) {
 				err = wr.Err()
 			}
 			if err != nil {
-				ev3kw.ch = nil
+				ev3kw.reset()
 				return "", nil, err
 			}
 			ev3kw.events = wr.Events
 		}
 	}
 	if ev3kw.events == nil || len(ev3kw.events) == 0 {
-		ev3kw.ch = nil
+		ev3kw.reset()
 		return "", nil, errors.New("No events received from watcher channel; instantiating new channel")
 	}
 
