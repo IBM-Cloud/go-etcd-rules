@@ -66,3 +66,8 @@ func TestWorkBufferWaitTime(t *testing.T) {
 	workBufferWaitTime("getKey", "/desired/key/pattern", time.Now())
 	checkMetrics(t, `rules_etcd_work_buffer_wait_ms_count{method="getKey",pattern="/desired/key/pattern"} 1`)
 }
+
+func TestCallbackWaitTime(t *testing.T) {
+	callbackWaitTime("/desired/key/pattern", time.Now())
+	checkMetrics(t, `rules_etcd_callback_wait_ms_count{pattern="/desired/key/pattern"} 1`)
+}

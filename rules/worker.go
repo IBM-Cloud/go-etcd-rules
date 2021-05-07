@@ -2,6 +2,7 @@ package rules
 
 import (
 	"sync"
+	"time"
 
 	"go.uber.org/zap"
 )
@@ -100,7 +101,9 @@ func (bw *baseWorker) doWork(loggerPtr **zap.Logger,
 	workerQueueWaitTime(metricsInfo.method, metricsInfo.startTime)
 	bw.metrics.WorkerQueueWaitTime(metricsInfo.method, metricsInfo.startTime)
 	if sat && !is(&bw.stopping) {
+		startTime := time.Now()
 		callback()
+		callbackWaitTime(metricsInfo.keyPattern, startTime)
 	}
 }
 
