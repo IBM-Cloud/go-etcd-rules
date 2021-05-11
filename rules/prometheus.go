@@ -39,6 +39,13 @@ var (
 		Help:      "etcd rules engine work buffer wait time in ms",
 		Buckets:   []float64{1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 30000, 60000, 300000, 600000},
 	}, []string{"method", "pattern"})
+	rulesEngineCallbackWaitTime = prometheus.NewHistogramVec(prometheus.HistogramOpts{
+		Name:      "callback_wait_ms",
+		Subsystem: "etcd",
+		Namespace: "rules",
+		Help:      "etcd rules engine callback wait time in ms",
+		Buckets:   []float64{1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 30000, 60000, 300000, 600000},
+	}, []string{"pattern"})
 )
 
 func init() {
@@ -47,6 +54,7 @@ func init() {
 	prometheus.MustRegister(rulesEngineEvaluations)
 	prometheus.MustRegister(rulesEngineWorkerQueueWait)
 	prometheus.MustRegister(rulesEngineWorkBufferWaitTime)
+	prometheus.MustRegister(rulesEngineCallbackWaitTime)
 }
 
 func incLockMetric(methodName string, pattern string, lockSucceeded bool) {
@@ -67,4 +75,8 @@ func workerQueueWaitTime(methodName string, startTime time.Time) {
 
 func workBufferWaitTime(methodName, pattern string, startTime time.Time) {
 	rulesEngineWorkBufferWaitTime.WithLabelValues(methodName, pattern).Observe(float64(time.Since(startTime).Nanoseconds() / 1e6))
+}
+
+func callbackWaitTime(pattern string, startTime time.Time) {
+	rulesEngineCallbackWaitTime.WithLabelValues(pattern).Observe(float64(time.Since(startTime).Nanoseconds() / 1e6))
 }
