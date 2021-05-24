@@ -3,8 +3,8 @@ package rules
 import (
 	"testing"
 
-	"github.com/coreos/etcd/clientv3"
 	"github.com/stretchr/testify/assert"
+	"go.etcd.io/etcd/clientv3"
 )
 
 func TestV3Locker(t *testing.T) {

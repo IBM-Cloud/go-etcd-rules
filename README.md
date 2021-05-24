@@ -5,17 +5,19 @@ etcd-rules
 [![Coverage Status](https://coveralls.io/repos/github/IBM-Bluemix/go-etcd-rules/badge.svg?branch=master)](https://coveralls.io/github/IBM-Bluemix/go-etcd-rules?branch=master)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
+**NOTE: Built with the etcd 3.4.x client.  That version has go.mod [issue](https://github.com/etcd-io/etcd/issues/11154) and a [workaround](https://github.com/etcd-io/etcd/pull/11477) is being used to include it.**
+
 This is a rules engine for use with etcd.  Simple dynamic rules allow the specification
 of keys based on the gin attribute syntax and the comparison to literals or other
 keys.  These rules can be nested inside of AND, OR and NOT rules to enable the expression
 of complex relationships of values in etcd and the actions to be triggered when a set
 of conditions has been met.  The engine watches etcd for updates and crawls the data tree
-at configurable intervals. This library makes use of the IBM-Cloud/go-etcd-lock library 
-to enable concurrent monitoring by multiple application instances without collisions--the 
-first client to obtain the lock processes the change while the others quickly fail to acquire 
-the lock and move on.  A trigger callback function should update the model if the action 
-is successful so it is not retriggered. Recurring actions, such as continuous polling, 
-can be implemented with rules that reference nodes with TTLs such that the expiration of 
+at configurable intervals. This library makes use of the IBM-Cloud/go-etcd-lock library
+to enable concurrent monitoring by multiple application instances without collisions--the
+first client to obtain the lock processes the change while the others quickly fail to acquire
+the lock and move on.  A trigger callback function should update the model if the action
+is successful so it is not retriggered. Recurring actions, such as continuous polling,
+can be implemented with rules that reference nodes with TTLs such that the expiration of
 a node triggers a rule and the callback adds back a node with the same key and TTL.
 
 Import
@@ -36,7 +38,7 @@ import (
     "time"
 
     "github.com/IBM-Cloud/go-etcd-rules/rules"
-    "github.com/coreos/etcd/clientv3"
+    "go.etcd.io/etcd/clientv3"
     "github.com/uber-go/zap"
     "golang.org/x/net/context"
 )
