@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/IBM-Cloud/go-etcd-rules/rules"
-	"github.com/coreos/etcd/clientv3"
+	"go.etcd.io/etcd/clientv3"
 	"go.uber.org/zap"
 )
 

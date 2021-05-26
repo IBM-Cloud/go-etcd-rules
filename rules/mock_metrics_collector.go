@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-// a mock metrics collector used in unit tests
+// MockMetricsCollector a mock metrics collector used in unit tests
 type MockMetricsCollector struct {
 	logger *zap.Logger
 	// store what the IncLockMetric function was called with

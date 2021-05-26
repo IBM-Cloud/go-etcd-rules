@@ -2,10 +2,10 @@ package rules
 
 import (
 	"errors"
-	"github.com/coreos/etcd/mvcc/mvccpb"
+	"go.etcd.io/etcd/mvcc/mvccpb"
 	"time"
 
-	"github.com/coreos/etcd/clientv3"
+	"go.etcd.io/etcd/clientv3"
 	"golang.org/x/net/context"
 )
 
