@@ -43,6 +43,7 @@ type staticRule interface {
 	qSatisfiable(key string, value *string) quadState
 	satisfied(api readAPI) (bool, error)
 	getAttributes() Attributes
+	String() string
 }
 
 type readAPI interface {

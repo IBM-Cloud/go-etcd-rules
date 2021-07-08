@@ -48,7 +48,7 @@ type v3KeyProcessor struct {
 	baseKeyProcessor
 	callbacks map[int]V3RuleTaskCallback
 	channel   chan v3RuleWork
-	kpChannel chan keyTask
+	kpChannel chan *keyTask
 }
 
 func (v3kp *v3KeyProcessor) setCallback(index int, callback interface{}) {
@@ -79,7 +79,7 @@ func (v3kp *v3KeyProcessor) dispatchWork(index int, rule staticRule, logger *zap
 	workBufferWaitTime(work.metricsInfo.method, keyPattern, start)
 }
 
-func newV3KeyProcessor(channel chan v3RuleWork, rm *ruleManager, kpChannel chan keyTask, concurrency int, logger *zap.Logger) v3KeyProcessor {
+func newV3KeyProcessor(channel chan v3RuleWork, rm *ruleManager, kpChannel chan *keyTask, concurrency int, logger *zap.Logger) v3KeyProcessor {
 	kp := v3KeyProcessor{
 		baseKeyProcessor: baseKeyProcessor{
 			contextProviders: map[int]ContextProvider{},
@@ -102,13 +102,14 @@ func (v3kp *v3KeyProcessor) processKey(key string, value *string, api readAPI, l
 	metadata map[string]string, timesEvaluated func(rulesID string)) {
 	// v3kp.baseKeyProcessor.processKey(key, value, api, logger, v3kp, metadata, timesEvaluated)
 	logger.Debug("submitting key to be processed", zap.String("key", key))
-	task := keyTask{
+	task := &keyTask{
 		key:            key,
 		value:          value,
 		api:            api,
 		logger:         logger,
 		metadata:       metadata,
 		timesEvaluated: timesEvaluated,
+		kp:             v3kp,
 	}
 	v3kp.kpChannel <- task
 }
@@ -118,7 +119,7 @@ func (v3kp *v3KeyProcessor) keyWorker(logger *zap.Logger) {
 	for {
 		task := <-v3kp.kpChannel
 		task.logger.Debug("Key processing task retrieved")
-		v3kp.baseKeyProcessor.processKey(task.key, task.value, task.api, task.logger, v3kp, task.metadata, task.timesEvaluated)
+		task.kp.baseKeyProcessor.processKey(task.key, task.value, task.api, task.logger, task.kp, task.metadata, task.timesEvaluated)
 	}
 }
 
@@ -129,17 +130,25 @@ type keyTask struct {
 	logger         *zap.Logger
 	metadata       map[string]string
 	timesEvaluated func(rulesID string)
+	kp             *v3KeyProcessor
 }
 
 func (bkp *baseKeyProcessor) processKey(key string, value *string, api readAPI, logger *zap.Logger, dispatcher workDispatcher,
 	metadata map[string]string, timesEvaluated func(rulesID string)) {
 	logger.Debug("Processing key", zap.String("key", key))
 	rules := bkp.rm.getStaticRules(key, value)
+	valueString := "<nil>"
+	if value != nil {
+		valueString = *value
+	}
 	for rule, index := range rules {
 		if timesEvaluated != nil {
 			timesEvaluated(bkp.ruleIDs[index])
 		}
 		satisfied, _ := rule.satisfied(api)
+		if logger.Core().Enabled(zap.DebugLevel) {
+			logger.Debug("Rule evaluated", zap.Bool("satisfied", satisfied), zap.String("rule", rule.String()), zap.String("value", valueString), zap.String("key", key))
+		}
 		if satisfied {
 			keyPattern, ok := bkp.lockKeyPatterns[index]
 			if !ok {

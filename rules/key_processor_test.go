@@ -59,7 +59,7 @@ func TestV3KeyProcessor(t *testing.T) {
 	lockKeyPatterns := map[int]string{0: "/test/lock/:key"}
 	ruleIDs := map[int]string{0: "testKey"}
 	channel := make(chan v3RuleWork)
-	kpChannel := make(chan keyTask)
+	kpChannel := make(chan *keyTask)
 	kp := v3KeyProcessor{
 		baseKeyProcessor: baseKeyProcessor{
 			contextProviders: contextProviders,
