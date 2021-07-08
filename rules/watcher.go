@@ -10,8 +10,7 @@ import (
 
 func newV3Watcher(ec *clientv3.Client, prefix string, logger *zap.Logger, proc keyProc, watchTimeout int, kvWrapper WrapKV, metrics AdvancedMetricsCollector, watcherWrapper WrapWatcher) (watcher, error) {
 	api := etcdV3ReadAPI{
-		baseReadAPI: baseReadAPI{},
-		kV:          kvWrapper(ec),
+		kV: kvWrapper(ec),
 	}
 	ew := newEtcdV3KeyWatcher(watcherWrapper(clientv3.NewWatcher(ec)), prefix, time.Duration(watchTimeout)*time.Second, metrics)
 	return watcher{

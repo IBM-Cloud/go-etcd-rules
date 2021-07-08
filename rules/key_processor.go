@@ -1,6 +1,7 @@
 package rules
 
 import (
+	"fmt"
 	"time"
 
 	"go.uber.org/zap"
@@ -147,7 +148,7 @@ func (bkp *baseKeyProcessor) processKey(key string, value *string, api readAPI, 
 		}
 		satisfied, _ := rule.satisfied(api)
 		if logger.Core().Enabled(zap.DebugLevel) {
-			logger.Debug("Rule evaluated", zap.Bool("satisfied", satisfied), zap.String("rule", rule.String()), zap.String("value", valueString), zap.String("key", key))
+			logger.Debug("Rule evaluated", zap.Bool("satisfied", satisfied), zap.String("rule", rule.String()), zap.String("value", fmt.Sprintf("%.30s", valueString)), zap.String("key", key))
 		}
 		if satisfied {
 			keyPattern, ok := bkp.lockKeyPatterns[index]
