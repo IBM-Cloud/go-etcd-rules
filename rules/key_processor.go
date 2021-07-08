@@ -1,8 +1,9 @@
 package rules
 
 import (
-	"go.uber.org/zap"
 	"time"
+
+	"go.uber.org/zap"
 )
 
 type keyProc interface {
@@ -47,6 +48,7 @@ type v3KeyProcessor struct {
 	baseKeyProcessor
 	callbacks map[int]V3RuleTaskCallback
 	channel   chan v3RuleWork
+	kpChannel chan keyTask
 }
 
 func (v3kp *v3KeyProcessor) setCallback(index int, callback interface{}) {
@@ -77,7 +79,7 @@ func (v3kp *v3KeyProcessor) dispatchWork(index int, rule staticRule, logger *zap
 	workBufferWaitTime(work.metricsInfo.method, keyPattern, start)
 }
 
-func newV3KeyProcessor(channel chan v3RuleWork, rm *ruleManager) v3KeyProcessor {
+func newV3KeyProcessor(channel chan v3RuleWork, rm *ruleManager, kpChannel chan keyTask, concurrency int) v3KeyProcessor {
 	kp := v3KeyProcessor{
 		baseKeyProcessor: baseKeyProcessor{
 			contextProviders: map[int]ContextProvider{},
@@ -88,12 +90,40 @@ func newV3KeyProcessor(channel chan v3RuleWork, rm *ruleManager) v3KeyProcessor 
 		callbacks: map[int]V3RuleTaskCallback{},
 		channel:   channel,
 	}
+	for i := 0; i < concurrency; i++ {
+		go kp.keyWorker()
+	}
 	return kp
 }
 
 func (v3kp *v3KeyProcessor) processKey(key string, value *string, api readAPI, logger *zap.Logger,
 	metadata map[string]string, timesEvaluated func(rulesID string)) {
-	v3kp.baseKeyProcessor.processKey(key, value, api, logger, v3kp, metadata, timesEvaluated)
+	// v3kp.baseKeyProcessor.processKey(key, value, api, logger, v3kp, metadata, timesEvaluated)
+	task := keyTask{
+		key:            key,
+		value:          value,
+		api:            api,
+		logger:         logger,
+		metadata:       metadata,
+		timesEvaluated: timesEvaluated,
+	}
+	v3kp.kpChannel <- task
+}
+
+func (v3kp *v3KeyProcessor) keyWorker() {
+	for {
+		task := <-v3kp.kpChannel
+		v3kp.baseKeyProcessor.processKey(task.key, task.value, task.api, task.logger, v3kp, task.metadata, task.timesEvaluated)
+	}
+}
+
+type keyTask struct {
+	key            string
+	value          *string
+	api            readAPI
+	logger         *zap.Logger
+	metadata       map[string]string
+	timesEvaluated func(rulesID string)
 }
 
 func (bkp *baseKeyProcessor) processKey(key string, value *string, api readAPI, logger *zap.Logger, dispatcher workDispatcher,

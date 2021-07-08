@@ -50,8 +50,10 @@ type engineOptions struct {
 	crawlerTTL,
 	syncGetTimeout,
 	syncInterval,
-	watchTimeout int
-	syncDelay              int
+	watchTimeout,
+	syncDelay,
+	keyProcConcurrency,
+	keyProcBuffer int
 	constraints            map[string]constraint
 	contextProvider        ContextProvider
 	keyExpansion           map[string][]string
@@ -74,6 +76,8 @@ func makeEngineOptions(options ...EngineOption) engineOptions {
 		syncInterval:           300,
 		syncGetTimeout:         0,
 		watchTimeout:           0,
+		keyProcConcurrency:     5,
+		keyProcBuffer:          1000,
 		metrics:                defaultMetricsCollector,
 	}
 	for _, opt := range options {
@@ -93,6 +97,22 @@ type engineOptionFunction func(*engineOptions)
 
 func (f engineOptionFunction) apply(o *engineOptions) {
 	f(o)
+}
+
+// KeyProcessorConcurrency controls the number of threads processing keys
+// from the watcher and the crawler.
+func KeyProcessorConcurrency(threads int) EngineOption {
+	return engineOptionFunction(func(o *engineOptions) {
+		o.keyProcConcurrency = threads
+	})
+}
+
+// KeyProcessorBuffer controls the number of key processing events
+// can be buffered at one time.
+func KeyProcessorBuffer(size int) EngineOption {
+	return engineOptionFunction(func(o *engineOptions) {
+		o.keyProcBuffer = size
+	})
 }
 
 // EngineLockTimeout controls the TTL of a lock in seconds.
