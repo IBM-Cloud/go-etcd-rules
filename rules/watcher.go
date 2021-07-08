@@ -61,5 +61,6 @@ func (w *watcher) singleRun() {
 		}
 		return
 	}
+	w.logger.Debug("Calling process key", zap.String("key", key))
 	w.kp.processKey(key, value, w.api, w.logger, map[string]string{}, nil)
 }

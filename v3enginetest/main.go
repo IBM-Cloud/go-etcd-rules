@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"sync/atomic"
 	"time"
 
 	"github.com/IBM-Cloud/go-etcd-rules/rules"
@@ -12,7 +13,7 @@ import (
 
 var (
 	idCount   = 4
-	pollCount = 5
+	pollCount = int32(5)
 )
 
 const (
@@ -22,7 +23,7 @@ const (
 
 type polled struct {
 	ID        string
-	pollCount int
+	pollCount int32
 }
 
 func check(err error) {
@@ -89,27 +90,29 @@ func main() {
 		ps[id] = &p
 	}
 	err = engine.AddPolling("/rulesEnginePolling/:id", preReq, 2, func(task *rules.V3RuleTask) {
+		task.Logger.Info("Callback called")
 		p := ps[*task.Attr.GetAttribute("id")]
+		pPollCount := atomic.LoadInt32(&p.pollCount)
 		path := task.Attr.Format(dataPath)
 		task.Logger.Info("polling", zap.String("id", p.ID), zap.String("path", path))
 		resp, err := kv.Get(task.Context, path) //keysAPI.Get(task.Context, path, nil)
 		check(err)
 		value := string(resp.Kvs[0].Value)
-		task.Logger.Info("Compare pollcount", zap.String("id", p.ID), zap.String("etcd", value), zap.Int("local", p.pollCount))
-		if value != fmt.Sprint(p.pollCount) {
+		task.Logger.Info("Compare pollcount", zap.String("id", p.ID), zap.String("etcd", value), zap.Int32("local", pPollCount))
+		if value != fmt.Sprint(pPollCount) {
 			panic("Poll count does not match!")
 		}
-		if p.pollCount == pollCount {
+		if pPollCount == pollCount {
 			_, err = kv.Put(task.Context, task.Attr.Format(blockPath), "done")
 			check(err)
 			done <- p
 			return
 		}
-		if p.pollCount > pollCount {
+		if pPollCount > pollCount {
 			panic("Poll count higher than max!")
 		}
-		p.pollCount++
-		_, err = kv.Put(task.Context, path, fmt.Sprint(p.pollCount))
+		atomic.AddInt32(&p.pollCount, 1)
+		_, err = kv.Put(task.Context, path, fmt.Sprint(atomic.LoadInt32(&p.pollCount)))
 		check(err)
 	})
 	check(err)

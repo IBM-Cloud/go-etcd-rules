@@ -79,7 +79,7 @@ func (v3kp *v3KeyProcessor) dispatchWork(index int, rule staticRule, logger *zap
 	workBufferWaitTime(work.metricsInfo.method, keyPattern, start)
 }
 
-func newV3KeyProcessor(channel chan v3RuleWork, rm *ruleManager, kpChannel chan keyTask, concurrency int) v3KeyProcessor {
+func newV3KeyProcessor(channel chan v3RuleWork, rm *ruleManager, kpChannel chan keyTask, concurrency int, logger *zap.Logger) v3KeyProcessor {
 	kp := v3KeyProcessor{
 		baseKeyProcessor: baseKeyProcessor{
 			contextProviders: map[int]ContextProvider{},
@@ -89,9 +89,11 @@ func newV3KeyProcessor(channel chan v3RuleWork, rm *ruleManager, kpChannel chan 
 		},
 		callbacks: map[int]V3RuleTaskCallback{},
 		channel:   channel,
+		kpChannel: kpChannel,
 	}
+	logger.Info("Starting key processor workers", zap.Int("concurrency", concurrency))
 	for i := 0; i < concurrency; i++ {
-		go kp.keyWorker()
+		go kp.keyWorker(logger)
 	}
 	return kp
 }
@@ -99,6 +101,7 @@ func newV3KeyProcessor(channel chan v3RuleWork, rm *ruleManager, kpChannel chan 
 func (v3kp *v3KeyProcessor) processKey(key string, value *string, api readAPI, logger *zap.Logger,
 	metadata map[string]string, timesEvaluated func(rulesID string)) {
 	// v3kp.baseKeyProcessor.processKey(key, value, api, logger, v3kp, metadata, timesEvaluated)
+	logger.Debug("submitting key to be processed", zap.String("key", key))
 	task := keyTask{
 		key:            key,
 		value:          value,
@@ -110,9 +113,11 @@ func (v3kp *v3KeyProcessor) processKey(key string, value *string, api readAPI, l
 	v3kp.kpChannel <- task
 }
 
-func (v3kp *v3KeyProcessor) keyWorker() {
+func (v3kp *v3KeyProcessor) keyWorker(logger *zap.Logger) {
+	logger.Info("Starting key worker")
 	for {
 		task := <-v3kp.kpChannel
+		task.logger.Debug("Key processing task retrieved")
 		v3kp.baseKeyProcessor.processKey(task.key, task.value, task.api, task.logger, v3kp, task.metadata, task.timesEvaluated)
 	}
 }

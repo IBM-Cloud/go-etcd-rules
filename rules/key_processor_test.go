@@ -59,6 +59,7 @@ func TestV3KeyProcessor(t *testing.T) {
 	lockKeyPatterns := map[int]string{0: "/test/lock/:key"}
 	ruleIDs := map[int]string{0: "testKey"}
 	channel := make(chan v3RuleWork)
+	kpChannel := make(chan keyTask)
 	kp := v3KeyProcessor{
 		baseKeyProcessor: baseKeyProcessor{
 			contextProviders: contextProviders,
@@ -68,8 +69,10 @@ func TestV3KeyProcessor(t *testing.T) {
 		},
 		callbacks: callbacks,
 		channel:   channel,
+		kpChannel: kpChannel,
 	}
 	logger := getTestLogger()
+	go kp.keyWorker(logger)
 	go kp.processKey("/test/key", &value, api, logger, map[string]string{}, nil)
 	work := <-channel
 	assert.Equal(t, "/test/lock/key", work.lockKey)
