@@ -84,7 +84,6 @@ func NewV3EngineWithClient(cl *clientv3.Client, logger *zap.Logger, options ...E
 
 func newV3Engine(logger *zap.Logger, cl *clientv3.Client, options ...EngineOption) v3Engine {
 	opts := makeEngineOptions(options...)
-	logger.Info("Engine options", zap.Any("options", opts.keyProcConcurrency))
 	ruleMgr := newRuleManager(opts.constraints, opts.enhancedRuleFilter)
 	channel := make(chan v3RuleWork, opts.ruleWorkBuffer)
 	kpChannel := make(chan *keyTask, opts.keyProcBuffer)
