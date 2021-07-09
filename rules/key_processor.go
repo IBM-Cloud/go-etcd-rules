@@ -101,7 +101,6 @@ func newV3KeyProcessor(channel chan v3RuleWork, rm *ruleManager, kpChannel chan 
 
 func (v3kp *v3KeyProcessor) processKey(key string, value *string, api readAPI, logger *zap.Logger,
 	metadata map[string]string, timesEvaluated func(rulesID string)) {
-	// v3kp.baseKeyProcessor.processKey(key, value, api, logger, v3kp, metadata, timesEvaluated)
 	logger.Debug("submitting key to be processed", zap.String("key", key))
 	task := &keyTask{
 		key:            key,
@@ -110,7 +109,6 @@ func (v3kp *v3KeyProcessor) processKey(key string, value *string, api readAPI, l
 		logger:         logger,
 		metadata:       metadata,
 		timesEvaluated: timesEvaluated,
-		kp:             v3kp,
 	}
 	v3kp.kpChannel <- task
 }
@@ -120,7 +118,7 @@ func (v3kp *v3KeyProcessor) keyWorker(logger *zap.Logger) {
 	for {
 		task := <-v3kp.kpChannel
 		task.logger.Debug("Key processing task retrieved")
-		task.kp.baseKeyProcessor.processKey(task.key, task.value, task.api, task.logger, task.kp, task.metadata, task.timesEvaluated)
+		v3kp.baseKeyProcessor.processKey(task.key, task.value, task.api, task.logger, v3kp, task.metadata, task.timesEvaluated)
 	}
 }
 
@@ -131,7 +129,6 @@ type keyTask struct {
 	logger         *zap.Logger
 	metadata       map[string]string
 	timesEvaluated func(rulesID string)
-	kp             *v3KeyProcessor
 }
 
 func (bkp *baseKeyProcessor) processKey(key string, value *string, api readAPI, logger *zap.Logger, dispatcher workDispatcher,

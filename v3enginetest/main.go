@@ -33,7 +33,10 @@ func check(err error) {
 }
 
 func checkWatchResp(resp []clientv3.WatchResponse) {
-	if len(resp) != 3 {
+	// This number isn't deterministic, because it can't be known
+	// how many watch events are captured in terms of TTLs and
+	// when the engine finishes shutting down.
+	if len(resp) < 3 {
 		panic(fmt.Errorf("not the correct amount of responses returned from the watch channel: %d", len(resp)))
 	}
 
@@ -128,6 +131,6 @@ func main() {
 	}
 	ctx, cancel = context.WithTimeout(context.Background(), time.Duration(30)*time.Second)
 	defer cancel()
-	// checkWatchResp(mw.Responses)
+	checkWatchResp(mw.Responses)
 	_ = engine.Shutdown(ctx)
 }
