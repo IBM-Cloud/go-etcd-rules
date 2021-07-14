@@ -1,9 +1,10 @@
 package rules
 
 import (
-	"github.com/prometheus/client_golang/prometheus"
 	"strconv"
 	"time"
+
+	"github.com/prometheus/client_golang/prometheus"
 )
 
 var (
@@ -46,6 +47,12 @@ var (
 		Help:      "etcd rules engine callback wait time in ms",
 		Buckets:   []float64{1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 30000, 60000, 300000, 600000},
 	}, []string{"pattern"})
+	rulesEngineKeyProcessBufferCap = prometheus.NewGauge(prometheus.GaugeOpts{
+		Name:      "key_process_buffer_cap",
+		Subsystem: "etcd",
+		Namespace: "rules",
+		Help:      "current capacity of the key processing buffer",
+	})
 )
 
 func init() {
@@ -55,6 +62,7 @@ func init() {
 	prometheus.MustRegister(rulesEngineWorkerQueueWait)
 	prometheus.MustRegister(rulesEngineWorkBufferWaitTime)
 	prometheus.MustRegister(rulesEngineCallbackWaitTime)
+	prometheus.MustRegister(rulesEngineKeyProcessBufferCap)
 }
 
 func incLockMetric(methodName string, pattern string, lockSucceeded bool) {
@@ -79,4 +87,8 @@ func workBufferWaitTime(methodName, pattern string, startTime time.Time) {
 
 func callbackWaitTime(pattern string, startTime time.Time) {
 	rulesEngineCallbackWaitTime.WithLabelValues(pattern).Observe(float64(time.Since(startTime).Nanoseconds() / 1e6))
+}
+
+func keyProcessBufferCap(count int) {
+	rulesEngineKeyProcessBufferCap.Set(float64(count))
 }

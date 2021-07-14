@@ -96,6 +96,7 @@ func newV3KeyProcessor(channel chan v3RuleWork, rm *ruleManager, kpChannel chan 
 	for i := 0; i < concurrency; i++ {
 		go kp.keyWorker(logger)
 	}
+	go kp.bufferCapacitySampler()
 	return kp
 }
 
@@ -111,6 +112,13 @@ func (v3kp *v3KeyProcessor) processKey(key string, value *string, api readAPI, l
 		timesEvaluated: timesEvaluated,
 	}
 	v3kp.kpChannel <- task
+}
+
+func (v3kp *v3KeyProcessor) bufferCapacitySampler() {
+	for {
+		keyProcessBufferCap(cap(v3kp.kpChannel) - len(v3kp.kpChannel))
+		time.Sleep(time.Minute)
+	}
 }
 
 func (v3kp *v3KeyProcessor) keyWorker(logger *zap.Logger) {
