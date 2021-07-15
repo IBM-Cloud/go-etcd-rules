@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"sync/atomic"
 	"time"
 
 	"github.com/IBM-Cloud/go-etcd-rules/rules"
@@ -12,7 +13,7 @@ import (
 
 var (
 	idCount   = 4
-	pollCount = 5
+	pollCount = int32(5)
 )
 
 const (
@@ -22,7 +23,7 @@ const (
 
 type polled struct {
 	ID        string
-	pollCount int
+	pollCount int32
 }
 
 func check(err error) {
@@ -32,8 +33,11 @@ func check(err error) {
 }
 
 func checkWatchResp(resp []clientv3.WatchResponse) {
-	if len(resp) != 3 {
-		panic(fmt.Errorf("not the correct amount of responses returned from the watch channel"))
+	// This number isn't deterministic, because it can't be known
+	// how many watch events are captured in terms of TTLs and
+	// when the engine finishes shutting down.
+	if len(resp) < 3 {
+		panic(fmt.Errorf("not the correct amount of responses returned from the watch channel: %d", len(resp)))
 	}
 
 	for _, r := range resp {
@@ -66,7 +70,7 @@ func main() {
 	cpFunc := func() (context.Context, context.CancelFunc) {
 		return ctx, cancel
 	}
-	engine := rules.NewV3Engine(cfg, logger, rules.EngineContextProvider(cpFunc), rules.EngineMetricsCollector(mFunc), rules.EngineSyncInterval(10))
+	engine := rules.NewV3Engine(cfg, logger, rules.EngineContextProvider(cpFunc), rules.EngineMetricsCollector(mFunc), rules.EngineSyncInterval(300))
 	mw := &rules.MockWatcherWrapper{
 		Logger:    logger,
 		Responses: []clientv3.WatchResponse{},
@@ -81,39 +85,46 @@ func main() {
 	preReq = rules.NewAndRule(preReq, block)
 	ps := map[string]*polled{}
 	done := make(chan *polled)
-	for i := 0; i < idCount; i++ {
-		id := fmt.Sprint(i)
-		_, err := kv.Put(context.Background(), "/rulesEngine/data/"+id, "0")
-		check(err)
-		p := polled{ID: id}
-		ps[id] = &p
-	}
 	err = engine.AddPolling("/rulesEnginePolling/:id", preReq, 2, func(task *rules.V3RuleTask) {
+		task.Logger.Info("Callback called")
 		p := ps[*task.Attr.GetAttribute("id")]
+		pPollCount := atomic.LoadInt32(&p.pollCount)
 		path := task.Attr.Format(dataPath)
 		task.Logger.Info("polling", zap.String("id", p.ID), zap.String("path", path))
 		resp, err := kv.Get(task.Context, path) //keysAPI.Get(task.Context, path, nil)
 		check(err)
 		value := string(resp.Kvs[0].Value)
-		task.Logger.Info("Compare pollcount", zap.String("id", p.ID), zap.String("etcd", value), zap.Int("local", p.pollCount))
-		if value != fmt.Sprint(p.pollCount) {
+		task.Logger.Info("Compare pollcount", zap.String("id", p.ID), zap.String("etcd", value), zap.Int32("local", pPollCount))
+		if value != fmt.Sprint(pPollCount) {
 			panic("Poll count does not match!")
 		}
-		if p.pollCount == pollCount {
+		if pPollCount == pollCount {
 			_, err = kv.Put(task.Context, task.Attr.Format(blockPath), "done")
 			check(err)
 			done <- p
 			return
 		}
-		if p.pollCount > pollCount {
+		if pPollCount > pollCount {
 			panic("Poll count higher than max!")
 		}
-		p.pollCount++
-		_, err = kv.Put(task.Context, path, fmt.Sprint(p.pollCount))
+		atomic.AddInt32(&p.pollCount, 1)
+		_, err = kv.Put(task.Context, path, fmt.Sprint(atomic.LoadInt32(&p.pollCount)))
 		check(err)
 	})
 	check(err)
+	for i := 0; i < idCount; i++ {
+		id := fmt.Sprint(i)
+		p := polled{ID: id}
+		ps[id] = &p
+	}
 	engine.Run()
+	time.Sleep(time.Second)
+	for i := 0; i < idCount; i++ {
+		id := fmt.Sprint(i)
+		_, err := kv.Put(context.Background(), "/rulesEngine/data/"+id, "0")
+		check(err)
+	}
+
 	for i := 0; i < idCount; i++ {
 		p := <-done
 		logger.Info("Done", zap.String("ID", p.ID))

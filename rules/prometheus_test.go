@@ -1,13 +1,14 @@
 package rules
 
 import (
-	"github.com/gorilla/mux"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"github.com/stretchr/testify/assert"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 	"time"
+
+	"github.com/gorilla/mux"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/stretchr/testify/assert"
 )
 
 var (
@@ -70,4 +71,9 @@ func TestWorkBufferWaitTime(t *testing.T) {
 func TestCallbackWaitTime(t *testing.T) {
 	callbackWaitTime("/desired/key/pattern", time.Now())
 	checkMetrics(t, `rules_etcd_callback_wait_ms_count{pattern="/desired/key/pattern"} 1`)
+}
+
+func Test_keyProcessBufferCap(t *testing.T) {
+	keyProcessBufferCap(100)
+	checkMetrics(t, `rules_etcd_key_process_buffer_cap 100`)
 }

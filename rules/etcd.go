@@ -2,36 +2,22 @@ package rules
 
 import (
 	"errors"
-	"go.etcd.io/etcd/mvcc/mvccpb"
 	"time"
+
+	"go.etcd.io/etcd/mvcc/mvccpb"
 
 	"go.etcd.io/etcd/clientv3"
 	"golang.org/x/net/context"
 )
 
-type baseReadAPI struct {
-	cancelFunc context.CancelFunc
-}
-
-func (bra *baseReadAPI) getContext() context.Context {
-	var ctx context.Context
-	ctx, bra.cancelFunc = context.WithTimeout(context.Background(), time.Duration(60)*time.Second)
-	ctx = SetMethod(ctx, "rule_eval")
-	return ctx
-}
-
-func (bra *baseReadAPI) cancel() {
-	bra.cancelFunc()
-}
-
 type etcdV3ReadAPI struct {
-	baseReadAPI
 	kV clientv3.KV
 }
 
 func (edv3ra *etcdV3ReadAPI) get(key string) (*string, error) {
-	ctx := edv3ra.baseReadAPI.getContext()
-	defer edv3ra.cancel()
+	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+	defer cancel()
+	ctx = SetMethod(ctx, "rule_eval")
 	resp, err := edv3ra.kV.Get(ctx, key)
 	if err != nil {
 		return nil, err
