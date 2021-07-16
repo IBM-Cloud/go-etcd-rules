@@ -30,10 +30,8 @@ func TestV3EtcdReadAPI(t *testing.T) {
 
 	val, err := api.get("/test0")
 	assert.NoError(t, err)
-	assert.NotNil(t, val)
-	if val != nil {
-		assert.Equal(t, "value", *val)
-	}
+	_ = assert.NotNil(t, val) && assert.Equal(t, "value", *val)
+
 	val, err = api.get("/test1")
 	assert.NoError(t, err)
 	assert.Nil(t, val)
@@ -60,10 +58,7 @@ func checkWatcher1(done chan bool, t *testing.T, watcher keyWatcher) {
 	key, value, err := watcher.next()
 	assert.NoError(t, err)
 	assert.Equal(t, "/pre/test", key)
-	assert.NotNil(t, value)
-	if value != nil {
-		assert.Equal(t, "value", *value)
-	}
+	_ = assert.NotNil(t, value) && assert.Equal(t, "value", *value)
 	done <- true
 }
 
@@ -96,8 +91,7 @@ func checkWatcher3(done chan bool, t *testing.T, watcher keyWatcher) {
 		key, value, err := watcher.next()
 		assert.NoError(t, err)
 		assert.Equal(t, "/pre/test", key)
-		assert.NotNil(t, value)
-		assert.Equal(t, "value", *value)
+		_ = assert.NotNil(t, value) && assert.Equal(t, "value", *value)
 	}
 	_, _, err := watcher.next()
 	assert.EqualError(t, err, "Watcher closing")

@@ -2,6 +2,7 @@ package rules
 
 import (
 	"errors"
+	"sync"
 	"time"
 
 	"go.etcd.io/etcd/mvcc/mvccpb"
@@ -38,11 +39,12 @@ func newEtcdV3KeyWatcher(watcher clientv3.Watcher, prefix string, timeout time.D
 	ctx, cancel := context.WithCancel(context.Background())
 	kw := etcdV3KeyWatcher{
 		baseKeyWatcher: baseKeyWatcher{
-			prefix:     prefix,
-			timeout:    timeout,
-			ctx:        ctx,
-			cancelFunc: cancel,
-			metrics:    metrics,
+			prefix:      prefix,
+			timeout:     timeout,
+			ctx:         ctx,
+			cancelFunc:  cancel,
+			cancelMutex: sync.Mutex{},
+			metrics:     metrics,
 		},
 		w:      watcher,
 		stopCh: make(chan bool),
@@ -52,11 +54,12 @@ func newEtcdV3KeyWatcher(watcher clientv3.Watcher, prefix string, timeout time.D
 }
 
 type baseKeyWatcher struct {
-	ctx        context.Context
-	cancelFunc context.CancelFunc
-	prefix     string
-	timeout    time.Duration
-	metrics    AdvancedMetricsCollector
+	ctx         context.Context
+	cancelFunc  context.CancelFunc
+	cancelMutex sync.Mutex
+	prefix      string
+	timeout     time.Duration
+	metrics     AdvancedMetricsCollector
 }
 
 type etcdV3KeyWatcher struct {
@@ -71,6 +74,17 @@ func (ev3kw *etcdV3KeyWatcher) cancel() {
 	ev3kw.stopCh <- true
 }
 
+func (ev3kw *etcdV3KeyWatcher) reset() {
+	ev3kw.cancelMutex.Lock()
+	defer ev3kw.cancelMutex.Unlock()
+
+	// Cancel existing watcher channel to release resources
+	ev3kw.cancelFunc()
+	// Force a new watcher channel to be created with new context
+	ev3kw.ch = nil
+	ev3kw.ctx, ev3kw.cancelFunc = context.WithCancel(context.Background())
+}
+
 func (ev3kw *etcdV3KeyWatcher) next() (string, *string, error) {
 	if ev3kw.ch == nil {
 		ev3kw.ch = ev3kw.w.Watch(ev3kw.ctx, ev3kw.prefix, clientv3.WithPrefix())
@@ -78,7 +92,7 @@ func (ev3kw *etcdV3KeyWatcher) next() (string, *string, error) {
 	if ev3kw.events == nil || len(ev3kw.events) == 0 {
 		select {
 		case <-ev3kw.stopCh:
-			ev3kw.cancelFunc()
+			ev3kw.reset()
 			err := ev3kw.w.Close()
 			if err == nil {
 				err = errors.New("Watcher closing")
@@ -99,14 +113,14 @@ func (ev3kw *etcdV3KeyWatcher) next() (string, *string, error) {
 				err = wr.Err()
 			}
 			if err != nil {
-				ev3kw.ch = nil
+				ev3kw.reset()
 				return "", nil, err
 			}
 			ev3kw.events = wr.Events
 		}
 	}
 	if ev3kw.events == nil || len(ev3kw.events) == 0 {
-		ev3kw.ch = nil
+		ev3kw.reset()
 		return "", nil, errors.New("No events received from watcher channel; instantiating new channel")
 	}
 
