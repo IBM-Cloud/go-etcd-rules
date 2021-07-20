@@ -80,6 +80,7 @@ type intCrawler struct {
 	stopping     uint32
 	// tracks the number of times a rule is processed in a single run
 	rulesProcessedCount map[string]int
+	metricMutex         sync.Mutex
 }
 
 func (ic *intCrawler) isStopping() bool {
@@ -159,6 +160,8 @@ func (ic *intCrawler) singleRun(logger *zap.Logger) {
 		}
 	}
 	ic.processData(values, logger)
+	ic.metricMutex.Lock()
+	defer ic.metricMutex.Unlock()
 	for ruleID, count := range ic.rulesProcessedCount {
 		timesEvaluated(crawlerMethodName, ruleID, count)
 		ic.metrics.TimesEvaluated(crawlerMethodName, ruleID, count)
@@ -181,5 +184,7 @@ func (ic *intCrawler) processData(values map[string]string, logger *zap.Logger) 
 }
 
 func (ic *intCrawler) incRuleProcessedCount(ruleID string) {
+	ic.metricMutex.Lock()
+	defer ic.metricMutex.Unlock()
 	ic.rulesProcessedCount[ruleID] = ic.rulesProcessedCount[ruleID] + 1
 }
