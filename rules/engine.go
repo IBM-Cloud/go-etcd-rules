@@ -28,7 +28,6 @@ type BaseEngine interface {
 }
 
 type baseEngine struct {
-	cCloser      channelCloser
 	keyProc      setableKeyProcessor
 	metrics      AdvancedMetricsCollector
 	logger       *zap.Logger
@@ -40,8 +39,6 @@ type baseEngine struct {
 	watchers     []stoppable
 	workers      []stoppable
 }
-
-type channelCloser func()
 
 type v3Engine struct {
 	baseEngine
@@ -99,9 +96,6 @@ func newV3Engine(logger *zap.Logger, cl *clientv3.Client, options ...EngineOptio
 
 	eng := v3Engine{
 		baseEngine: baseEngine{
-			cCloser: func() {
-				close(channel)
-			},
 			keyProc:      &keyProc,
 			metrics:      metrics,
 			logger:       logger,
@@ -167,11 +161,10 @@ func (e *baseEngine) stop() {
 	for _, worker := range e.workers {
 		worker.stop()
 	}
-	e.logger.Debug("Closing work channel")
-	e.cCloser()
 	// Ensure workers are stopped; the "stop" method is called again, but
 	// that is idempotent.  The workers' "stop" method must be called before
 	// the channel is closed in order to avoid nil pointer dereference panics.
+	e.logger.Debug("Stopping workers")
 	stopstoppables(e.workers)
 	atomicSet(&e.stopped, true)
 	e.logger.Info("Engine stopped")

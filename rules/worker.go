@@ -14,6 +14,7 @@ type baseWorker struct {
 	workerID string
 	stopping uint32
 	stopped  uint32
+	done     chan bool
 }
 
 type v3Worker struct {
@@ -36,6 +37,7 @@ func newV3Worker(workerID string, engine *v3Engine) (v3Worker, error) {
 			locker:   locker,
 			metrics:  engine.metrics,
 			workerID: workerID,
+			done:     make(chan bool, 1),
 		},
 		engine: engine,
 	}
@@ -54,6 +56,7 @@ type workCallback func()
 
 func (bw *baseWorker) stop() {
 	atomicSet(&bw.stopping, true)
+	bw.done <- true
 }
 
 func (bw *baseWorker) isStopped() bool {
@@ -112,8 +115,14 @@ func (bw *baseWorker) addWorkerID(ruleContext map[string]string) {
 }
 
 func (w *v3Worker) singleRun() {
-	work := <-w.engine.workChannel
-	task := work.ruleTask
+	var work v3RuleWork
+	var task V3RuleTask
+	select {
+	case <-w.done:
+		return
+	case work = <-w.engine.workChannel:
+		task = work.ruleTask
+	}
 	if is(&w.stopping) {
 		return
 	}
