@@ -161,10 +161,10 @@ func (e *baseEngine) stop() {
 	for _, worker := range e.workers {
 		worker.stop()
 	}
-	e.logger.Debug("Closing work channel")
 	// Ensure workers are stopped; the "stop" method is called again, but
 	// that is idempotent.  The workers' "stop" method must be called before
 	// the channel is closed in order to avoid nil pointer dereference panics.
+	e.logger.Debug("Stopping workers")
 	stopstoppables(e.workers)
 	atomicSet(&e.stopped, true)
 	e.logger.Info("Engine stopped")
