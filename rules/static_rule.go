@@ -95,10 +95,6 @@ func newCompareLiteralRuleFactory(comparator func(*string) bool, stringTemplate 
 }
 
 func (elrf *compareLiteralRuleFactory) newRule(keys []string, attr Attributes) staticRule {
-	// value := "<nil>"
-	// if elrf.value != nil {
-	// 	value = *elrf.value
-	// }
 	br := baseRule{
 		attr: attr,
 	}
