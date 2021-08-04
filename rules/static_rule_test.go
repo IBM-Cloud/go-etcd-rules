@@ -90,6 +90,10 @@ func TestCompareLiteralEquals(t *testing.T) {
 	result := rule.satisfiable("/prefix/mykey", &queryValue)
 	assert.True(t, result)
 	verifyTestAttributes(t, rule)
+	assert.Equal(t, "/prefix/mykey = val1", rule.String())
+	factory = newCompareLiteralRuleFactory(nil)
+	rule = factory.newRule([]string{"/prefix/mykey"}, getTestAttributes())
+	assert.Equal(t, "/prefix/mykey = <nil>", rule.String())
 }
 
 func TestCompareLiteralError(t *testing.T) {
@@ -104,10 +108,12 @@ func TestCompareLiteralEqualsNil(t *testing.T) {
 	rule := compareLiteralRule{
 		key: "/prefix/mykey",
 		//value: nil,
-		comparator: newEqualsComparator(nil),
+		comparator:     newEqualsComparator(nil),
+		stringTemplate: "%s = <nil>",
 	}
 	result := rule.satisfiable("/prefix/mykey", nil)
 	assert.True(t, result)
+	assert.Equal(t, "/prefix/mykey = val1", rule.String())
 }
 
 func TestCompareLiteralKeyMismatch(t *testing.T) {
