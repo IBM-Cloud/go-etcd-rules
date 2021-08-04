@@ -84,21 +84,21 @@ func verifyTestAttributes(t *testing.T, rule staticRule) {
 
 func TestCompareLiteralEquals(t *testing.T) {
 	ruleValue := "val1"
-	factory := newCompareLiteralRuleFactory(&ruleValue)
+	factory := newCompareLiteralRuleFactory(newEqualsComparator(&ruleValue), "=", "val1")
 	rule := factory.newRule([]string{"/prefix/mykey"}, getTestAttributes())
 	queryValue := "val1"
 	result := rule.satisfiable("/prefix/mykey", &queryValue)
 	assert.True(t, result)
 	verifyTestAttributes(t, rule)
 	assert.Equal(t, "/prefix/mykey = val1", rule.String())
-	factory = newCompareLiteralRuleFactory(nil)
+	factory = newCompareLiteralRuleFactory(newEqualsComparator(nil), "=", "<nil>")
 	rule = factory.newRule([]string{"/prefix/mykey"}, getTestAttributes())
 	assert.Equal(t, "/prefix/mykey = <nil>", rule.String())
 }
 
 func TestCompareLiteralError(t *testing.T) {
 	ruleValue := "val1"
-	factory := newCompareLiteralRuleFactory(&ruleValue)
+	factory := newCompareLiteralRuleFactory(newEqualsComparator(&ruleValue), "=", "val1")
 	rule := factory.newRule([]string{"/prefix/mykey"}, getTestAttributes())
 	_, err := rule.satisfied(&errorAPI)
 	assert.Equal(t, errAPI, err)
@@ -113,7 +113,7 @@ func TestCompareLiteralEqualsNil(t *testing.T) {
 	}
 	result := rule.satisfiable("/prefix/mykey", nil)
 	assert.True(t, result)
-	assert.Equal(t, "/prefix/mykey = val1", rule.String())
+	assert.Equal(t, "/prefix/mykey = <nil>", rule.String())
 }
 
 func TestCompareLiteralKeyMismatch(t *testing.T) {
@@ -143,8 +143,7 @@ func TestCompareLiteralOnlyRuleNil(t *testing.T) {
 func TestCompareLiteralOnlyQueryNil(t *testing.T) {
 	ruleValue := "val1"
 	rule := compareLiteralRule{
-		key: "/prefix/mykey",
-		//value: &ruleValue,
+		key:        "/prefix/mykey",
 		comparator: newEqualsComparator(&ruleValue),
 	}
 	result := rule.satisfiable("/prefix/mykey", nil)
@@ -154,7 +153,7 @@ func TestCompareLiteralOnlyQueryNil(t *testing.T) {
 func TestCompareLiteralFactory(t *testing.T) {
 	value := "val1"
 	factory := compareLiteralRuleFactory{
-		value: &value,
+		comparator: newEqualsComparator(&value),
 	}
 	attr := mapAttributes{
 		values: make(map[string]string),

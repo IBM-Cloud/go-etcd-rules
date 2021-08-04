@@ -66,7 +66,10 @@ type compareLiteralRule struct {
 }
 
 type compareLiteralRuleFactory struct {
-	value *string
+	comparator func(*string) bool
+	// This is used to render the output of the String() method,
+	// where the placeholder is for the etcd key.
+	stringTemplate string
 }
 
 func newEqualsComparator(value *string) func(*string) bool {
@@ -78,26 +81,34 @@ func newEqualsComparator(value *string) func(*string) bool {
 	}
 }
 
-func newCompareLiteralRuleFactory(value *string) ruleFactory {
+// When comparator returns true for a given string pointer value, the rule is satisfied.
+// The operator and template string are used to render the output of the String() method
+// of the rule.
+// The operator is a string representation of the comparison being done, for instance "=",
+// ">", ">=", etc.
+// The templateString is the value against which an etcd value is being compared.
+func newCompareLiteralRuleFactory(comparator func(*string) bool, operator, templateString string) ruleFactory {
+	stringTemplate := fmt.Sprintf("%s %s %s", "%s", operator, templateString)
 	factory := compareLiteralRuleFactory{
-		value: value,
+		comparator:     comparator,
+		stringTemplate: stringTemplate,
 	}
 	return &factory
 }
 
 func (elrf *compareLiteralRuleFactory) newRule(keys []string, attr Attributes) staticRule {
-	value := "<nil>"
-	if elrf.value != nil {
-		value = *elrf.value
-	}
+	// value := "<nil>"
+	// if elrf.value != nil {
+	// 	value = *elrf.value
+	// }
 	br := baseRule{
 		attr: attr,
 	}
 	r := compareLiteralRule{
 		baseRule:       br,
 		key:            keys[0],
-		comparator:     newEqualsComparator(elrf.value),
-		stringTemplate: fmt.Sprintf("%s = %s", "%s", value),
+		comparator:     elrf.comparator,     //newEqualsComparator(elrf.value),
+		stringTemplate: elrf.stringTemplate, //fmt.Sprintf("%s = %s", "%s", value),
 	}
 	return &r
 }
