@@ -84,21 +84,21 @@ func verifyTestAttributes(t *testing.T, rule staticRule) {
 
 func TestCompareLiteralEquals(t *testing.T) {
 	ruleValue := "val1"
-	factory := newCompareLiteralRuleFactory(newEqualsComparator(&ruleValue), "=", "val1")
+	factory := newCompareLiteralRuleFactory(newEqualsComparator(&ruleValue), "%s = val1")
 	rule := factory.newRule([]string{"/prefix/mykey"}, getTestAttributes())
 	queryValue := "val1"
 	result := rule.satisfiable("/prefix/mykey", &queryValue)
 	assert.True(t, result)
 	verifyTestAttributes(t, rule)
 	assert.Equal(t, "/prefix/mykey = val1", rule.String())
-	factory = newCompareLiteralRuleFactory(newEqualsComparator(nil), "=", "<nil>")
+	factory = newCompareLiteralRuleFactory(newEqualsComparator(nil), "%s = <nil>")
 	rule = factory.newRule([]string{"/prefix/mykey"}, getTestAttributes())
 	assert.Equal(t, "/prefix/mykey = <nil>", rule.String())
 }
 
 func TestCompareLiteralError(t *testing.T) {
 	ruleValue := "val1"
-	factory := newCompareLiteralRuleFactory(newEqualsComparator(&ruleValue), "=", "val1")
+	factory := newCompareLiteralRuleFactory(newEqualsComparator(&ruleValue), "%s = val1")
 	rule := factory.newRule([]string{"/prefix/mykey"}, getTestAttributes())
 	_, err := rule.satisfied(&errorAPI)
 	assert.Equal(t, errAPI, err)
@@ -106,8 +106,7 @@ func TestCompareLiteralError(t *testing.T) {
 
 func TestCompareLiteralEqualsNil(t *testing.T) {
 	rule := compareLiteralRule{
-		key: "/prefix/mykey",
-		//value: nil,
+		key:            "/prefix/mykey",
 		comparator:     newEqualsComparator(nil),
 		stringTemplate: "%s = <nil>",
 	}
@@ -120,8 +119,7 @@ func TestCompareLiteralKeyMismatch(t *testing.T) {
 	ruleValue := "val1"
 	queryValue := "val1"
 	rule := compareLiteralRule{
-		key: "/prefix/mykey1",
-		//value: &ruleValue,
+		key:        "/prefix/mykey1",
 		comparator: newEqualsComparator(&ruleValue),
 	}
 	result := rule.satisfiable("/prefix/mykey2", &queryValue)

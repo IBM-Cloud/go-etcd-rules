@@ -82,13 +82,11 @@ func newEqualsComparator(value *string) func(*string) bool {
 }
 
 // When comparator returns true for a given string pointer value, the rule is satisfied.
-// The operator and template string are used to render the output of the String() method
-// of the rule.
-// The operator is a string representation of the comparison being done, for instance "=",
-// ">", ">=", etc.
-// The templateString is the value against which an etcd value is being compared.
-func newCompareLiteralRuleFactory(comparator func(*string) bool, operator, templateString string) ruleFactory {
-	stringTemplate := fmt.Sprintf("%s %s %s", "%s", operator, templateString)
+// The string template value is used to render the output of the String() method, where the
+// placeholder is the etcd key.  An example:
+// %s = "value"
+// This can help with debugging rules.
+func newCompareLiteralRuleFactory(comparator func(*string) bool, stringTemplate string) ruleFactory {
 	factory := compareLiteralRuleFactory{
 		comparator:     comparator,
 		stringTemplate: stringTemplate,
