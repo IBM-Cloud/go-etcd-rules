@@ -58,81 +58,82 @@ func (br *baseRule) getAttributes() Attributes {
 	return br.attr
 }
 
-type equalsLiteralRule struct {
+type compareLiteralRule struct {
 	baseRule
-	key   string
-	value *string
+	key            string
+	comparator     func(*string) bool
+	stringTemplate string
 }
 
-type equalsLiteralRuleFactory struct {
-	value *string
+type compareLiteralRuleFactory struct {
+	comparator func(*string) bool
+	// This is used to render the output of the String() method,
+	// where the placeholder is for the etcd key.
+	stringTemplate string
 }
 
-func newEqualsLiteralRuleFactory(value *string) ruleFactory {
-	factory := equalsLiteralRuleFactory{
-		value: value,
+func newEqualsComparator(value *string) func(*string) bool {
+	return func(comparedValue *string) bool {
+		if value == nil {
+			return comparedValue == nil
+		}
+		return comparedValue != nil && *comparedValue == *value
+	}
+}
+
+// When comparator returns true for a given string pointer value, the rule is satisfied.
+// The string template value is used to render the output of the String() method, where the
+// placeholder is the etcd key.  An example:
+// %s = "value"
+// This can help with debugging rules.
+func newCompareLiteralRuleFactory(comparator func(*string) bool, stringTemplate string) ruleFactory {
+	factory := compareLiteralRuleFactory{
+		comparator:     comparator,
+		stringTemplate: stringTemplate,
 	}
 	return &factory
 }
 
-func (elrf *equalsLiteralRuleFactory) newRule(keys []string, attr Attributes) staticRule {
+func (elrf *compareLiteralRuleFactory) newRule(keys []string, attr Attributes) staticRule {
 	br := baseRule{
 		attr: attr,
 	}
-	r := equalsLiteralRule{
-		baseRule: br,
-		key:      keys[0],
-		value:    elrf.value,
+	r := compareLiteralRule{
+		baseRule:       br,
+		key:            keys[0],
+		comparator:     elrf.comparator,
+		stringTemplate: elrf.stringTemplate,
 	}
 	return &r
 }
 
-func (elr *equalsLiteralRule) String() string {
-	value := "<nil>"
-	if elr.value != nil {
-		value = *elr.value
-	}
-	return fmt.Sprintf("%s = %s", elr.key, value)
+func (elr *compareLiteralRule) String() string {
+	return fmt.Sprintf(elr.stringTemplate, elr.key)
 }
 
-func (elr *equalsLiteralRule) satisfiable(key string, value *string) bool {
+func (elr *compareLiteralRule) satisfiable(key string, value *string) bool {
 	return key == elr.key
 }
 
-func (elr *equalsLiteralRule) qSatisfiable(key string, value *string) quadState {
+func (elr *compareLiteralRule) qSatisfiable(key string, value *string) quadState {
 	if key != elr.key {
 		return qNone
 	}
-	if value == nil {
-		if elr.value == nil {
-			return qTrue
-		}
-		return qFalse
-	}
-	if elr.value == nil {
-		return qFalse
-	}
-	if *elr.value == *value {
+	if elr.comparator(value) {
 		return qTrue
 	}
 	return qFalse
 }
 
-func (elr *equalsLiteralRule) satisfied(api readAPI) (bool, error) {
+func (elr *compareLiteralRule) satisfied(api readAPI) (bool, error) {
 	value, err := api.get(elr.key)
 	if err != nil {
 		return false, err
 	}
-	if value == nil {
-		return elr.value == nil, nil
-	}
-	if elr.value == nil {
-		return false, nil
-	}
-	return *value == *elr.value, nil
+	return elr.comparator(value), nil
 }
 
-func (elr *equalsLiteralRule) keyMatch(key string) bool {
+func (elr *compareLiteralRule) keyMatch(key string) bool {
 	return elr.key == key
 }
 

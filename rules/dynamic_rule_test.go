@@ -22,6 +22,13 @@ func (a attributeInstance) String() string {
 	return fmt.Sprintf("key: %s value: %s", a.key, value)
 }
 
+func Test_NewCompareLiteralRule(t *testing.T) {
+	// The remaining constructor logic is tested via
+	// NewEqualsLiteralRule
+	_, err := NewCompareLiteralRule("pattern", nil, "")
+	assert.EqualError(t, err, "Comparator cannot be nil")
+}
+
 func TestEqualsLiteralRule(t *testing.T) {
 	r, err := NewEqualsLiteralRule("/:region/actual/clusters/:clusterid/workers/:workerid", nil)
 	assert.NoError(t, err)

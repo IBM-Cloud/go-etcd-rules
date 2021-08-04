@@ -246,12 +246,28 @@ func (krp *dynamicRule) staticRuleFromAttributes(attr Attributes) (staticRule, b
 // value of a node whose key matches the provided key pattern. A nil value indicates that
 // there is no node with the given key.
 func NewEqualsLiteralRule(pattern string, value *string) (DynamicRule, error) {
-	f := newEqualsLiteralRuleFactory(value)
 	valString := "<nil>"
 	if value != nil {
 		valString = `"` + *value + `"`
 	}
-	return newDynamicRule(f, []string{pattern}, pattern+" = "+valString)
+	return NewCompareLiteralRule(pattern, newEqualsComparator(value), fmt.Sprintf("%s %s %s", "%s", "=", valString))
+}
+
+// NewCompareLiteralRule creates a rule that allows arbitrary comparisons to be performed
+// against values in etcd.
+// When comparator returns true for a given string pointer value, the rule is satisfied.
+// DO NOT retrieve values from etcd in the function body, since that will bypass the caching
+// functionality and put excess load on etcd.
+// The string template value is used to render the output of the String() method, with a single
+// string placeholder that is the etcd key or key pattern.  An example:
+// %s = "value"
+// This can help with debugging rules.
+func NewCompareLiteralRule(pattern string, comparator func(*string) bool, renderTemplate string) (DynamicRule, error) {
+	if comparator == nil {
+		return nil, errors.New("Comparator cannot be nil")
+	}
+	f := newCompareLiteralRuleFactory(comparator, renderTemplate)
+	return newDynamicRule(f, []string{pattern}, fmt.Sprintf(renderTemplate, pattern))
 }
 
 type compoundDynamicRule struct {
