@@ -23,6 +23,8 @@ func (a attributeInstance) String() string {
 }
 
 func Test_NewCompareLiteralRule(t *testing.T) {
+	// The remaining constructor logic is tested via
+	// NewEqualsLiteralRule
 	_, err := NewCompareLiteralRule("pattern", nil, "")
 	assert.EqualError(t, err, "Comparator cannot be nil")
 }

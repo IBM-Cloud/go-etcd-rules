@@ -256,6 +256,8 @@ func NewEqualsLiteralRule(pattern string, value *string) (DynamicRule, error) {
 // NewCompareLiteralRule creates a rule that allows arbitrary comparisons to be performed
 // against values in etcd.
 // When comparator returns true for a given string pointer value, the rule is satisfied.
+// DO NOT retrieve values from etcd in the function body, since that will bypass the caching
+// functionality and put excess load on etcd.
 // The string template value is used to render the output of the String() method, with a single
 // string placeholder that is the etcd key or key pattern.  An example:
 // %s = "value"
