@@ -60,12 +60,23 @@ func (br *baseRule) getAttributes() Attributes {
 
 type compareLiteralRule struct {
 	baseRule
-	key   string
-	value *string
+	key string
+	// value *string
+	comparator     func(*string) bool
+	stringTemplate string
 }
 
 type compareLiteralRuleFactory struct {
 	value *string
+}
+
+func newEqualsComparator(value *string) func(*string) bool {
+	return func(comparedValue *string) bool {
+		if value == nil {
+			return comparedValue == nil
+		}
+		return comparedValue != nil && *comparedValue == *value
+	}
 }
 
 func newCompareLiteralRuleFactory(value *string) ruleFactory {
@@ -76,23 +87,29 @@ func newCompareLiteralRuleFactory(value *string) ruleFactory {
 }
 
 func (elrf *compareLiteralRuleFactory) newRule(keys []string, attr Attributes) staticRule {
+	value := "<nil>"
+	if elrf.value != nil {
+		value = *elrf.value
+	}
 	br := baseRule{
 		attr: attr,
 	}
 	r := compareLiteralRule{
 		baseRule: br,
 		key:      keys[0],
-		value:    elrf.value,
+		// value:    elrf.value,
+		comparator:     newEqualsComparator(elrf.value),
+		stringTemplate: fmt.Sprintf("%s = %s", "%s", value),
 	}
 	return &r
 }
 
 func (elr *compareLiteralRule) String() string {
-	value := "<nil>"
-	if elr.value != nil {
-		value = *elr.value
-	}
-	return fmt.Sprintf("%s = %s", elr.key, value)
+	// value := "<nil>"
+	// if elr.value != nil {
+	// 	value = *elr.value
+	// }
+	return fmt.Sprintf(elr.stringTemplate, elr.key)
 }
 
 func (elr *compareLiteralRule) satisfiable(key string, value *string) bool {
@@ -103,18 +120,21 @@ func (elr *compareLiteralRule) qSatisfiable(key string, value *string) quadState
 	if key != elr.key {
 		return qNone
 	}
-	if value == nil {
-		if elr.value == nil {
-			return qTrue
-		}
-		return qFalse
-	}
-	if elr.value == nil {
-		return qFalse
-	}
-	if *elr.value == *value {
+	if elr.comparator(value) {
 		return qTrue
 	}
+	// if value == nil {
+	// 	if elr.value == nil {
+	// 		return qTrue
+	// 	}
+	// 	return qFalse
+	// }
+	// if elr.value == nil {
+	// 	return qFalse
+	// }
+	// if *elr.value == *value {
+	// 	return qTrue
+	// }
 	return qFalse
 }
 
@@ -123,13 +143,14 @@ func (elr *compareLiteralRule) satisfied(api readAPI) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	if value == nil {
-		return elr.value == nil, nil
-	}
-	if elr.value == nil {
-		return false, nil
-	}
-	return *value == *elr.value, nil
+	// if value == nil {
+	// 	return elr.value == nil, nil
+	// }
+	// if elr.value == nil {
+	// 	return false, nil
+	// }
+	// return *value == *elr.value, nil
+	return elr.comparator(value), nil
 }
 
 func (elr *compareLiteralRule) keyMatch(key string) bool {
