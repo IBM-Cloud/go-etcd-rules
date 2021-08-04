@@ -82,9 +82,9 @@ func verifyTestAttributes(t *testing.T, rule staticRule) {
 	assert.Equal(t, "testvalue", *attr.GetAttribute("testkey"))
 }
 
-func TestEqualsLiteralEquals(t *testing.T) {
+func TestCompareLiteralEquals(t *testing.T) {
 	ruleValue := "val1"
-	factory := newEqualsLiteralRuleFactory(&ruleValue)
+	factory := newCompareLiteralRuleFactory(&ruleValue)
 	rule := factory.newRule([]string{"/prefix/mykey"}, getTestAttributes())
 	queryValue := "val1"
 	result := rule.satisfiable("/prefix/mykey", &queryValue)
@@ -92,15 +92,15 @@ func TestEqualsLiteralEquals(t *testing.T) {
 	verifyTestAttributes(t, rule)
 }
 
-func TestEqualsLiteralError(t *testing.T) {
+func TestCompareLiteralError(t *testing.T) {
 	ruleValue := "val1"
-	factory := newEqualsLiteralRuleFactory(&ruleValue)
+	factory := newCompareLiteralRuleFactory(&ruleValue)
 	rule := factory.newRule([]string{"/prefix/mykey"}, getTestAttributes())
 	_, err := rule.satisfied(&errorAPI)
 	assert.Equal(t, errAPI, err)
 }
 
-func TestEqualsLiteralEqualsNil(t *testing.T) {
+func TestCompareLiteralEqualsNil(t *testing.T) {
 	rule := compareLiteralRule{
 		key:   "/prefix/mykey",
 		value: nil,
@@ -109,7 +109,7 @@ func TestEqualsLiteralEqualsNil(t *testing.T) {
 	assert.True(t, result)
 }
 
-func TestEqualsLiteralKeyMismatch(t *testing.T) {
+func TestCompareLiteralKeyMismatch(t *testing.T) {
 	ruleValue := "val1"
 	queryValue := "val1"
 	rule := compareLiteralRule{
@@ -121,7 +121,7 @@ func TestEqualsLiteralKeyMismatch(t *testing.T) {
 	assert.False(t, rule.keyMatch("val2"))
 }
 
-func TestEqualsLiteralOnlyRuleNil(t *testing.T) {
+func TestCompareLiteralOnlyRuleNil(t *testing.T) {
 	queryValue := "val1"
 	rule := compareLiteralRule{
 		key:   "/prefix/mykey",
@@ -131,7 +131,7 @@ func TestEqualsLiteralOnlyRuleNil(t *testing.T) {
 	assert.True(t, result)
 }
 
-func TestEqualsLiteralOnlyQueryNil(t *testing.T) {
+func TestCompareLiteralOnlyQueryNil(t *testing.T) {
 	ruleValue := "val1"
 	rule := compareLiteralRule{
 		key:   "/prefix/mykey",
@@ -141,9 +141,9 @@ func TestEqualsLiteralOnlyQueryNil(t *testing.T) {
 	assert.True(t, result)
 }
 
-func TestEqualsLiteralFactory(t *testing.T) {
+func TestCompareLiteralFactory(t *testing.T) {
 	value := "val1"
-	factory := equalsLiteralRuleFactory{
+	factory := compareLiteralRuleFactory{
 		value: &value,
 	}
 	attr := mapAttributes{

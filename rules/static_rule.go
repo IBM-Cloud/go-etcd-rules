@@ -64,18 +64,18 @@ type compareLiteralRule struct {
 	value *string
 }
 
-type equalsLiteralRuleFactory struct {
+type compareLiteralRuleFactory struct {
 	value *string
 }
 
-func newEqualsLiteralRuleFactory(value *string) ruleFactory {
-	factory := equalsLiteralRuleFactory{
+func newCompareLiteralRuleFactory(value *string) ruleFactory {
+	factory := compareLiteralRuleFactory{
 		value: value,
 	}
 	return &factory
 }
 
-func (elrf *equalsLiteralRuleFactory) newRule(keys []string, attr Attributes) staticRule {
+func (elrf *compareLiteralRuleFactory) newRule(keys []string, attr Attributes) staticRule {
 	br := baseRule{
 		attr: attr,
 	}

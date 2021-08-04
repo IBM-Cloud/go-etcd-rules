@@ -246,7 +246,7 @@ func (krp *dynamicRule) staticRuleFromAttributes(attr Attributes) (staticRule, b
 // value of a node whose key matches the provided key pattern. A nil value indicates that
 // there is no node with the given key.
 func NewEqualsLiteralRule(pattern string, value *string) (DynamicRule, error) {
-	f := newEqualsLiteralRuleFactory(value)
+	f := newCompareLiteralRuleFactory(value)
 	valString := "<nil>"
 	if value != nil {
 		valString = `"` + *value + `"`
