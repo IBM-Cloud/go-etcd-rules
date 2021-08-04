@@ -130,8 +130,7 @@ func TestCompareLiteralKeyMismatch(t *testing.T) {
 func TestCompareLiteralOnlyRuleNil(t *testing.T) {
 	queryValue := "val1"
 	rule := compareLiteralRule{
-		key: "/prefix/mykey",
-		//value: nil,
+		key:        "/prefix/mykey",
 		comparator: newEqualsComparator(nil),
 	}
 	result := rule.satisfiable("/prefix/mykey", &queryValue)
@@ -554,8 +553,7 @@ func TestEqualsLiteralQSatisfiable(t *testing.T) {
 			name: i.name,
 			rule: func() staticRule {
 				return &compareLiteralRule{
-					key: key1,
-					// value: value,
+					key:        key1,
 					comparator: newEqualsComparator(value),
 				}
 			},

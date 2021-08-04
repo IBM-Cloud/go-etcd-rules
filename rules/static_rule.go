@@ -101,8 +101,8 @@ func (elrf *compareLiteralRuleFactory) newRule(keys []string, attr Attributes) s
 	r := compareLiteralRule{
 		baseRule:       br,
 		key:            keys[0],
-		comparator:     elrf.comparator,     //newEqualsComparator(elrf.value),
-		stringTemplate: elrf.stringTemplate, //fmt.Sprintf("%s = %s", "%s", value),
+		comparator:     elrf.comparator,
+		stringTemplate: elrf.stringTemplate,
 	}
 	return &r
 }
