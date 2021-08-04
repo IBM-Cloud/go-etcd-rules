@@ -261,6 +261,9 @@ func NewEqualsLiteralRule(pattern string, value *string) (DynamicRule, error) {
 // %s = "value"
 // This can help with debugging rules.
 func NewCompareLiteralRule(pattern string, comparator func(*string) bool, renderTemplate string) (DynamicRule, error) {
+	if comparator == nil {
+		return nil, errors.New("Comparator cannot be nil")
+	}
 	f := newCompareLiteralRuleFactory(comparator, renderTemplate)
 	return newDynamicRule(f, []string{pattern}, fmt.Sprintf(renderTemplate, pattern))
 }
