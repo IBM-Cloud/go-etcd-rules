@@ -58,7 +58,7 @@ func (br *baseRule) getAttributes() Attributes {
 	return br.attr
 }
 
-type equalsLiteralRule struct {
+type compareLiteralRule struct {
 	baseRule
 	key   string
 	value *string
@@ -79,7 +79,7 @@ func (elrf *equalsLiteralRuleFactory) newRule(keys []string, attr Attributes) st
 	br := baseRule{
 		attr: attr,
 	}
-	r := equalsLiteralRule{
+	r := compareLiteralRule{
 		baseRule: br,
 		key:      keys[0],
 		value:    elrf.value,
@@ -87,7 +87,7 @@ func (elrf *equalsLiteralRuleFactory) newRule(keys []string, attr Attributes) st
 	return &r
 }
 
-func (elr *equalsLiteralRule) String() string {
+func (elr *compareLiteralRule) String() string {
 	value := "<nil>"
 	if elr.value != nil {
 		value = *elr.value
@@ -95,11 +95,11 @@ func (elr *equalsLiteralRule) String() string {
 	return fmt.Sprintf("%s = %s", elr.key, value)
 }
 
-func (elr *equalsLiteralRule) satisfiable(key string, value *string) bool {
+func (elr *compareLiteralRule) satisfiable(key string, value *string) bool {
 	return key == elr.key
 }
 
-func (elr *equalsLiteralRule) qSatisfiable(key string, value *string) quadState {
+func (elr *compareLiteralRule) qSatisfiable(key string, value *string) quadState {
 	if key != elr.key {
 		return qNone
 	}
@@ -118,7 +118,7 @@ func (elr *equalsLiteralRule) qSatisfiable(key string, value *string) quadState 
 	return qFalse
 }
 
-func (elr *equalsLiteralRule) satisfied(api readAPI) (bool, error) {
+func (elr *compareLiteralRule) satisfied(api readAPI) (bool, error) {
 	value, err := api.get(elr.key)
 	if err != nil {
 		return false, err
@@ -132,7 +132,7 @@ func (elr *equalsLiteralRule) satisfied(api readAPI) (bool, error) {
 	return *value == *elr.value, nil
 }
 
-func (elr *equalsLiteralRule) keyMatch(key string) bool {
+func (elr *compareLiteralRule) keyMatch(key string) bool {
 	return elr.key == key
 }
 

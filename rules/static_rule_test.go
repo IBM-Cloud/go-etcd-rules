@@ -101,7 +101,7 @@ func TestEqualsLiteralError(t *testing.T) {
 }
 
 func TestEqualsLiteralEqualsNil(t *testing.T) {
-	rule := equalsLiteralRule{
+	rule := compareLiteralRule{
 		key:   "/prefix/mykey",
 		value: nil,
 	}
@@ -112,7 +112,7 @@ func TestEqualsLiteralEqualsNil(t *testing.T) {
 func TestEqualsLiteralKeyMismatch(t *testing.T) {
 	ruleValue := "val1"
 	queryValue := "val1"
-	rule := equalsLiteralRule{
+	rule := compareLiteralRule{
 		key:   "/prefix/mykey1",
 		value: &ruleValue,
 	}
@@ -123,7 +123,7 @@ func TestEqualsLiteralKeyMismatch(t *testing.T) {
 
 func TestEqualsLiteralOnlyRuleNil(t *testing.T) {
 	queryValue := "val1"
-	rule := equalsLiteralRule{
+	rule := compareLiteralRule{
 		key:   "/prefix/mykey",
 		value: nil,
 	}
@@ -133,7 +133,7 @@ func TestEqualsLiteralOnlyRuleNil(t *testing.T) {
 
 func TestEqualsLiteralOnlyQueryNil(t *testing.T) {
 	ruleValue := "val1"
-	rule := equalsLiteralRule{
+	rule := compareLiteralRule{
 		key:   "/prefix/mykey",
 		value: &ruleValue,
 	}
@@ -545,7 +545,7 @@ func TestEqualsLiteralQSatisfiable(t *testing.T) {
 		inputValue := i.inputValue
 		testCases = append(testCases, &srtc{
 			name:   i.name,
-			rule:   func() staticRule { return &equalsLiteralRule{key: key1, value: value} },
+			rule:   func() staticRule { return &compareLiteralRule{key: key1, value: value} },
 			key:    i.inputKey,
 			value:  inputValue,
 			qState: i.result,
