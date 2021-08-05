@@ -53,6 +53,12 @@ var (
 		Namespace: "rules",
 		Help:      "current capacity of the key processing buffer",
 	})
+	rulesEngineWatcherErrors = prometheus.NewCounterVec(prometheus.CounterOpts{
+		Name:      "watcher_errors",
+		Subsystem: "etcd",
+		Namespace: "rules",
+		Help:      "etcd rules engine watcher errors",
+	}, []string{"error", "prefix"})
 )
 
 func init() {
@@ -63,6 +69,7 @@ func init() {
 	prometheus.MustRegister(rulesEngineWorkBufferWaitTime)
 	prometheus.MustRegister(rulesEngineCallbackWaitTime)
 	prometheus.MustRegister(rulesEngineKeyProcessBufferCap)
+	prometheus.MustRegister(rulesEngineWatcherErrors)
 }
 
 func incLockMetric(methodName string, pattern string, lockSucceeded bool) {
@@ -91,4 +98,8 @@ func callbackWaitTime(pattern string, startTime time.Time) {
 
 func keyProcessBufferCap(count int) {
 	rulesEngineKeyProcessBufferCap.Set(float64(count))
+}
+
+func incWatcherErrMetric(err, prefix string) {
+	rulesEngineWatcherErrors.WithLabelValues(err, prefix).Inc()
 }

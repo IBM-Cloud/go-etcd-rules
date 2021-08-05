@@ -77,3 +77,8 @@ func Test_keyProcessBufferCap(t *testing.T) {
 	keyProcessBufferCap(100)
 	checkMetrics(t, `rules_etcd_key_process_buffer_cap 100`)
 }
+
+func Test_incWatcherErrMetric(t *testing.T) {
+	incWatcherErrMetric("err", "/desired/key/prefix")
+	checkMetrics(t, `rules_etcd_watcher_errors{error="err",prefix="/desired/key/prefix"} 1`)
+}
