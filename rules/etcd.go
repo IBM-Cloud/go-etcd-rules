@@ -113,6 +113,9 @@ func (ev3kw *etcdV3KeyWatcher) next() (string, *string, error) {
 				err = wr.Err()
 			}
 			if err != nil {
+				// There is a fixed set of possible errors.
+				// See https://github.com/etcd-io/etcd/blob/release-3.4/clientv3/watch.go#L115-L126
+				incWatcherErrMetric(err.Error(), ev3kw.prefix)
 				ev3kw.reset()
 				return "", nil, err
 			}
