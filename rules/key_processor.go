@@ -139,13 +139,22 @@ type keyTask struct {
 	timesEvaluated func(rulesID string)
 }
 
-func (bkp *baseKeyProcessor) processKey(key string, value *string, api readAPI, logger *zap.Logger, dispatcher workDispatcher,
+func (bkp *baseKeyProcessor) processKey(key string, value *string, rapi readAPI, logger *zap.Logger, dispatcher workDispatcher,
 	metadata map[string]string, timesEvaluated func(rulesID string)) {
 	logger.Debug("Processing key", zap.String("key", key))
 	rules := bkp.rm.getStaticRules(key, value)
 	valueString := "<nil>"
 	if value != nil {
 		valueString = *value
+	}
+	var keys []string
+	for rule := range rules {
+		keys = append(keys, rule.getKeys()...)
+	}
+	api, err := rapi.getCachedAPI(keys)
+	if err != nil {
+		logger.Error("Error getting keys to evaluate rules", zap.Error(err))
+		return
 	}
 	for rule, index := range rules {
 		if timesEvaluated != nil {
