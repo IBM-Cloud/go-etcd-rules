@@ -12,7 +12,8 @@ import (
 )
 
 type etcdV3ReadAPI struct {
-	kV clientv3.KV
+	kV    clientv3.KV
+	cache map[string]*string
 }
 
 func (edv3ra *etcdV3ReadAPI) get(key string) (*string, error) {
@@ -28,6 +29,48 @@ func (edv3ra *etcdV3ReadAPI) get(key string) (*string, error) {
 	}
 	val := string(resp.Kvs[0].Value)
 	return &val, nil
+}
+
+func (edv3ra *etcdV3ReadAPI) getCachedAPI(keys []string) (readAPI, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+	defer cancel()
+	uniqueKeys := make(map[string]bool)
+	// Get rid of duplicates
+	for _, key := range keys {
+		uniqueKeys[key] = true
+	}
+
+	ops := make([]clientv3.Op, len(uniqueKeys))
+	idx := 0
+	for key := range uniqueKeys {
+		ops[idx] = clientv3.OpGet(key)
+		idx++
+	}
+	// An etcd transaction consists of four parts:
+	// 1. A set of "if" conditions.  The empty set evaluates to true, as in this case.
+	// 2. A set of "then" operations which are performed if the "if" condition is true.
+	//    In this case these operations are always performed.
+	// 3. A set of "else" operations which are performed if the "if" condition is not true.
+	//    In this case these operations are never performed.
+	// 4. A commit, which finalizes the transaction and commits it. In this case everything is a read,
+	//    so "commiting" doesn't really do anything to change the state of etcd.
+	txnResp, err := edv3ra.kV.Txn(ctx).If().Then(ops...).Else().Commit()
+	if err != nil {
+		return nil, err
+	}
+	values := make(map[string]string)
+	for _, resp := range txnResp.Responses {
+		r := resp.GetResponseRange()
+		for _, kv := range r.Kvs {
+			key := string(kv.Key)
+			val := string(kv.Value)
+			values[key] = val
+		}
+	}
+
+	return &cacheReadAPI{
+		values: values,
+	}, nil
 }
 
 type keyWatcher interface {

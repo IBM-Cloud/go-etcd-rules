@@ -15,6 +15,10 @@ func (era *errorReadAPI) get(key string) (*string, error) {
 	return nil, errAPI
 }
 
+func (era *errorReadAPI) getCachedAPI(keys []string) (readAPI, error) {
+	return era, nil
+}
+
 var errorAPI = errorReadAPI{}
 var errAPI = errors.New("API Error")
 
@@ -65,6 +69,10 @@ func (dr *dummyRule) satisfied(api readAPI) (bool, error) {
 
 func (dr *dummyRule) keyMatch(key string) bool {
 	return dr.key == key
+}
+
+func (dr *dummyRule) getKeys() []string {
+	return []string{dr.key}
 }
 
 func getTestAttributes() Attributes {

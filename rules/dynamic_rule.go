@@ -704,3 +704,7 @@ func (mra *mapReadAPI) get(key string) (*string, error) {
 func (mra *mapReadAPI) put(key string, value string) {
 	mra.values[key] = value
 }
+
+func (mra *mapReadAPI) getCachedAPI(keys []string) (readAPI, error) {
+	return mra, nil
+}

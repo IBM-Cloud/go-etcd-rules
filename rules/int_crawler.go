@@ -61,6 +61,10 @@ func (cra *cacheReadAPI) get(key string) (*string, error) {
 	return &value, nil
 }
 
+func (cra *cacheReadAPI) getCachedAPI(keys []string) (readAPI, error) {
+	return cra, nil
+}
+
 type intCrawler struct {
 	api          readAPI
 	cancelFunc   context.CancelFunc
