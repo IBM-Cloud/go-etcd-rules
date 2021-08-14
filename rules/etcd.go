@@ -12,8 +12,7 @@ import (
 )
 
 type etcdV3ReadAPI struct {
-	kV    clientv3.KV
-	cache map[string]*string
+	kV clientv3.KV
 }
 
 func (edv3ra *etcdV3ReadAPI) get(key string) (*string, error) {
