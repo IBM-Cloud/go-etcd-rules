@@ -31,7 +31,7 @@ func (edv3ra *etcdV3ReadAPI) get(key string) (*string, error) {
 }
 
 func (edv3ra *etcdV3ReadAPI) getCachedAPI(keys []string) (readAPI, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+	ctx, cancel := context.WithTimeout(SetMethod(context.Background(), "rule_eval"), time.Minute)
 	defer cancel()
 	uniqueKeys := make(map[string]bool)
 	// Get rid of duplicates
