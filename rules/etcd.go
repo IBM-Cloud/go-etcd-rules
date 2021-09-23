@@ -15,6 +15,10 @@ type etcdV3ReadAPI struct {
 	kV clientv3.KV
 }
 
+// This method is currently not used but is being kept around to limit
+// the blast radius of implementing batch gets for rule evaluations.
+// The arrangement of interfaces is not ideal and should be addressed
+// once time permits.
 func (edv3ra *etcdV3ReadAPI) get(key string) (*string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 	defer cancel()
