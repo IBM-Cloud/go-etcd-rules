@@ -43,11 +43,13 @@ type staticRule interface {
 	qSatisfiable(key string, value *string) quadState
 	satisfied(api readAPI) (bool, error)
 	getAttributes() Attributes
+	getKeys() []string
 	String() string
 }
 
 type readAPI interface {
 	get(string) (*string, error)
+	getCachedAPI([]string) (readAPI, error)
 }
 
 type baseRule struct {
@@ -133,6 +135,10 @@ func (elr *compareLiteralRule) satisfied(api readAPI) (bool, error) {
 	return elr.comparator(value), nil
 }
 
+func (elr *compareLiteralRule) getKeys() []string {
+	return []string{elr.key}
+}
+
 func (elr *compareLiteralRule) keyMatch(key string) bool {
 	return elr.key == key
 }
@@ -190,6 +196,14 @@ func (csr *compoundStaticRule) keyMatch(key string) bool {
 		}
 	}
 	return false
+}
+
+func (csr *compoundStaticRule) getKeys() []string {
+	var keys []string
+	for _, rule := range csr.nestedRules {
+		keys = append(keys, rule.getKeys()...)
+	}
+	return keys
 }
 
 type andStaticRule struct {
@@ -311,6 +325,10 @@ func (nsr *notStaticRule) satisfied(api readAPI) (bool, error) {
 	return !satisfied, nil
 }
 
+func (nsr *notStaticRule) getKeys() []string {
+	return nsr.nested.getKeys()
+}
+
 type equalsRule struct {
 	baseRule
 	keys []string
@@ -379,6 +397,10 @@ func (er *equalsRule) satisfied(api readAPI) (bool, error) {
 		}
 	}
 	return true, nil
+}
+
+func (er *equalsRule) getKeys() []string {
+	return er.keys
 }
 
 type equalsRuleFactory struct{}

@@ -15,6 +15,10 @@ func (era *errorReadAPI) get(key string) (*string, error) {
 	return nil, errAPI
 }
 
+func (era *errorReadAPI) getCachedAPI(keys []string) (readAPI, error) {
+	return era, nil
+}
+
 var errorAPI = errorReadAPI{}
 var errAPI = errors.New("API Error")
 
@@ -65,6 +69,10 @@ func (dr *dummyRule) satisfied(api readAPI) (bool, error) {
 
 func (dr *dummyRule) keyMatch(key string) bool {
 	return dr.key == key
+}
+
+func (dr *dummyRule) getKeys() []string {
+	return []string{dr.key}
 }
 
 func getTestAttributes() Attributes {
@@ -147,6 +155,13 @@ func TestCompareLiteralOnlyQueryNil(t *testing.T) {
 	assert.True(t, result)
 }
 
+func Test_compareLiteralRule_getKeys(t *testing.T) {
+	elr := &compareLiteralRule{
+		key: "abc",
+	}
+	assert.Equal(t, []string{"abc"}, elr.getKeys())
+}
+
 func TestCompareLiteralFactory(t *testing.T) {
 	value := "val1"
 	factory := compareLiteralRuleFactory{
@@ -207,6 +222,20 @@ func TestCompoundStaticRuleKeyMatch(t *testing.T) {
 	assert.True(t, csr.keyMatch("key1"))
 	assert.True(t, csr.keyMatch("key2"))
 	assert.False(t, csr.keyMatch("key3"))
+}
+
+func Test_compoundStaticRule_getKeys(t *testing.T) {
+	csr := &compoundStaticRule{
+		nestedRules: []staticRule{
+			&compareLiteralRule{
+				key: "abc",
+			},
+			&compareLiteralRule{
+				key: "def",
+			},
+		},
+	}
+	assert.Equal(t, []string{"abc", "def"}, csr.getKeys())
 }
 
 func TestAndStaticRuleSatisfied(t *testing.T) {
@@ -397,6 +426,16 @@ func TestNotEquals(t *testing.T) {
 	}
 }
 
+func Test_notStaticRule_getKeys(t *testing.T) {
+	elr := &compareLiteralRule{
+		key: "abc",
+	}
+	nsr := &notStaticRule{
+		nested: elr,
+	}
+	assert.Equal(t, []string{"abc"}, nsr.getKeys())
+}
+
 func sTP(str string) *string {
 	return &str
 }
@@ -448,6 +487,13 @@ func TestEquals(t *testing.T) {
 	_, err = rule.satisfied(api)
 	assert.Error(t, err)
 
+}
+
+func Test_equalsRule_getKeys(t *testing.T) {
+	er := &equalsRule{
+		keys: []string{"abc", "def"},
+	}
+	assert.Equal(t, []string{"abc", "def"}, er.getKeys())
 }
 
 type srtc struct {

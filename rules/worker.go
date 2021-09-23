@@ -68,7 +68,12 @@ func (bw *baseWorker) doWork(loggerPtr **zap.Logger,
 	metricsInfo metricsInfo, lockKey string) {
 	logger := *loggerPtr
 	rule := *rulePtr
-	sat, err1 := rule.satisfied(bw.api)
+	capi, err1 := bw.api.getCachedAPI(rule.getKeys())
+	if err1 != nil {
+		logger.Error("Error querying for rule", zap.Error(err1))
+		return
+	}
+	sat, err1 := rule.satisfied(capi)
 	if err1 != nil {
 		logger.Error("Error checking rule", zap.Error(err1))
 		return
@@ -92,7 +97,12 @@ func (bw *baseWorker) doWork(loggerPtr **zap.Logger,
 	defer l.unlock()
 	// Check for a second time, since checking and locking
 	// are not atomic.
-	sat, err1 = rule.satisfied(bw.api)
+	capi, err1 = bw.api.getCachedAPI(rule.getKeys())
+	if err1 != nil {
+		logger.Error("Error querying for rule", zap.Error(err1))
+		return
+	}
+	sat, err1 = rule.satisfied(capi)
 	if err1 != nil {
 		logger.Error("Error checking rule", zap.Error(err1))
 		return

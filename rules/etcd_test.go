@@ -37,6 +37,27 @@ func TestV3EtcdReadAPI(t *testing.T) {
 	assert.Nil(t, val)
 }
 
+func Test_etcdV3ReadAPI_getCachedAPI(t *testing.T) {
+	_, c := initV3Etcd(t)
+	kV := clientv3.NewKV(c)
+	api := etcdV3ReadAPI{kV: kV}
+
+	_, err := kV.Put(context.Background(), "/test0", "value")
+	require.NoError(t, err)
+
+	cacheAPI, err := api.getCachedAPI([]string{"/test0"})
+
+	require.NoError(t, err)
+
+	val, err := cacheAPI.get("/test0")
+	assert.NoError(t, err)
+	_ = assert.NotNil(t, val) && assert.Equal(t, "value", *val)
+
+	val, err = cacheAPI.get("/test1")
+	assert.NoError(t, err)
+	assert.Nil(t, val)
+}
+
 func TestEctdV3Watcher(t *testing.T) {
 	_, cl := initV3Etcd(t)
 	w := clientv3.NewWatcher(cl)
