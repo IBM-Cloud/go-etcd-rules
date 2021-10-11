@@ -30,6 +30,7 @@ func NewSessionManager(client *clientv3.Client, logger *zap.Logger) (*SessionMan
 }
 
 func (sm *SessionManager) initSession() error {
+	sm.logger.Info("Initializing session")
 	sm.mutex.Lock()
 	defer sm.mutex.Unlock()
 	sm.session, sm.err = NewSession(sm.client)

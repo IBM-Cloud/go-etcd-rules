@@ -3,6 +3,7 @@ package rules
 import (
 	"time"
 
+	"github.com/IBM-Cloud/go-etcd-rules/rules/concurrency"
 	"golang.org/x/net/context"
 )
 
@@ -63,6 +64,7 @@ type engineOptions struct {
 	ruleWorkBuffer         int
 	enhancedRuleFilter     bool
 	metrics                MetricsCollectorOpt
+	getSession             func() (*concurrency.Session, error)
 }
 
 func makeEngineOptions(options ...EngineOption) engineOptions {
@@ -142,6 +144,12 @@ func EngineConcurrency(workers int) EngineOption {
 func EngineWatchTimeout(watchTimeout int) EngineOption {
 	return engineOptionFunction(func(o *engineOptions) {
 		o.watchTimeout = watchTimeout
+	})
+}
+
+func EngineGetSession(getSession func() (*concurrency.Session, error)) EngineOption {
+	return engineOptionFunction(func(o *engineOptions) {
+		o.getSession = getSession
 	})
 }
 

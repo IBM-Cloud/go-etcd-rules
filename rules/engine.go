@@ -95,7 +95,14 @@ func newV3Engine(logger *zap.Logger, cl *clientv3.Client, options ...EngineOptio
 			MetricsCollector: baseMetrics,
 		}
 	}
-	sessionMgr, _ := concurrency.NewSessionManager(cl, logger)
+	getSession := opts.getSession
+	if getSession == nil {
+		sessionMgr, err := concurrency.NewSessionManager(cl, logger)
+		if err != nil {
+			logger.Fatal("error getting session", zap.Error(err))
+		}
+		getSession = sessionMgr.GetSession
+	}
 	eng := v3Engine{
 		baseEngine: baseEngine{
 			keyProc:      &keyProc,
@@ -104,7 +111,7 @@ func newV3Engine(logger *zap.Logger, cl *clientv3.Client, options ...EngineOptio
 			options:      opts,
 			ruleLockTTLs: map[int]int{},
 			ruleMgr:      ruleMgr,
-			locker:       newV3Locker(cl, opts.lockAcquisitionTimeout, sessionMgr.GetSession),
+			locker:       newV3Locker(cl, opts.lockAcquisitionTimeout, getSession),
 		},
 		keyProc:        keyProc,
 		workChannel:    channel,
