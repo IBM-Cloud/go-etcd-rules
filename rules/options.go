@@ -58,7 +58,7 @@ type engineOptions struct {
 	contextProvider        ContextProvider
 	keyExpansion           map[string][]string
 	lockTimeout            int
-	lockAcquisitionTimeout int
+	lockAcquisitionTimeout time.Duration
 	crawlMutex             *string
 	ruleWorkBuffer         int
 	enhancedRuleFilter     bool
@@ -126,7 +126,7 @@ func EngineLockTimeout(lockTimeout int) EngineOption {
 // wait to acquire a lock.
 func EngineLockAcquisitionTimeout(lockAcquisitionTimeout int) EngineOption {
 	return engineOptionFunction(func(o *engineOptions) {
-		o.lockAcquisitionTimeout = lockAcquisitionTimeout
+		o.lockAcquisitionTimeout = time.Second * time.Duration(lockAcquisitionTimeout)
 	})
 }
 

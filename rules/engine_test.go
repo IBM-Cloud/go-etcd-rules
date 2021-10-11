@@ -2,9 +2,10 @@ package rules
 
 import (
 	"errors"
-	"github.com/stretchr/testify/require"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/require"
 
 	"github.com/stretchr/testify/assert"
 	"go.etcd.io/etcd/clientv3"
@@ -29,7 +30,7 @@ type testLocker struct {
 	errorMsg *string
 }
 
-func (tlkr *testLocker) lock(key string, ttl int) (ruleLock, error) {
+func (tlkr *testLocker) lock(key string) (ruleLock, error) {
 	if tlkr.errorMsg != nil {
 		return nil, errors.New(*tlkr.errorMsg)
 	}
@@ -43,8 +44,9 @@ type testLock struct {
 	channel chan bool
 }
 
-func (tl *testLock) unlock() {
+func (tl *testLock) unlock() error {
 	tl.channel <- true
+	return nil
 }
 
 func TestV3EngineConstructor(t *testing.T) {

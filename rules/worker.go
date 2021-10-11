@@ -24,17 +24,17 @@ type v3Worker struct {
 
 func newV3Worker(workerID string, engine *v3Engine) (v3Worker, error) {
 	var api readAPI
-	var locker ruleLocker
+	// var locker ruleLocker
 	c := engine.cl
 	kv := engine.kvWrapper(c)
-	locker = newV3Locker(c, engine.options.lockAcquisitionTimeout)
+	// locker = newV3Locker(c, engine.options.lockAcquisitionTimeout)
 	api = &etcdV3ReadAPI{
 		kV: kv,
 	}
 	w := v3Worker{
 		baseWorker: baseWorker{
 			api:      api,
-			locker:   locker,
+			locker:   engine.locker,
 			metrics:  engine.metrics,
 			workerID: workerID,
 			done:     make(chan bool, 1),
@@ -85,7 +85,7 @@ func (bw *baseWorker) doWork(loggerPtr **zap.Logger,
 		}
 		return
 	}
-	l, err2 := bw.locker.lock(lockKey, lockTTL)
+	l, err2 := bw.locker.lock(lockKey)
 	if err2 != nil {
 		logger.Debug("Failed to acquire lock", zap.String("lock_key", lockKey), zap.Error(err2))
 		incLockMetric(metricsInfo.method, metricsInfo.keyPattern, false)

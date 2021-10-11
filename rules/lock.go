@@ -1,70 +1,67 @@
 package rules
 
 import (
+	"errors"
 	"time"
 
+	"github.com/IBM-Cloud/go-etcd-rules/rules/concurrency"
 	"go.etcd.io/etcd/clientv3"
-	"go.etcd.io/etcd/clientv3/concurrency"
 	"golang.org/x/net/context"
 )
 
 type ruleLocker interface {
-	lock(string, int) (ruleLock, error)
+	lock(string) (ruleLock, error)
 }
 
 type ruleLock interface {
-	unlock()
+	unlock() error
 }
 
-func newV3Locker(cl *clientv3.Client, lockTimeout int) ruleLocker {
+func newV3Locker(cl *clientv3.Client, lockTimeout time.Duration, getSessn getSession) ruleLocker {
 	return &v3Locker{
 		cl:          cl,
+		getSession:  getSessn,
 		lockTimeout: lockTimeout,
 	}
 }
 
+type getSession func() (*concurrency.Session, error)
+
 type v3Locker struct {
 	cl          *clientv3.Client
-	lockTimeout int
+	getSession  getSession
+	lockTimeout time.Duration
 }
 
-func (v3l *v3Locker) lock(key string, ttl int) (ruleLock, error) {
-	return v3l.lockWithTimeout(key, ttl, v3l.lockTimeout)
+func (v3l *v3Locker) lock(key string) (ruleLock, error) {
+	return v3l.lockWithTimeout(key, v3l.lockTimeout)
 }
-func (v3l *v3Locker) lockWithTimeout(key string, ttl int, timeout int) (ruleLock, error) {
-	s, err := concurrency.NewSession(v3l.cl, concurrency.WithTTL(ttl))
+func (v3l *v3Locker) lockWithTimeout(key string, timeout time.Duration) (ruleLock, error) {
+	s, err := v3l.getSession()
 	if err != nil {
 		return nil, err
 	}
 	m := concurrency.NewMutex(s, key)
-	ctx, cancel := context.WithTimeout(SetMethod(context.Background(), "lock"), time.Duration(timeout)*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
-	err = m.Lock(ctx)
+	err = m.TryLock(ctx)
 	if err != nil {
 		return nil, err
 	}
 	return &v3Lock{
-		mutex:   m,
-		session: s,
+		mutex: m,
 	}, nil
 }
 
 type v3Lock struct {
-	mutex   *concurrency.Mutex
-	session *concurrency.Session
+	mutex *concurrency.Mutex
 }
 
-func (v3l *v3Lock) unlock() {
+func (v3l *v3Lock) unlock() error {
 	if v3l.mutex != nil {
-		// TODO: Should the timeout for this be configurable too? Or use the same value as lock?
-		//       It's a slightly different case in that here we want to make sure the unlock
-		//       succeeds to free it for the use of others. In the lock case we want to give up
-		//       early if someone already has the lock.
-		ctx, cancel := context.WithTimeout(context.Background(), time.Duration(5)*time.Second)
+		ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 		defer cancel()
-		err := v3l.mutex.Unlock(ctx)
-		if err == nil && v3l.session != nil {
-			v3l.session.Close()
-		}
+		return v3l.mutex.Unlock(ctx)
 	}
+	return errors.New("nil mutex")
 }
