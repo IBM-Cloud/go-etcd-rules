@@ -39,7 +39,7 @@ type localLockItem struct {
 }
 
 type localLocker struct {
-	once      sync.Once
+	once      *sync.Once
 	stopCh    chan struct{}
 	lockLocal chan localLockItem
 }

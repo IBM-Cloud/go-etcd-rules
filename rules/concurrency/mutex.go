@@ -26,6 +26,8 @@ import (
 
 // ErrLocked is returned by TryLock when Mutex is already locked by another session.
 var ErrLocked = errors.New("mutex: Locked by another session")
+
+// ErrSessionExpired is returned by Lock when the the mutex session is expired.
 var ErrSessionExpired = errors.New("mutex: session is expired")
 
 // Mutex implements the sync Locker interface with etcd
@@ -85,14 +87,14 @@ func (m *Mutex) Lock(ctx context.Context) error {
 	_, werr := waitDeletes(ctx, client, m.pfx, m.myRev-1)
 	// release lock key if wait failed
 	if werr != nil {
-		m.Unlock(client.Ctx())
+		_ = m.Unlock(client.Ctx())
 		return werr
 	}
 
 	// make sure the session is not expired, and the owner key still exists.
 	gresp, werr := client.Get(ctx, m.myKey)
 	if werr != nil {
-		m.Unlock(client.Ctx())
+		_ = m.Unlock(client.Ctx())
 		return werr
 	}
 

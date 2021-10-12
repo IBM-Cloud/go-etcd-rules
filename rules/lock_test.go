@@ -25,6 +25,7 @@ func TestV3Locker(t *testing.T) {
 		getSession:  func() (*concurrency.Session, error) { return session1, nil },
 		lLocker:     lLocker,
 	}
+	defer lLocker.close()
 	rlck, err1 := rlckr1.lock("/test")
 	assert.NoError(t, err1)
 	require.NotNil(t, rlck)
@@ -41,7 +42,7 @@ func TestV3Locker(t *testing.T) {
 
 	_, err2 := rlckr2.lockWithTimeout("/test", 10*time.Second)
 	assert.Error(t, err2)
-	rlck.unlock()
+	assert.NoError(t, rlck.unlock())
 
 	// Verify that behavior holds across goroutines
 
@@ -58,7 +59,7 @@ func TestV3Locker(t *testing.T) {
 		done1 <- true
 		<-done2
 		if lck != nil {
-			lck.unlock()
+			assert.NoError(t, lck.unlock())
 		}
 	}()
 	<-done1

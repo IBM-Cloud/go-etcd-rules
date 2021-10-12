@@ -18,7 +18,6 @@ type Pruner struct {
 	keys         map[string]lockKey
 	timeout      time.Duration
 	lockPrefixes []string
-	client       *clientv3.Client
 	kv           clientv3.KV
 	lease        clientv3.Lease
 	logger       *zap.Logger

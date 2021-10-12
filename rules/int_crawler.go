@@ -127,7 +127,8 @@ func (ic *intCrawler) run() {
 				logger.Debug("Could not obtain mutex; skipping crawler run", zap.Error(err))
 			} else {
 				ic.singleRun(logger)
-				lock.unlock()
+				err := lock.unlock()
+				logger.Error("Error releasing lock", zap.Error(err))
 			}
 		}
 		logger.Info("Crawler run complete")

@@ -94,7 +94,7 @@ func (bw *baseWorker) doWork(loggerPtr **zap.Logger,
 	}
 	incLockMetric(metricsInfo.method, metricsInfo.keyPattern, true)
 	bw.metrics.IncLockMetric(metricsInfo.method, metricsInfo.keyPattern, true)
-	defer l.unlock()
+	defer func() { _ = l.unlock() }()
 	// Check for a second time, since checking and locking
 	// are not atomic.
 	capi, err1 = bw.api.getCachedAPI(rule.getKeys())
