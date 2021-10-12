@@ -18,10 +18,12 @@ func TestV3Locker(t *testing.T) {
 	require.NoError(t, err)
 	defer session1.Close()
 
+	lLocker := newLocalLocker()
+
 	rlckr1 := v3Locker{
-		// cl:          cl,
 		lockTimeout: time.Minute,
 		getSession:  func() (*concurrency.Session, error) { return session1, nil },
+		lLocker:     lLocker,
 	}
 	rlck, err1 := rlckr1.lock("/test")
 	assert.NoError(t, err1)
@@ -32,9 +34,9 @@ func TestV3Locker(t *testing.T) {
 	defer session2.Close()
 
 	rlckr2 := v3Locker{
-		// cl:          cl,
 		lockTimeout: time.Minute,
 		getSession:  func() (*concurrency.Session, error) { return session2, nil },
+		lLocker:     lLocker,
 	}
 
 	_, err2 := rlckr2.lockWithTimeout("/test", 10*time.Second)
@@ -50,7 +52,7 @@ func TestV3Locker(t *testing.T) {
 		session, err := concurrency.NewSession(cl)
 		require.NoError(t, err)
 		defer session.Close()
-		lckr := newV3Locker(c, 5, func() (*concurrency.Session, error) { return session, nil })
+		lckr := newV3Locker(c, 5*time.Second, func() (*concurrency.Session, error) { return session, nil })
 		lck, lErr := lckr.lock("/test1")
 		assert.NoError(t, lErr)
 		done1 <- true
@@ -63,4 +65,7 @@ func TestV3Locker(t *testing.T) {
 	_, err = rlckr1.lock("/test1")
 	assert.Error(t, err)
 	done2 <- true
+}
+
+func Test_localLocker(t *testing.T) {
 }

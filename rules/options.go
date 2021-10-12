@@ -74,7 +74,7 @@ func makeEngineOptions(options ...EngineOption) engineOptions {
 		contextProvider:        defaultContextProvider,
 		syncDelay:              1,
 		lockTimeout:            30,
-		lockAcquisitionTimeout: 5,
+		lockAcquisitionTimeout: 5 * time.Second,
 		syncInterval:           300,
 		syncGetTimeout:         0,
 		watchTimeout:           0,
