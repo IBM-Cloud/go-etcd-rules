@@ -126,6 +126,8 @@ func (v3l *v3Locker) lockWithTimeout(key string, timeout time.Duration) (ruleLoc
 	}
 	s, err := v3l.getSession()
 	if err != nil {
+		// Release the local lock
+		v3l.lLocker.toggle(key, false)
 		return nil, err
 	}
 	m := concurrency.NewMutex(s, key)
@@ -133,6 +135,8 @@ func (v3l *v3Locker) lockWithTimeout(key string, timeout time.Duration) (ruleLoc
 	defer cancel()
 	err = m.TryLock(ctx)
 	if err != nil {
+		// Release the local lock
+		v3l.lLocker.toggle(key, false)
 		return nil, err
 	}
 	return &v3Lock{
