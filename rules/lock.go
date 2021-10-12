@@ -2,7 +2,6 @@ package rules
 
 import (
 	"errors"
-	"fmt"
 	"sync"
 	"time"
 
@@ -53,7 +52,6 @@ func (ll localLocker) close() {
 }
 
 func (ll localLocker) toggle(key string, lock bool) bool {
-	fmt.Println("***toggle called", lock)
 	resp := make(chan bool)
 	item := localLockItem{
 		key:      key,
@@ -67,7 +65,6 @@ func (ll localLocker) toggle(key string, lock bool) bool {
 	case ll.lockLocal <- item:
 	}
 	out := <-resp
-	fmt.Println("***Response received", out)
 	return out
 }
 
@@ -75,6 +72,7 @@ func newLocalLocker() localLocker {
 	locker := localLocker{
 		stopCh:    make(chan struct{}),
 		lockLocal: make(chan localLockItem),
+		once:      new(sync.Once),
 	}
 	// Thread safety is achieved by allowing only one goroutine to access
 	// this map and having it read from channels that multiple goroutines
@@ -84,8 +82,6 @@ func newLocalLocker() localLocker {
 	go func() {
 		for item := range locker.lockLocal {
 			count++
-			fmt.Println(locks, count)
-			fmt.Println("lockLocal", count)
 			// extraneous else's and continue's to make flow clearer.
 			if item.lock {
 				if locks[item.key] {
@@ -125,7 +121,6 @@ var errLockedLocally = errors.New("locked locally")
 // another client is known to hold the lock. There is no waiting for the lock
 // to be released.
 func (v3l *v3Locker) lockWithTimeout(key string, timeout time.Duration) (ruleLock, error) {
-	fmt.Println("***lockWithTimeout called")
 	if ok := v3l.lLocker.toggle(key, true); !ok {
 		return nil, errLockedLocally
 	}
