@@ -1,8 +1,10 @@
 package rules
 
 import (
+	"fmt"
 	"testing"
 
+	"github.com/IBM-Cloud/go-etcd-rules/rules/concurrency"
 	"github.com/stretchr/testify/assert"
 	"go.etcd.io/etcd/clientv3"
 	"go.uber.org/zap"
@@ -19,7 +21,9 @@ func TestWorkerSingleRun(t *testing.T) {
 	metrics.SetLogger(lgr)
 	cl, err := clientv3.New(conf)
 	assert.NoError(t, err)
-	e := newV3Engine(getTestLogger(), cl, EngineLockTimeout(300))
+	e := newV3Engine(getTestLogger(), cl, EngineLockTimeout(300), EngineGetSession(func() (*concurrency.Session, error) {
+		return nil, nil
+	}))
 	channel := e.workChannel
 	lockChannel := make(chan bool)
 	locker := testLocker{
@@ -68,6 +72,7 @@ func TestWorkerSingleRun(t *testing.T) {
 	expectedIncLockMetricsPatterns := []string{"/test/item"}
 	expectedIncLockMetricsLockSuccess := []bool{true}
 
+	fmt.Println("Calling single run")
 	go w.singleRun()
 	channel <- rw
 	assert.True(t, <-cbChannel)

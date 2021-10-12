@@ -3,6 +3,7 @@ package rules
 import (
 	"time"
 
+	"github.com/IBM-Cloud/go-etcd-rules/rules/concurrency"
 	"golang.org/x/net/context"
 )
 
@@ -58,11 +59,12 @@ type engineOptions struct {
 	contextProvider        ContextProvider
 	keyExpansion           map[string][]string
 	lockTimeout            int
-	lockAcquisitionTimeout int
+	lockAcquisitionTimeout time.Duration
 	crawlMutex             *string
 	ruleWorkBuffer         int
 	enhancedRuleFilter     bool
 	metrics                MetricsCollectorOpt
+	getSession             func() (*concurrency.Session, error)
 }
 
 func makeEngineOptions(options ...EngineOption) engineOptions {
@@ -72,7 +74,7 @@ func makeEngineOptions(options ...EngineOption) engineOptions {
 		contextProvider:        defaultContextProvider,
 		syncDelay:              1,
 		lockTimeout:            30,
-		lockAcquisitionTimeout: 5,
+		lockAcquisitionTimeout: 5 * time.Second,
 		syncInterval:           300,
 		syncGetTimeout:         0,
 		watchTimeout:           0,
@@ -126,7 +128,7 @@ func EngineLockTimeout(lockTimeout int) EngineOption {
 // wait to acquire a lock.
 func EngineLockAcquisitionTimeout(lockAcquisitionTimeout int) EngineOption {
 	return engineOptionFunction(func(o *engineOptions) {
-		o.lockAcquisitionTimeout = lockAcquisitionTimeout
+		o.lockAcquisitionTimeout = time.Second * time.Duration(lockAcquisitionTimeout)
 	})
 }
 
@@ -142,6 +144,12 @@ func EngineConcurrency(workers int) EngineOption {
 func EngineWatchTimeout(watchTimeout int) EngineOption {
 	return engineOptionFunction(func(o *engineOptions) {
 		o.watchTimeout = watchTimeout
+	})
+}
+
+func EngineGetSession(getSession func() (*concurrency.Session, error)) EngineOption {
+	return engineOptionFunction(func(o *engineOptions) {
+		o.getSession = getSession
 	})
 }
 
