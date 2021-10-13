@@ -10,7 +10,7 @@ import (
 	"go.etcd.io/etcd/clientv3"
 )
 
-func TestV3Locker(t *testing.T) {
+func Test_v3Locker(t *testing.T) {
 	cfg, cl := initV3Etcd(t)
 	c, err := clientv3.New(cfg)
 	require.NoError(t, err)
@@ -18,14 +18,10 @@ func TestV3Locker(t *testing.T) {
 	require.NoError(t, err)
 	defer session1.Close()
 
-	lLocker := newLocalLocker()
-
 	rlckr1 := v3Locker{
 		lockTimeout: time.Minute,
 		getSession:  func() (*concurrency.Session, error) { return session1, nil },
-		lLocker:     lLocker,
 	}
-	defer lLocker.close()
 	rlck, err1 := rlckr1.lock("/test")
 	assert.NoError(t, err1)
 	require.NotNil(t, rlck)
@@ -37,7 +33,6 @@ func TestV3Locker(t *testing.T) {
 	rlckr2 := v3Locker{
 		lockTimeout: time.Minute,
 		getSession:  func() (*concurrency.Session, error) { return session2, nil },
-		lLocker:     lLocker,
 	}
 
 	_, err2 := rlckr2.lockWithTimeout("/test", 10*time.Second)
