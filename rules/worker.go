@@ -97,7 +97,12 @@ func (bw *baseWorker) doWork(loggerPtr **zap.Logger,
 	}
 	metrics.IncLockMetric(metricsInfo.method, metricsInfo.keyPattern, true)
 	bw.metrics.IncLockMetric(metricsInfo.method, metricsInfo.keyPattern, true)
-	defer l.Unlock()
+	defer func() {
+		err := l.Unlock()
+		if err != nil {
+			logger.Error("Could not unlock mutex", zap.Error(err))
+		}
+	}()
 	// Check for a second time, since checking and locking
 	// are not atomic.
 	capi, err1 = bw.api.getCachedAPI(rule.getKeys())

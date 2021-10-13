@@ -22,6 +22,7 @@ type mockLock struct {
 	channel chan bool
 }
 
-func (tl *mockLock) Unlock() {
+func (tl *mockLock) Unlock() error {
 	tl.channel <- true
+	return nil
 }
