@@ -1,4 +1,4 @@
-package rules
+package lock
 
 import (
 	"testing"
@@ -17,27 +17,27 @@ func TestV3Locker(t *testing.T) {
 		cl:          cl,
 		lockTimeout: 5,
 	}
-	rlck, err1 := rlckr.lock("test", 10)
+	rlck, err1 := rlckr.Lock("test")
 	assert.NoError(t, err1)
-	_, err2 := rlckr.lockWithTimeout("test", 10, 1)
+	_, err2 := rlckr.lockWithTimeout("test", 10)
 	assert.Error(t, err2)
-	rlck.unlock()
+	rlck.Unlock()
 
 	done1 := make(chan bool)
 	done2 := make(chan bool)
 
 	go func() {
-		lckr := newV3Locker(c, 5)
-		lck, lErr := lckr.lock("test1", 10)
+		lckr := NewV3Locker(c, 5)
+		lck, lErr := lckr.Lock("test1")
 		assert.NoError(t, lErr)
 		done1 <- true
 		<-done2
 		if lck != nil {
-			lck.unlock()
+			lck.Unlock()
 		}
 	}()
 	<-done1
-	_, err = rlckr.lock("test1", 1)
+	_, err = rlckr.Lock("test1")
 	assert.Error(t, err)
 	done2 <- true
 }
