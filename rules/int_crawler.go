@@ -128,7 +128,7 @@ func (ic *intCrawler) run() {
 				ic.singleRun(logger)
 				err := lock.Unlock()
 				if err != nil {
-					logger.Error("Could not unlock mutex", zap.Error(err))
+					logger.Error("Could not unlock mutex", zap.Error(err), zap.String("mutex", mutex))
 				}
 			}
 		}
