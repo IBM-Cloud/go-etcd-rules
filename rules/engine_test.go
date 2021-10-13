@@ -25,29 +25,6 @@ func (tc *testCallback) callback(task *V3RuleTask) {
 	tc.called <- true
 }
 
-// type testLocker struct {
-// 	channel  chan bool
-// 	errorMsg *string
-// }
-
-// func (tlkr *testLocker) lock(key string, ttl int) (lock.RuleLock, error) {
-// 	if tlkr.errorMsg != nil {
-// 		return nil, errors.New(*tlkr.errorMsg)
-// 	}
-// 	tLock := testLock{
-// 		channel: tlkr.channel,
-// 	}
-// 	return &tLock, nil
-// }
-
-// type testLock struct {
-// 	channel chan bool
-// }
-
-// func (tl *testLock) Unlock() {
-// 	tl.channel <- true
-// }
-
 func TestV3EngineConstructor(t *testing.T) {
 	cfg, _ := teststore.InitV3Etcd(t)
 	eng := NewV3Engine(cfg, getTestLogger())

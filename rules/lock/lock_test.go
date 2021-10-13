@@ -9,7 +9,7 @@ import (
 	"github.com/IBM-Cloud/go-etcd-rules/rules/teststore"
 )
 
-func TestV3Locker(t *testing.T) {
+func Test_V3Locker(t *testing.T) {
 	cfg, cl := teststore.InitV3Etcd(t)
 	c, err := clientv3.New(cfg)
 	assert.NoError(t, err)
