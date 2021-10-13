@@ -20,7 +20,7 @@ type metricsInfo struct {
 }
 
 func newMetricsInfo(ctx context.Context, keyPattern string) metricsInfo {
-	methodName := notSetMethodName
+	methodName := "worker_lock"
 	if data := GetMetricsMetadata(ctx); data != nil {
 		methodName = data.Method
 	}
