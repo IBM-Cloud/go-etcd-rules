@@ -21,7 +21,7 @@ func Test_V3Locker(t *testing.T) {
 	assert.NoError(t, err1)
 	_, err2 := rlckr.lockWithTimeout("test", 10)
 	assert.Error(t, err2)
-	rlck.Unlock()
+	assert.NoError(t, rlck.Unlock())
 
 	done1 := make(chan bool)
 	done2 := make(chan bool)
@@ -33,7 +33,7 @@ func Test_V3Locker(t *testing.T) {
 		done1 <- true
 		<-done2
 		if lck != nil {
-			lck.Unlock()
+			assert.NoError(t, lck.Unlock())
 		}
 	}()
 	<-done1

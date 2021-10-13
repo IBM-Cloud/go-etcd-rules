@@ -1,6 +1,7 @@
 package lock
 
 import (
+	"errors"
 	"time"
 
 	"go.etcd.io/etcd/clientv3"
@@ -13,7 +14,7 @@ type RuleLocker interface {
 }
 
 type RuleLock interface {
-	Unlock()
+	Unlock() error
 }
 
 type options struct {
@@ -67,7 +68,10 @@ type v3Lock struct {
 	session *concurrency.Session
 }
 
-func (v3l *v3Lock) Unlock() {
+// ErrNilMutex indicates that the lock has a nil mutex
+var ErrNilMutex = errors.New("mutex is nil")
+
+func (v3l *v3Lock) Unlock() error {
 	if v3l.mutex != nil {
 		// TODO: Should the timeout for this be configurable too? Or use the same value as lock?
 		//       It's a slightly different case in that here we want to make sure the unlock
@@ -79,5 +83,7 @@ func (v3l *v3Lock) Unlock() {
 		if err == nil && v3l.session != nil {
 			v3l.session.Close()
 		}
+		return err
 	}
+	return ErrNilMutex
 }
