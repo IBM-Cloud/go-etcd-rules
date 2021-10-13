@@ -27,17 +27,15 @@ type v3Worker struct {
 
 func newV3Worker(workerID string, engine *v3Engine) (v3Worker, error) {
 	var api readAPI
-	var locker lock.RuleLocker
 	c := engine.cl
 	kv := engine.kvWrapper(c)
-	locker = lock.NewV3Locker(c, engine.options.lockAcquisitionTimeout)
 	api = &etcdV3ReadAPI{
 		kV: kv,
 	}
 	w := v3Worker{
 		baseWorker: baseWorker{
 			api:      api,
-			locker:   locker,
+			locker:   engine.locker,
 			metrics:  engine.metrics,
 			workerID: workerID,
 			done:     make(chan bool, 1),
@@ -90,14 +88,19 @@ func (bw *baseWorker) doWork(loggerPtr **zap.Logger,
 	}
 	l, err2 := bw.locker.Lock(lockKey)
 	if err2 != nil {
-		logger.Debug("Failed to acquire lock", zap.String("lock_key", lockKey), zap.Error(err2))
+		logger.Debug("Failed to acquire lock", zap.String("lock_key", lockKey), zap.Error(err2), zap.String("mutex", lockKey))
 		metrics.IncLockMetric(metricsInfo.method, metricsInfo.keyPattern, false)
 		bw.metrics.IncLockMetric(metricsInfo.method, metricsInfo.keyPattern, false)
 		return
 	}
 	metrics.IncLockMetric(metricsInfo.method, metricsInfo.keyPattern, true)
 	bw.metrics.IncLockMetric(metricsInfo.method, metricsInfo.keyPattern, true)
-	defer l.Unlock()
+	defer func() {
+		err := l.Unlock()
+		if err != nil {
+			logger.Error("Could not unlock mutex", zap.Error(err), zap.String("mutex", lockKey))
+		}
+	}()
 	// Check for a second time, since checking and locking
 	// are not atomic.
 	capi, err1 = bw.api.getCachedAPI(rule.getKeys())
