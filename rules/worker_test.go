@@ -33,7 +33,6 @@ func TestWorkerSingleRun(t *testing.T) {
 			api:      &api,
 			locker:   &locker,
 			workerID: "testworker",
-			metrics:  &metrics,
 		},
 		engine: &e,
 	}

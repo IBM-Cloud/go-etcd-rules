@@ -12,7 +12,6 @@ import (
 
 type baseWorker struct {
 	locker   lock.RuleLocker
-	metrics  MetricsCollector
 	api      readAPI
 	workerID string
 	stopping uint32
@@ -36,7 +35,6 @@ func newV3Worker(workerID string, engine *v3Engine) (v3Worker, error) {
 		baseWorker: baseWorker{
 			api:      api,
 			locker:   engine.locker,
-			metrics:  engine.metrics,
 			workerID: workerID,
 			done:     make(chan bool, 1),
 		},
@@ -82,19 +80,14 @@ func (bw *baseWorker) doWork(loggerPtr **zap.Logger,
 	if !sat || is(&bw.stopping) {
 		if !sat {
 			metrics.IncSatisfiedThenNot(metricsInfo.method, metricsInfo.keyPattern, "worker.doWorkBeforeLock")
-			bw.metrics.IncSatisfiedThenNot(metricsInfo.method, metricsInfo.keyPattern, "worker.doWorkBeforeLock")
 		}
 		return
 	}
-	l, err2 := bw.locker.Lock(lockKey)
+	l, err2 := bw.locker.Lock(lockKey, lock.LockPattern(metricsInfo.keyPattern), lock.LockMethod(metricsInfo.method))
 	if err2 != nil {
-		logger.Debug("Failed to acquire lock", zap.String("lock_key", lockKey), zap.Error(err2), zap.String("mutex", lockKey))
-		metrics.IncLockMetric(metricsInfo.method, metricsInfo.keyPattern, false)
-		bw.metrics.IncLockMetric(metricsInfo.method, metricsInfo.keyPattern, false)
+		logger.Debug("Failed to acquire lock", zap.Error(err2), zap.String("mutex", lockKey))
 		return
 	}
-	metrics.IncLockMetric(metricsInfo.method, metricsInfo.keyPattern, true)
-	bw.metrics.IncLockMetric(metricsInfo.method, metricsInfo.keyPattern, true)
 	defer func() {
 		err := l.Unlock()
 		if err != nil {
@@ -115,10 +108,8 @@ func (bw *baseWorker) doWork(loggerPtr **zap.Logger,
 	}
 	if !sat {
 		metrics.IncSatisfiedThenNot(metricsInfo.method, metricsInfo.keyPattern, "worker.doWorkAfterLock")
-		bw.metrics.IncSatisfiedThenNot(metricsInfo.method, metricsInfo.keyPattern, "worker.doWorkAfterLock")
 	}
 	metrics.WorkerQueueWaitTime(metricsInfo.method, metricsInfo.startTime)
-	bw.metrics.WorkerQueueWaitTime(metricsInfo.method, metricsInfo.startTime)
 	if sat && !is(&bw.stopping) {
 		startTime := time.Now()
 		callback()

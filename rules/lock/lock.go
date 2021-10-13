@@ -18,12 +18,6 @@ type RuleLock interface {
 	Unlock() error
 }
 
-type options struct {
-	// TODO add options
-}
-
-type Option func(lo *options)
-
 // NewV3Locker creates a locker backed by etcd V3.
 func NewV3Locker(cl *clientv3.Client, lockTimeout int) RuleLocker {
 	return &v3Locker{

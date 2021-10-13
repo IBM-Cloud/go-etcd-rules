@@ -41,11 +41,11 @@ func checkMetrics(t *testing.T, expectedOutput string) {
 }
 
 func TestIncLockMetric(t *testing.T) {
-	IncLockMetric("getKey", "/key/pattern", true)
-	IncLockMetric("getKey", "/second/pattern", false)
+	IncLockMetric("etcd", "getKey", "/key/pattern", true)
+	IncLockMetric("etcd", "getKey", "/second/pattern", false)
 
-	checkMetrics(t, `rules_etcd_lock_count{method="getKey",pattern="/key/pattern",success="true"} 1`)
-	checkMetrics(t, `rules_etcd_lock_count{method="getKey",pattern="/second/pattern",success="false"} 1`)
+	checkMetrics(t, `rules_etcd_lock_count{locker="etcd",method="getKey",pattern="/key/pattern",success="true"} 1`)
+	checkMetrics(t, `rules_etcd_lock_count{locker="etcd",method="getKey",pattern="/second/pattern",success="false"} 1`)
 }
 
 func TestIncSatisfiedThenNot(t *testing.T) {
