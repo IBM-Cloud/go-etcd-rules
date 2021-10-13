@@ -50,17 +50,6 @@ func (ml mapLocker) toggle(key string, lock bool) bool {
 	return out
 }
 
-func (ml mapLocker) Lock(key string) (RuleLock, error) {
-	ok := ml.toggle(key, true)
-	if !ok {
-		return nil, ErrLockedLocally
-	}
-	return mapLock{
-		locker: ml,
-		key:    key,
-	}, nil
-}
-
 func newMapLocker() mapLocker {
 	locker := mapLocker{
 		stopCh:    make(chan struct{}),
@@ -99,12 +88,35 @@ func newMapLocker() mapLocker {
 	return locker
 }
 
-type mapLock struct {
-	locker mapLocker
+type toggleLocker interface {
+	toggle(key string, lock bool) bool
+	close()
+}
+type toggleLockerAdapter struct {
+	toggle    func(key string, lock bool) bool
+	close     func()
+	errLocked error
+}
+
+func (tla toggleLockerAdapter) Lock(key string) (RuleLock, error) {
+	ok := tla.toggle(key, true)
+	if !ok {
+		return nil, tla.errLocked
+	}
+	return toggleLock{
+		toggle: tla.toggle,
+		close:  tla.close,
+		key:    key,
+	}, nil
+}
+
+type toggleLock struct {
+	toggle func(key string, lock bool) bool
+	close  func()
 	key    string
 }
 
-func (ml mapLock) Unlock() error {
-	_ = ml.locker.toggle(ml.key, false)
+func (tl toggleLock) Unlock() error {
+	_ = tl.toggle(tl.key, false)
 	return nil
 }
