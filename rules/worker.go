@@ -27,17 +27,15 @@ type v3Worker struct {
 
 func newV3Worker(workerID string, engine *v3Engine) (v3Worker, error) {
 	var api readAPI
-	var locker lock.RuleLocker
 	c := engine.cl
 	kv := engine.kvWrapper(c)
-	locker = lock.NewV3Locker(c, engine.options.lockAcquisitionTimeout)
 	api = &etcdV3ReadAPI{
 		kV: kv,
 	}
 	w := v3Worker{
 		baseWorker: baseWorker{
 			api:      api,
-			locker:   locker,
+			locker:   engine.locker,
 			metrics:  engine.metrics,
 			workerID: workerID,
 			done:     make(chan bool, 1),

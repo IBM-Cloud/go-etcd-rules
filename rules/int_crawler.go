@@ -23,6 +23,7 @@ func newIntCrawler(
 	prefixes []string,
 	kvWrapper WrapKV,
 	delay int,
+	locker lock.RuleLocker,
 ) (crawler, error) {
 	kv := kvWrapper(cl)
 	api := etcdV3ReadAPI{
@@ -41,6 +42,7 @@ func newIntCrawler(
 		kv:                  kv,
 		delay:               delay,
 		rulesProcessedCount: make(map[string]int),
+		locker:              locker,
 	}
 	return &c, nil
 }
@@ -85,6 +87,7 @@ type intCrawler struct {
 	// tracks the number of times a rule is processed in a single run
 	rulesProcessedCount map[string]int
 	metricMutex         sync.Mutex
+	locker              lock.RuleLocker
 }
 
 func (ic *intCrawler) isStopping() bool {
@@ -118,8 +121,7 @@ func (ic *intCrawler) run() {
 			mutex := "/crawler/" + *ic.mutex
 			logger.Debug("Attempting to obtain mutex",
 				zap.String("mutex", mutex), zap.Int("Timeout", ic.mutexTimeout))
-			locker := lock.NewV3Locker(ic.cl, ic.mutexTimeout)
-			lock, err := locker.Lock(mutex)
+			lock, err := ic.locker.Lock(mutex)
 			if err != nil {
 				logger.Debug("Could not obtain mutex; skipping crawler run", zap.Error(err))
 			} else {

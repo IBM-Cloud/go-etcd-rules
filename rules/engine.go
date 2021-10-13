@@ -5,6 +5,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/IBM-Cloud/go-etcd-rules/rules/lock"
 	"go.etcd.io/etcd/clientv3"
 	"go.uber.org/zap"
 	"golang.org/x/net/context"
@@ -38,6 +39,7 @@ type baseEngine struct {
 	crawlers     []stoppable
 	watchers     []stoppable
 	workers      []stoppable
+	locker       lock.RuleLocker
 }
 
 type v3Engine struct {
@@ -102,6 +104,7 @@ func newV3Engine(logger *zap.Logger, cl *clientv3.Client, options ...EngineOptio
 			options:      opts,
 			ruleLockTTLs: map[int]int{},
 			ruleMgr:      ruleMgr,
+			locker:       lock.NewV3Locker(cl, opts.lockAcquisitionTimeout),
 		},
 		keyProc:        keyProc,
 		workChannel:    channel,
@@ -266,7 +269,9 @@ func (e *v3Engine) Run() {
 		e.options.lockAcquisitionTimeout,
 		prefixSlice,
 		e.kvWrapper,
-		e.options.syncDelay)
+		e.options.syncDelay,
+		e.locker,
+	)
 	if err != nil {
 		e.logger.Fatal("Failed to initialize crawler", zap.Error(err))
 	}
