@@ -123,7 +123,7 @@ func (ic *intCrawler) run() {
 				zap.String("mutex", mutex), zap.Int("Timeout", ic.mutexTimeout))
 			lock, err := ic.locker.Lock(mutex)
 			if err != nil {
-				logger.Debug("Could not obtain mutex; skipping crawler run", zap.Error(err))
+				logger.Debug("Could not obtain mutex; skipping crawler run", zap.Error(err), zap.String("mutex", mutex))
 			} else {
 				ic.singleRun(logger)
 				err := lock.Unlock()

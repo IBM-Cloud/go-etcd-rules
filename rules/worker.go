@@ -88,7 +88,7 @@ func (bw *baseWorker) doWork(loggerPtr **zap.Logger,
 	}
 	l, err2 := bw.locker.Lock(lockKey)
 	if err2 != nil {
-		logger.Debug("Failed to acquire lock", zap.String("lock_key", lockKey), zap.Error(err2))
+		logger.Debug("Failed to acquire lock", zap.String("lock_key", lockKey), zap.Error(err2), zap.String("mutex", lockKey))
 		metrics.IncLockMetric(metricsInfo.method, metricsInfo.keyPattern, false)
 		bw.metrics.IncLockMetric(metricsInfo.method, metricsInfo.keyPattern, false)
 		return
@@ -98,7 +98,7 @@ func (bw *baseWorker) doWork(loggerPtr **zap.Logger,
 	defer func() {
 		err := l.Unlock()
 		if err != nil {
-			logger.Error("Could not unlock mutex", zap.Error(err))
+			logger.Error("Could not unlock mutex", zap.Error(err), zap.String("mutex", lockKey))
 		}
 	}()
 	// Check for a second time, since checking and locking
