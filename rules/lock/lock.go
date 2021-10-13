@@ -5,8 +5,9 @@ import (
 	"time"
 
 	"go.etcd.io/etcd/clientv3"
-	"go.etcd.io/etcd/clientv3/concurrency"
 	"golang.org/x/net/context"
+
+	"github.com/IBM-Cloud/go-etcd-rules/concurrency"
 )
 
 type RuleLocker interface {
