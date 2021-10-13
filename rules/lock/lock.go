@@ -9,18 +9,18 @@ import (
 )
 
 type RuleLocker interface {
-	Lock(string, ...LockOption) (RuleLock, error)
+	Lock(string, ...Option) (RuleLock, error)
 }
 
 type RuleLock interface {
 	Unlock()
 }
 
-type lockoptions struct {
+type options struct {
 	// TODO add options
 }
 
-type LockOption func(lo *lockoptions)
+type Option func(lo *options)
 
 // NewV3Locker creates a locker backed by etcd V3.
 func NewV3Locker(cl *clientv3.Client, lockTimeout int) RuleLocker {
@@ -35,7 +35,7 @@ type v3Locker struct {
 	lockTimeout int
 }
 
-func (v3l *v3Locker) Lock(key string, options ...LockOption) (RuleLock, error) {
+func (v3l *v3Locker) Lock(key string, options ...Option) (RuleLock, error) {
 	return v3l.lockWithTimeout(key, v3l.lockTimeout)
 }
 func (v3l *v3Locker) lockWithTimeout(key string, timeout int) (RuleLock, error) {

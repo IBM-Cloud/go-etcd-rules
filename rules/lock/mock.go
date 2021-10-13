@@ -8,7 +8,7 @@ type MockLocker struct {
 	ErrorMsg *string
 }
 
-func (tlkr *MockLocker) Lock(key string, options ...LockOption) (RuleLock, error) {
+func (tlkr *MockLocker) Lock(key string, options ...Option) (RuleLock, error) {
 	if tlkr.ErrorMsg != nil {
 		return nil, errors.New(*tlkr.ErrorMsg)
 	}
