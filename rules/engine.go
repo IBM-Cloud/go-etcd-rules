@@ -5,10 +5,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/IBM-Cloud/go-etcd-rules/rules/lock"
 	"go.etcd.io/etcd/clientv3"
 	"go.uber.org/zap"
 	"golang.org/x/net/context"
+
+	"github.com/IBM-Cloud/go-etcd-rules/rules/lock"
 )
 
 type stoppable interface {
