@@ -4,6 +4,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/IBM-Cloud/go-etcd-rules/metrics"
 	"go.etcd.io/etcd/clientv3"
 	"go.uber.org/zap"
 	"golang.org/x/net/context"
@@ -171,7 +172,7 @@ func (ic *intCrawler) singleRun(logger *zap.Logger) {
 	ic.metricMutex.Lock()
 	defer ic.metricMutex.Unlock()
 	for ruleID, count := range ic.rulesProcessedCount {
-		timesEvaluated(crawlerMethodName, ruleID, count)
+		metrics.TimesEvaluated(crawlerMethodName, ruleID, count)
 		ic.metrics.TimesEvaluated(crawlerMethodName, ruleID, count)
 	}
 }

@@ -1,4 +1,4 @@
-package rules
+package metrics
 
 import (
 	"net/http"
@@ -41,44 +41,44 @@ func checkMetrics(t *testing.T, expectedOutput string) {
 }
 
 func TestIncLockMetric(t *testing.T) {
-	incLockMetric("getKey", "/key/pattern", true)
-	incLockMetric("getKey", "/second/pattern", false)
+	IncLockMetric("getKey", "/key/pattern", true)
+	IncLockMetric("getKey", "/second/pattern", false)
 
 	checkMetrics(t, `rules_etcd_lock_count{method="getKey",pattern="/key/pattern",success="true"} 1`)
 	checkMetrics(t, `rules_etcd_lock_count{method="getKey",pattern="/second/pattern",success="false"} 1`)
 }
 
 func TestIncSatisfiedThenNot(t *testing.T) {
-	incSatisfiedThenNot("getKey", "/key/pattern", "phaseName")
+	IncSatisfiedThenNot("getKey", "/key/pattern", "phaseName")
 	checkMetrics(t, `rules_etcd_rule_satisfied_then_not{method="getKey",pattern="/key/pattern",phase="phaseName"} 1`)
 }
 
 func TestTimesEvaluated(t *testing.T) {
-	timesEvaluated("getKey", "rule1234", 5)
+	TimesEvaluated("getKey", "rule1234", 5)
 	checkMetrics(t, `rules_etcd_evaluations{method="getKey",rule="rule1234"} 5`)
 }
 
 func TestWokerQueueWaitTime(t *testing.T) {
-	workerQueueWaitTime("getKey", time.Now())
+	WorkerQueueWaitTime("getKey", time.Now())
 	checkMetrics(t, `rules_etcd_worker_queue_wait_ms_count{method="getKey"} 1`)
 }
 
 func TestWorkBufferWaitTime(t *testing.T) {
-	workBufferWaitTime("getKey", "/desired/key/pattern", time.Now())
+	WorkBufferWaitTime("getKey", "/desired/key/pattern", time.Now())
 	checkMetrics(t, `rules_etcd_work_buffer_wait_ms_count{method="getKey",pattern="/desired/key/pattern"} 1`)
 }
 
 func TestCallbackWaitTime(t *testing.T) {
-	callbackWaitTime("/desired/key/pattern", time.Now())
+	CallbackWaitTime("/desired/key/pattern", time.Now())
 	checkMetrics(t, `rules_etcd_callback_wait_ms_count{pattern="/desired/key/pattern"} 1`)
 }
 
 func Test_keyProcessBufferCap(t *testing.T) {
-	keyProcessBufferCap(100)
+	KeyProcessBufferCap(100)
 	checkMetrics(t, `rules_etcd_key_process_buffer_cap 100`)
 }
 
 func Test_incWatcherErrMetric(t *testing.T) {
-	incWatcherErrMetric("err", "/desired/key/prefix")
+	IncWatcherErrMetric("err", "/desired/key/prefix")
 	checkMetrics(t, `rules_etcd_watcher_errors{error="err",prefix="/desired/key/prefix"} 1`)
 }

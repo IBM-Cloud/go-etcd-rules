@@ -1,4 +1,4 @@
-package rules
+package metrics
 
 import (
 	"strconv"
@@ -72,34 +72,45 @@ func init() {
 	prometheus.MustRegister(rulesEngineWatcherErrors)
 }
 
-func incLockMetric(methodName string, pattern string, lockSucceeded bool) {
+// IncLockMetric increments the lock count.
+func IncLockMetric(methodName string, pattern string, lockSucceeded bool) {
 	rulesEngineLockCount.WithLabelValues(methodName, pattern, strconv.FormatBool(lockSucceeded)).Inc()
 }
 
-func incSatisfiedThenNot(methodName string, pattern string, phaseName string) {
+// IncSatisfiedThenNot increments the count of a rule having initially been
+// satisfied and then not satisfied, either after the initial evaluation
+// or after the lock was obtained.
+func IncSatisfiedThenNot(methodName string, pattern string, phaseName string) {
 	rulesEngineSatisfiedThenNot.WithLabelValues(methodName, pattern, phaseName).Inc()
 }
 
-func timesEvaluated(methodName string, ruleID string, count int) {
+// TimesEvaluated sets the number of times a rule has been evaluated.
+func TimesEvaluated(methodName string, ruleID string, count int) {
 	rulesEngineEvaluations.WithLabelValues(methodName, ruleID).Set(float64(count))
 }
 
-func workerQueueWaitTime(methodName string, startTime time.Time) {
+// WorkerQueueWaitTime tracks the amount of time a work item has been sitting in
+// a worker queue.
+func WorkerQueueWaitTime(methodName string, startTime time.Time) {
 	rulesEngineWorkerQueueWait.WithLabelValues(methodName).Observe(float64(time.Since(startTime).Nanoseconds() / 1e6))
 }
 
-func workBufferWaitTime(methodName, pattern string, startTime time.Time) {
+// WorkBufferWaitTime tracks the amount of time a work item was in the work buffer.
+func WorkBufferWaitTime(methodName, pattern string, startTime time.Time) {
 	rulesEngineWorkBufferWaitTime.WithLabelValues(methodName, pattern).Observe(float64(time.Since(startTime).Nanoseconds() / 1e6))
 }
 
-func callbackWaitTime(pattern string, startTime time.Time) {
+// CallbackWaitTime tracks how much time elapsed between when the rule was evaluated and the callback called.
+func CallbackWaitTime(pattern string, startTime time.Time) {
 	rulesEngineCallbackWaitTime.WithLabelValues(pattern).Observe(float64(time.Since(startTime).Nanoseconds() / 1e6))
 }
 
-func keyProcessBufferCap(count int) {
+// KeyProcessBufferCap tracks the capacity of the key processor buffer.
+func KeyProcessBufferCap(count int) {
 	rulesEngineKeyProcessBufferCap.Set(float64(count))
 }
 
-func incWatcherErrMetric(err, prefix string) {
+// IncWatcherErrMetric increments the watcher error count.
+func IncWatcherErrMetric(err, prefix string) {
 	rulesEngineWatcherErrors.WithLabelValues(err, prefix).Inc()
 }
