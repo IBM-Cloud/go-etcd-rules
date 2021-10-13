@@ -34,8 +34,8 @@ func Test_metricLocker_Lock(t *testing.T) {
 		{
 			name: "success_with_both_options",
 			options: []Option{
-				LockPattern(testPattern),
-				LockMethod(testMethodName),
+				PatternForLock(testPattern),
+				MethodForLock(testMethodName),
 			},
 			pattern:   testPattern,
 			method:    testMethodName,
@@ -50,7 +50,7 @@ func Test_metricLocker_Lock(t *testing.T) {
 		{
 			name: "failure_with_pattern",
 			options: []Option{
-				LockPattern(testPattern),
+				PatternForLock(testPattern),
 			},
 			pattern:   testPattern,
 			method:    unknown,
@@ -60,7 +60,7 @@ func Test_metricLocker_Lock(t *testing.T) {
 		{
 			name: "failure_with_method",
 			options: []Option{
-				LockMethod(testMethodName),
+				MethodForLock(testMethodName),
 			},
 			pattern:   unknown,
 			method:    testMethodName,

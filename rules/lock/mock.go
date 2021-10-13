@@ -32,7 +32,7 @@ type FuncMockLocker struct {
 	LockF func(string, ...Option) (RuleLock, error)
 }
 
-// Mock implementation of RuleLock.Lock
+// Lock is a mock implementation of RuleLock.Lock
 func (ml FuncMockLocker) Lock(key string, options ...Option) (RuleLock, error) {
 	return ml.LockF(key, options...)
 }

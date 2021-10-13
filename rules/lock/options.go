@@ -26,15 +26,17 @@ func buildOptions(opts ...Option) options {
 // the RuleLock.Lock method.
 type Option func(lo *options)
 
-// LockPattern is used to specify the pattern that was used to
+// PatternForLock is used to specify the pattern that was used to
 // build the lock key for metric tracking purposes.
-func LockPattern(pattern string) Option {
+func PatternForLock(pattern string) Option {
 	return func(lo *options) {
 		lo.pattern = pattern
 	}
 }
 
-func LockMethod(method string) Option {
+// MethodForLock is used to specify the context in which the lock was
+// obtained.
+func MethodForLock(method string) Option {
 	return func(lo *options) {
 		lo.method = method
 	}
