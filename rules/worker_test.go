@@ -7,6 +7,8 @@ import (
 	"go.etcd.io/etcd/clientv3"
 	"go.uber.org/zap"
 	"golang.org/x/net/context"
+
+	"github.com/IBM-Cloud/go-etcd-rules/rules/lock"
 )
 
 func TestWorkerSingleRun(t *testing.T) {
@@ -22,8 +24,8 @@ func TestWorkerSingleRun(t *testing.T) {
 	e := newV3Engine(getTestLogger(), cl, EngineLockTimeout(300))
 	channel := e.workChannel
 	lockChannel := make(chan bool)
-	locker := testLocker{
-		channel: lockChannel,
+	locker := lock.MockLocker{
+		Channel: lockChannel,
 	}
 	api := mapReadAPI{}
 	w := v3Worker{
@@ -80,7 +82,7 @@ func TestWorkerSingleRun(t *testing.T) {
 
 	// Test case: rule is satisfied but there is an error obtaining the lock
 	errorMsg := "Some error"
-	locker.errorMsg = &errorMsg
+	locker.ErrorMsg = &errorMsg
 
 	expectedIncLockMetricsPatterns = []string{"/test/item", "/test/item"}
 	expectedIncLockMetricsLockSuccess = []bool{true, false}

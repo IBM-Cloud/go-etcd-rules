@@ -7,6 +7,8 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
 	"golang.org/x/net/context"
+
+	"github.com/IBM-Cloud/go-etcd-rules/rules/teststore"
 )
 
 type testExtKeyProcessor struct {
@@ -22,7 +24,7 @@ func (tekp *testExtKeyProcessor) isWork(key string, value *string, r readAPI) bo
 }
 
 func TestIntCrawler(t *testing.T) {
-	_, c := initV3Etcd(t)
+	_, c := teststore.InitV3Etcd(t)
 	kapi := c
 	_, err := kapi.Put(context.Background(), "/root/child", "val1")
 	require.NoError(t, err)

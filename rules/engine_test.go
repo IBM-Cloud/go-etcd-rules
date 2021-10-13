@@ -1,10 +1,11 @@
 package rules
 
 import (
-	"errors"
-	"github.com/stretchr/testify/require"
 	"testing"
 	"time"
+
+	"github.com/IBM-Cloud/go-etcd-rules/rules/teststore"
+	"github.com/stretchr/testify/require"
 
 	"github.com/stretchr/testify/assert"
 	"go.etcd.io/etcd/clientv3"
@@ -24,31 +25,8 @@ func (tc *testCallback) callback(task *V3RuleTask) {
 	tc.called <- true
 }
 
-type testLocker struct {
-	channel  chan bool
-	errorMsg *string
-}
-
-func (tlkr *testLocker) lock(key string, ttl int) (ruleLock, error) {
-	if tlkr.errorMsg != nil {
-		return nil, errors.New(*tlkr.errorMsg)
-	}
-	tLock := testLock{
-		channel: tlkr.channel,
-	}
-	return &tLock, nil
-}
-
-type testLock struct {
-	channel chan bool
-}
-
-func (tl *testLock) unlock() {
-	tl.channel <- true
-}
-
 func TestV3EngineConstructor(t *testing.T) {
-	cfg, _ := initV3Etcd(t)
+	cfg, _ := teststore.InitV3Etcd(t)
 	eng := NewV3Engine(cfg, getTestLogger())
 	value := "val"
 	rule, _ := NewEqualsLiteralRule("/key", &value)
@@ -78,7 +56,7 @@ func TestV3EngineConstructor(t *testing.T) {
 func TestV3EngineWorkBuffer(t *testing.T) {
 	// verifies the work channel buffer behavior based on the engine setting.  since we don't start the engine in this
 	// test case, there are no workers to read from the work channel; therefore, only the channel buffering is tested.
-	cfg, _ := initV3Etcd(t)
+	cfg, _ := teststore.InitV3Etcd(t)
 
 	// unbuffered engine work channel blocks
 	engI := NewV3Engine(cfg, getTestLogger())
@@ -115,7 +93,7 @@ func TestV3EngineWorkBuffer(t *testing.T) {
 }
 
 func TestV3CallbackWrapper(t *testing.T) {
-	_, c := initV3Etcd(t)
+	_, c := teststore.InitV3Etcd(t)
 	defer c.Close()
 	task := V3RuleTask{
 		Attr:   &mapAttributes{values: map[string]string{"a": "b"}},
