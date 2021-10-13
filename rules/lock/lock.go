@@ -1,0 +1,85 @@
+package lock
+
+import (
+	"errors"
+	"time"
+
+	"go.etcd.io/etcd/clientv3"
+	"go.etcd.io/etcd/clientv3/concurrency"
+	"golang.org/x/net/context"
+)
+
+type RuleLocker interface {
+	Lock(string, ...Option) (RuleLock, error)
+}
+
+type RuleLock interface {
+	Unlock() error
+}
+
+type options struct {
+	// TODO add options
+}
+
+type Option func(lo *options)
+
+// NewV3Locker creates a locker backed by etcd V3.
+func NewV3Locker(cl *clientv3.Client, lockTimeout int) RuleLocker {
+	return &v3Locker{
+		cl:          cl,
+		lockTimeout: lockTimeout,
+	}
+}
+
+type v3Locker struct {
+	cl          *clientv3.Client
+	lockTimeout int
+}
+
+func (v3l *v3Locker) Lock(key string, options ...Option) (RuleLock, error) {
+	return v3l.lockWithTimeout(key, v3l.lockTimeout)
+}
+func (v3l *v3Locker) lockWithTimeout(key string, timeout int) (RuleLock, error) {
+	// TODO once we switch to a shared session, we can get rid of the TTL option
+	// and go to the default (60 seconds). This is the TTL for the lease that
+	// is associated with the session and the lease is renewed before it expires
+	// while the session is active (not closed). It is not the TTL of any locks;
+	// those persist until Unlock is called or the process dies and the session
+	// lease is allowed to expire.
+	s, err := concurrency.NewSession(v3l.cl, concurrency.WithTTL(30))
+	if err != nil {
+		return nil, err
+	}
+	m := concurrency.NewMutex(s, key)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(timeout)*time.Second)
+	defer cancel()
+	err = m.Lock(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return &v3Lock{
+		mutex:   m,
+		session: s,
+	}, nil
+}
+
+type v3Lock struct {
+	mutex   *concurrency.Mutex
+	session *concurrency.Session
+}
+
+// ErrNilMutex indicates that the lock has a nil mutex
+var ErrNilMutex = errors.New("mutex is nil")
+
+func (v3l *v3Lock) Unlock() error {
+	if v3l.mutex != nil {
+		ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+		defer cancel()
+		err := v3l.mutex.Unlock(ctx)
+		if err == nil && v3l.session != nil {
+			v3l.session.Close()
+		}
+		return err
+	}
+	return ErrNilMutex
+}
