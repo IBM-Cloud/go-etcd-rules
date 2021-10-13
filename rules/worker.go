@@ -12,6 +12,7 @@ import (
 
 type baseWorker struct {
 	locker   lock.RuleLocker
+	metrics  MetricsCollector
 	api      readAPI
 	workerID string
 	stopping uint32
@@ -35,6 +36,7 @@ func newV3Worker(workerID string, engine *v3Engine) (v3Worker, error) {
 		baseWorker: baseWorker{
 			api:      api,
 			locker:   engine.locker,
+			metrics:  engine.metrics,
 			workerID: workerID,
 			done:     make(chan bool, 1),
 		},
@@ -80,10 +82,11 @@ func (bw *baseWorker) doWork(loggerPtr **zap.Logger,
 	if !sat || is(&bw.stopping) {
 		if !sat {
 			metrics.IncSatisfiedThenNot(metricsInfo.method, metricsInfo.keyPattern, "worker.doWorkBeforeLock")
+			bw.metrics.IncSatisfiedThenNot(metricsInfo.method, metricsInfo.keyPattern, "worker.doWorkBeforeLock")
 		}
 		return
 	}
-	l, err2 := bw.locker.Lock(lockKey, lock.PatternForLock(metricsInfo.keyPattern), lock.MethodForLock(metricsInfo.method))
+	l, err2 := bw.locker.Lock(lockKey, lock.PatternForLock(metricsInfo.keyPattern), lock.MethodForLock("worker_lock"))
 	if err2 != nil {
 		logger.Debug("Failed to acquire lock", zap.Error(err2), zap.String("mutex", lockKey))
 		return
@@ -108,8 +111,10 @@ func (bw *baseWorker) doWork(loggerPtr **zap.Logger,
 	}
 	if !sat {
 		metrics.IncSatisfiedThenNot(metricsInfo.method, metricsInfo.keyPattern, "worker.doWorkAfterLock")
+		bw.metrics.IncSatisfiedThenNot(metricsInfo.method, metricsInfo.keyPattern, "worker.doWorkAfterLock")
 	}
 	metrics.WorkerQueueWaitTime(metricsInfo.method, metricsInfo.startTime)
+	bw.metrics.WorkerQueueWaitTime(metricsInfo.method, metricsInfo.startTime)
 	if sat && !is(&bw.stopping) {
 		startTime := time.Now()
 		callback()
