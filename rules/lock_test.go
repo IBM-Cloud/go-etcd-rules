@@ -70,3 +70,19 @@ func TestV3Locker(t *testing.T) {
 
 func Test_localLocker(t *testing.T) {
 }
+
+type mockLocker struct {
+	lockF func(string) (ruleLock, error)
+}
+
+func (ml mockLocker) lock(key string) (ruleLock, error) {
+	return ml.lockF(key)
+}
+
+type mockLock struct {
+	unlockF func() error
+}
+
+func (ml mockLock) unlock() error {
+	return ml.unlockF()
+}

@@ -153,7 +153,9 @@ type v3Lock struct {
 }
 
 func (v3l *v3Lock) unlock() error {
-	v3l.locker.lLocker.toggle(v3l.key, false)
+	// Unlocking the local lock should be done last, so obtaining the same
+	// lock can't occur while the etcd lock is still held.
+	defer v3l.locker.lLocker.toggle(v3l.key, false)
 	if v3l.mutex != nil {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 		defer cancel()
