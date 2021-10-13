@@ -4,6 +4,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/IBM-Cloud/go-etcd-rules/metrics"
 	"go.uber.org/zap"
 
 	"github.com/IBM-Cloud/go-etcd-rules/rules/lock"
@@ -82,7 +83,7 @@ func (bw *baseWorker) doWork(loggerPtr **zap.Logger,
 	}
 	if !sat || is(&bw.stopping) {
 		if !sat {
-			incSatisfiedThenNot(metricsInfo.method, metricsInfo.keyPattern, "worker.doWorkBeforeLock")
+			metrics.IncSatisfiedThenNot(metricsInfo.method, metricsInfo.keyPattern, "worker.doWorkBeforeLock")
 			bw.metrics.IncSatisfiedThenNot(metricsInfo.method, metricsInfo.keyPattern, "worker.doWorkBeforeLock")
 		}
 		return
@@ -90,11 +91,11 @@ func (bw *baseWorker) doWork(loggerPtr **zap.Logger,
 	l, err2 := bw.locker.Lock(lockKey)
 	if err2 != nil {
 		logger.Debug("Failed to acquire lock", zap.String("lock_key", lockKey), zap.Error(err2))
-		incLockMetric(metricsInfo.method, metricsInfo.keyPattern, false)
+		metrics.IncLockMetric(metricsInfo.method, metricsInfo.keyPattern, false)
 		bw.metrics.IncLockMetric(metricsInfo.method, metricsInfo.keyPattern, false)
 		return
 	}
-	incLockMetric(metricsInfo.method, metricsInfo.keyPattern, true)
+	metrics.IncLockMetric(metricsInfo.method, metricsInfo.keyPattern, true)
 	bw.metrics.IncLockMetric(metricsInfo.method, metricsInfo.keyPattern, true)
 	defer l.Unlock()
 	// Check for a second time, since checking and locking
@@ -110,15 +111,15 @@ func (bw *baseWorker) doWork(loggerPtr **zap.Logger,
 		return
 	}
 	if !sat {
-		incSatisfiedThenNot(metricsInfo.method, metricsInfo.keyPattern, "worker.doWorkAfterLock")
+		metrics.IncSatisfiedThenNot(metricsInfo.method, metricsInfo.keyPattern, "worker.doWorkAfterLock")
 		bw.metrics.IncSatisfiedThenNot(metricsInfo.method, metricsInfo.keyPattern, "worker.doWorkAfterLock")
 	}
-	workerQueueWaitTime(metricsInfo.method, metricsInfo.startTime)
+	metrics.WorkerQueueWaitTime(metricsInfo.method, metricsInfo.startTime)
 	bw.metrics.WorkerQueueWaitTime(metricsInfo.method, metricsInfo.startTime)
 	if sat && !is(&bw.stopping) {
 		startTime := time.Now()
 		callback()
-		callbackWaitTime(metricsInfo.keyPattern, startTime)
+		metrics.CallbackWaitTime(metricsInfo.keyPattern, startTime)
 	}
 }
 
