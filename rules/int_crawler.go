@@ -4,6 +4,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/IBM-Cloud/go-etcd-rules/rules/lock"
 	"go.etcd.io/etcd/clientv3"
 	"go.uber.org/zap"
 	"golang.org/x/net/context"
@@ -16,7 +17,6 @@ func newIntCrawler(
 	metrics MetricsCollector,
 	logger *zap.Logger,
 	mutex *string,
-	mutexTTL int,
 	mutexTimeout int,
 	prefixes []string,
 	kvWrapper WrapKV,
@@ -34,7 +34,6 @@ func newIntCrawler(
 		metrics:             metrics,
 		logger:              logger,
 		mutex:               mutex,
-		mutexTTL:            mutexTTL,
 		mutexTimeout:        mutexTimeout,
 		prefixes:            prefixes,
 		kv:                  kv,
@@ -77,7 +76,6 @@ type intCrawler struct {
 	metrics      MetricsCollector
 	logger       *zap.Logger
 	mutex        *string
-	mutexTTL     int
 	mutexTimeout int
 	prefixes     []string
 	stopped      uint32
@@ -117,14 +115,14 @@ func (ic *intCrawler) run() {
 		} else {
 			mutex := "/crawler/" + *ic.mutex
 			logger.Debug("Attempting to obtain mutex",
-				zap.String("mutex", mutex), zap.Int("TTL", ic.mutexTTL), zap.Int("Timeout", ic.mutexTimeout))
-			locker := newV3Locker(ic.cl, ic.mutexTimeout)
-			lock, err := locker.lock(mutex, ic.mutexTTL)
+				zap.String("mutex", mutex), zap.Int("Timeout", ic.mutexTimeout))
+			locker := lock.NewV3Locker(ic.cl, ic.mutexTimeout)
+			lock, err := locker.Lock(mutex)
 			if err != nil {
 				logger.Debug("Could not obtain mutex; skipping crawler run", zap.Error(err))
 			} else {
 				ic.singleRun(logger)
-				lock.unlock()
+				lock.Unlock()
 			}
 		}
 		logger.Info("Crawler run complete")

@@ -5,10 +5,12 @@ import (
 	"time"
 
 	"go.uber.org/zap"
+
+	"github.com/IBM-Cloud/go-etcd-rules/rules/lock"
 )
 
 type baseWorker struct {
-	locker   ruleLocker
+	locker   lock.RuleLocker
 	metrics  MetricsCollector
 	api      readAPI
 	workerID string
@@ -24,10 +26,10 @@ type v3Worker struct {
 
 func newV3Worker(workerID string, engine *v3Engine) (v3Worker, error) {
 	var api readAPI
-	var locker ruleLocker
+	var locker lock.RuleLocker
 	c := engine.cl
 	kv := engine.kvWrapper(c)
-	locker = newV3Locker(c, engine.options.lockAcquisitionTimeout)
+	locker = lock.NewV3Locker(c, engine.options.lockAcquisitionTimeout)
 	api = &etcdV3ReadAPI{
 		kV: kv,
 	}
@@ -85,7 +87,7 @@ func (bw *baseWorker) doWork(loggerPtr **zap.Logger,
 		}
 		return
 	}
-	l, err2 := bw.locker.lock(lockKey, lockTTL)
+	l, err2 := bw.locker.Lock(lockKey)
 	if err2 != nil {
 		logger.Debug("Failed to acquire lock", zap.String("lock_key", lockKey), zap.Error(err2))
 		incLockMetric(metricsInfo.method, metricsInfo.keyPattern, false)
@@ -94,7 +96,7 @@ func (bw *baseWorker) doWork(loggerPtr **zap.Logger,
 	}
 	incLockMetric(metricsInfo.method, metricsInfo.keyPattern, true)
 	bw.metrics.IncLockMetric(metricsInfo.method, metricsInfo.keyPattern, true)
-	defer l.unlock()
+	defer l.Unlock()
 	// Check for a second time, since checking and locking
 	// are not atomic.
 	capi, err1 = bw.api.getCachedAPI(rule.getKeys())
