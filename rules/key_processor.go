@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/IBM-Cloud/go-etcd-rules/metrics"
 	"go.uber.org/zap"
 )
 
@@ -77,7 +78,7 @@ func (v3kp *v3KeyProcessor) dispatchWork(index int, rule staticRule, logger *zap
 	start := time.Now()
 	v3kp.channel <- work
 	// measures the amount of time work is blocked from being added to the buffer
-	workBufferWaitTime(work.metricsInfo.method, keyPattern, start)
+	metrics.WorkBufferWaitTime(work.metricsInfo.method, keyPattern, start)
 }
 
 func newV3KeyProcessor(channel chan v3RuleWork, rm *ruleManager, kpChannel chan *keyTask, concurrency int, logger *zap.Logger) v3KeyProcessor {
@@ -116,7 +117,7 @@ func (v3kp *v3KeyProcessor) processKey(key string, value *string, api readAPI, l
 
 func (v3kp *v3KeyProcessor) bufferCapacitySampler() {
 	for {
-		keyProcessBufferCap(cap(v3kp.kpChannel) - len(v3kp.kpChannel))
+		metrics.KeyProcessBufferCap(cap(v3kp.kpChannel) - len(v3kp.kpChannel))
 		time.Sleep(time.Minute)
 	}
 }
