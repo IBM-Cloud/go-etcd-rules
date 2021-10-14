@@ -1,11 +1,22 @@
 package lock
 
+// NewNestedLocker creates a locker that protects the inner
+// locker with an outer locker, so that no unnecessary calls
+// are made to the inner locker when attempting to obtain
+// an unavailable lock.
+func NewNestedLocker(outer, inner RuleLocker) RuleLocker {
+	return nestedLocker{
+		own:    outer,
+		nested: inner,
+	}
+}
+
 type nestedLocker struct {
 	own    RuleLocker
 	nested RuleLocker
 }
 
-func (nl nestedLocker) Lock(key string) (RuleLock, error) {
+func (nl nestedLocker) Lock(key string, options ...Option) (RuleLock, error) {
 	// Try to obtain own lock first, preempting attempts
 	// to obtain the nested (more expensive) lock if
 	// getting the local lock fails.

@@ -5,6 +5,15 @@ import (
 	"sync"
 )
 
+func NewMapLocker() RuleLocker {
+	ml := newMapLocker()
+	return toggleLockerAdapter{
+		toggle:    ml.toggle,
+		close:     ml.close,
+		errLocked: ErrLockedLocally,
+	}
+}
+
 type mapLocker struct {
 	once      *sync.Once
 	stopCh    chan struct{}
@@ -105,14 +114,12 @@ func (tla toggleLockerAdapter) Lock(key string, options ...Option) (RuleLock, er
 	}
 	return toggleLock{
 		toggle: tla.toggle,
-		close:  tla.close,
 		key:    key,
 	}, nil
 }
 
 type toggleLock struct {
 	toggle func(key string, lock bool) bool
-	close  func()
 	key    string
 }
 
