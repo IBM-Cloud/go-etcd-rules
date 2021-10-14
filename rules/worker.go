@@ -86,15 +86,11 @@ func (bw *baseWorker) doWork(loggerPtr **zap.Logger,
 		}
 		return
 	}
-	l, err2 := bw.locker.Lock(lockKey)
+	l, err2 := bw.locker.Lock(lockKey, lock.PatternForLock(metricsInfo.keyPattern), lock.MethodForLock("worker_lock"))
 	if err2 != nil {
-		logger.Debug("Failed to acquire lock", zap.String("lock_key", lockKey), zap.Error(err2), zap.String("mutex", lockKey))
-		metrics.IncLockMetric(metricsInfo.method, metricsInfo.keyPattern, false)
-		bw.metrics.IncLockMetric(metricsInfo.method, metricsInfo.keyPattern, false)
+		logger.Debug("Failed to acquire lock", zap.Error(err2), zap.String("mutex", lockKey))
 		return
 	}
-	metrics.IncLockMetric(metricsInfo.method, metricsInfo.keyPattern, true)
-	bw.metrics.IncLockMetric(metricsInfo.method, metricsInfo.keyPattern, true)
 	defer func() {
 		err := l.Unlock()
 		if err != nil {

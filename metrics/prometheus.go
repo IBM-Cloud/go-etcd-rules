@@ -13,7 +13,7 @@ var (
 		Subsystem: "etcd",
 		Namespace: "rules",
 		Help:      "etcd rules engine lock count",
-	}, []string{"method", "pattern", "success"})
+	}, []string{"locker", "method", "pattern", "success"})
 	rulesEngineSatisfiedThenNot = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Name:      "rule_satisfied_then_not",
 		Subsystem: "etcd",
@@ -73,8 +73,8 @@ func init() {
 }
 
 // IncLockMetric increments the lock count.
-func IncLockMetric(methodName string, pattern string, lockSucceeded bool) {
-	rulesEngineLockCount.WithLabelValues(methodName, pattern, strconv.FormatBool(lockSucceeded)).Inc()
+func IncLockMetric(locker string, methodName string, pattern string, lockSucceeded bool) {
+	rulesEngineLockCount.WithLabelValues(locker, methodName, pattern, strconv.FormatBool(lockSucceeded)).Inc()
 }
 
 // IncSatisfiedThenNot increments the count of a rule having initially been

@@ -3,12 +3,11 @@ package rules
 import (
 	"testing"
 
+	"github.com/IBM-Cloud/go-etcd-rules/rules/lock"
 	"github.com/stretchr/testify/assert"
 	"go.etcd.io/etcd/clientv3"
 	"go.uber.org/zap"
 	"golang.org/x/net/context"
-
-	"github.com/IBM-Cloud/go-etcd-rules/rules/lock"
 )
 
 func TestWorkerSingleRun(t *testing.T) {
@@ -67,25 +66,17 @@ func TestWorkerSingleRun(t *testing.T) {
 		metricsInfo:      newMetricsInfo(ctx, "/test/item"),
 	}
 	expectedMethodNames := []string{"workerTest"}
-	expectedIncLockMetricsPatterns := []string{"/test/item"}
-	expectedIncLockMetricsLockSuccess := []bool{true}
 
 	go w.singleRun()
 	channel <- rw
 	assert.True(t, <-cbChannel)
 	assert.True(t, <-lockChannel)
-	assert.Equal(t, expectedIncLockMetricsPatterns, metrics.IncLockMetricPattern)
-	assert.Equal(t, expectedIncLockMetricsLockSuccess, metrics.IncLockMetricLockSuccess)
-	assert.Equal(t, expectedMethodNames, metrics.IncLockMetricMethod)
 	assert.Equal(t, expectedMethodNames, metrics.WorkerQueueWaitTimeMethod)
 	assert.NotEmpty(t, metrics.WorkerQueueWaitTime)
 
 	// Test case: rule is satisfied but there is an error obtaining the lock
 	errorMsg := "Some error"
 	locker.ErrorMsg = &errorMsg
-
-	expectedIncLockMetricsPatterns = []string{"/test/item", "/test/item"}
-	expectedIncLockMetricsLockSuccess = []bool{true, false}
 
 	callChannel := make(chan bool)
 
@@ -94,8 +85,6 @@ func TestWorkerSingleRun(t *testing.T) {
 	assert.True(t, <-callChannel)
 	assert.Equal(t, 0, len(cbChannel))
 	assert.Equal(t, 0, len(lockChannel))
-	assert.Equal(t, expectedIncLockMetricsPatterns, metrics.IncLockMetricPattern)
-	assert.Equal(t, expectedIncLockMetricsLockSuccess, metrics.IncLockMetricLockSuccess)
 	// not expecting these to change from the first run at all because the rule doesn't make it
 	// all the way through
 	assert.Equal(t, expectedMethodNames, metrics.WorkerQueueWaitTimeMethod)
@@ -112,9 +101,6 @@ func TestWorkerSingleRun(t *testing.T) {
 	assert.True(t, <-callChannel)
 	assert.Equal(t, 0, len(cbChannel))
 	assert.Equal(t, 0, len(lockChannel))
-
-	assert.Equal(t, expectedIncLockMetricsPatterns, metrics.IncLockMetricPattern)
-	assert.Equal(t, expectedIncLockMetricsLockSuccess, metrics.IncLockMetricLockSuccess)
 
 	assert.Equal(t, expectedSatisfiedMetricsPatterns, metrics.IncSatisfiedThenNotPattern)
 	assert.Equal(t, expectedSatisfiedMetricsPhase, metrics.IncIncSatisfiedThenNotPhase)

@@ -96,7 +96,8 @@ func newV3Engine(logger *zap.Logger, cl *clientv3.Client, options ...EngineOptio
 			MetricsCollector: baseMetrics,
 		}
 	}
-
+	baseEtcdLocker := lock.NewV3Locker(cl, opts.lockAcquisitionTimeout)
+	metricsEtcdLocker := lock.WithMetrics(baseEtcdLocker, "etcd")
 	eng := v3Engine{
 		baseEngine: baseEngine{
 			keyProc:      &keyProc,
@@ -105,7 +106,7 @@ func newV3Engine(logger *zap.Logger, cl *clientv3.Client, options ...EngineOptio
 			options:      opts,
 			ruleLockTTLs: map[int]int{},
 			ruleMgr:      ruleMgr,
-			locker:       lock.NewV3Locker(cl, opts.lockAcquisitionTimeout),
+			locker:       metricsEtcdLocker,
 		},
 		keyProc:        keyProc,
 		workChannel:    channel,
