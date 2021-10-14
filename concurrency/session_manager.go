@@ -10,6 +10,10 @@ import (
 	"go.uber.org/zap"
 )
 
+const (
+	sessionManagerRetryDelay = time.Second * 10
+)
+
 type SessionManager struct {
 	// These fields must not be accessed by more than one
 	// goroutine.
@@ -29,11 +33,12 @@ type SessionManager struct {
 // NewSessionManager creates a new session manager that manages a session singleton
 // that is replaced if it dies.
 func NewSessionManager(client *clientv3.Client, logger *zap.Logger) *SessionManager {
-	return newSessionManager(client, time.Second*10, logger)
+	return newSessionManager(client, sessionManagerRetryDelay, logger)
 }
 func newSessionManager(client *clientv3.Client, retryDelay time.Duration, logger *zap.Logger) *SessionManager {
 	sm := &SessionManager{
 		logger:     logger,
+		retryDelay: retryDelay,
 		get:        make(chan sessionManagerGetRequest),
 		close:      make(chan struct{}),
 		newSession: func() (*Session, error) { return NewSession(client) },
@@ -43,7 +48,8 @@ func newSessionManager(client *clientv3.Client, retryDelay time.Duration, logger
 }
 
 // GetSession provides the singleton session or times out if a session
-// cannot be obtained.
+// cannot be obtained. The context needs to have a timeout, otherwise it
+// is possible for the calling goroutine to hang.
 func (sm *SessionManager) GetSession(ctx context.Context) (*Session, error) {
 	request := sessionManagerGetRequest{
 		resp: make(chan *Session),
