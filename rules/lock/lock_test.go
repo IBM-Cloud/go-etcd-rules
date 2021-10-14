@@ -5,7 +5,9 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"go.etcd.io/etcd/clientv3"
+	"golang.org/x/net/context"
 
+	"github.com/IBM-Cloud/go-etcd-rules/concurrency"
 	"github.com/IBM-Cloud/go-etcd-rules/rules/teststore"
 )
 
@@ -13,8 +15,12 @@ func Test_V3Locker(t *testing.T) {
 	cfg, cl := teststore.InitV3Etcd(t)
 	c, err := clientv3.New(cfg)
 	assert.NoError(t, err)
+	newSession := func(_ context.Context) (*concurrency.Session, error) {
+		return concurrency.NewSession(cl, concurrency.WithTTL(30))
+	}
+
 	rlckr := v3Locker{
-		cl:          cl,
+		newSession:  newSession,
 		lockTimeout: 5,
 	}
 	rlck, err1 := rlckr.Lock("test")

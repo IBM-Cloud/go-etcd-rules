@@ -9,6 +9,7 @@ import (
 	"go.uber.org/zap"
 	"golang.org/x/net/context"
 
+	"github.com/IBM-Cloud/go-etcd-rules/concurrency"
 	"github.com/IBM-Cloud/go-etcd-rules/rules/lock"
 )
 
@@ -96,8 +97,12 @@ func newV3Engine(logger *zap.Logger, cl *clientv3.Client, options ...EngineOptio
 			MetricsCollector: baseMetrics,
 		}
 	}
-	baseEtcdLocker := lock.NewV3Locker(cl, opts.lockAcquisitionTimeout)
+	sessionManager := concurrency.NewSessionManager(cl, logger)
+	baseEtcdLocker := lock.NewSessionLocker(sessionManager.GetSession, opts.lockAcquisitionTimeout)
 	metricsEtcdLocker := lock.WithMetrics(baseEtcdLocker, "etcd")
+	baseMapLocker := lock.NewMapLocker()
+	metricsMapLocker := lock.WithMetrics(baseMapLocker, "map")
+	locker := lock.NewNestedLocker(metricsMapLocker, metricsEtcdLocker)
 	eng := v3Engine{
 		baseEngine: baseEngine{
 			keyProc:      &keyProc,
@@ -106,7 +111,7 @@ func newV3Engine(logger *zap.Logger, cl *clientv3.Client, options ...EngineOptio
 			options:      opts,
 			ruleLockTTLs: map[int]int{},
 			ruleMgr:      ruleMgr,
-			locker:       metricsEtcdLocker,
+			locker:       locker,
 		},
 		keyProc:        keyProc,
 		workChannel:    channel,
