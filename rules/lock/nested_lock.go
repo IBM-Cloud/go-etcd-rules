@@ -20,12 +20,12 @@ func (nl nestedLocker) Lock(key string, options ...Option) (RuleLock, error) {
 	// Try to obtain own lock first, preempting attempts
 	// to obtain the nested (more expensive) lock if
 	// getting the local lock fails.
-	lock, err := nl.own.Lock(key)
+	lock, err := nl.own.Lock(key, options...)
 	if err != nil {
 		return nil, err
 	}
 	// Try to obtain the nested lock
-	nested, err := nl.nested.Lock(key)
+	nested, err := nl.nested.Lock(key, options...)
 	if err != nil {
 		// First unlock own lock
 		_ = lock.Unlock()
