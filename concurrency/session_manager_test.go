@@ -107,3 +107,18 @@ func Test_SessionManager_Close(t *testing.T) {
 		})
 	}
 }
+
+func Test_NewSessionManager(t *testing.T) {
+	_, client := teststore.InitV3Etcd(t)
+	lgr, err := zap.NewDevelopment()
+	require.NoError(t, err)
+	mgr := NewSessionManager(client, lgr)
+	assert.Equal(t, lgr, mgr.logger)
+	assert.Equal(t, sessionManagerRetryDelay, mgr.retryDelay)
+	assert.NotNil(t, mgr.get)
+	assert.NotNil(t, mgr.close)
+	session, err := mgr.newSession()
+	require.NoError(t, err)
+	session.Close()
+	mgr.Close()
+}
