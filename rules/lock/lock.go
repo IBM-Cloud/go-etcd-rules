@@ -29,19 +29,21 @@ func NewV3Locker(cl *clientv3.Client, lockTimeout int) RuleLocker {
 	newSession := func(_ context.Context) (*concurrency.Session, error) {
 		return concurrency.NewSession(cl, concurrency.WithTTL(30))
 	}
-	return NewSessionLocker(newSession, lockTimeout)
+	return NewSessionLocker(newSession, lockTimeout, true)
 }
 
-func NewSessionLocker(newSession NewSession, lockTimeout int) RuleLocker {
+func NewSessionLocker(newSession NewSession, lockTimeout int, closeSession bool) RuleLocker {
 	return &v3Locker{
-		lockTimeout: lockTimeout,
-		newSession:  newSession,
+		lockTimeout:  lockTimeout,
+		newSession:   newSession,
+		closeSession: closeSession,
 	}
 }
 
 type v3Locker struct {
-	lockTimeout int
-	newSession  NewSession
+	lockTimeout  int
+	newSession   NewSession
+	closeSession bool
 }
 
 func (v3l *v3Locker) Lock(key string, options ...Option) (RuleLock, error) {
@@ -59,10 +61,13 @@ func (v3l *v3Locker) lockWithTimeout(key string, timeout int) (RuleLock, error) 
 	if err != nil {
 		return nil, err
 	}
-	return &v3Lock{
-		mutex:   m,
-		session: s,
-	}, nil
+	lock := &v3Lock{
+		mutex: m,
+	}
+	if v3l.closeSession {
+		lock.session = s
+	}
+	return lock, nil
 }
 
 type v3Lock struct {
@@ -75,11 +80,7 @@ var ErrNilMutex = errors.New("mutex is nil")
 
 func (v3l *v3Lock) Unlock() error {
 	if v3l.mutex != nil {
-		// TODO: Should the timeout for this be configurable too? Or use the same value as lock?
-		//       It's a slightly different case in that here we want to make sure the unlock
-		//       succeeds to free it for the use of others. In the lock case we want to give up
-		//       early if someone already has the lock.
-		ctx, cancel := context.WithTimeout(context.Background(), time.Duration(5)*time.Second)
+		ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 		defer cancel()
 		err := v3l.mutex.Unlock(ctx)
 		if err == nil && v3l.session != nil {

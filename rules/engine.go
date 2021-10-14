@@ -98,7 +98,7 @@ func newV3Engine(logger *zap.Logger, cl *clientv3.Client, options ...EngineOptio
 		}
 	}
 	sessionManager := concurrency.NewSessionManager(cl, logger)
-	baseEtcdLocker := lock.NewSessionLocker(sessionManager.GetSession, opts.lockAcquisitionTimeout)
+	baseEtcdLocker := lock.NewSessionLocker(sessionManager.GetSession, opts.lockAcquisitionTimeout, false)
 	metricsEtcdLocker := lock.WithMetrics(baseEtcdLocker, "etcd")
 	baseMapLocker := lock.NewMapLocker()
 	metricsMapLocker := lock.WithMetrics(baseMapLocker, "map")
