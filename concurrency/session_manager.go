@@ -1,6 +1,7 @@
 package concurrency
 
 import (
+	"context"
 	"fmt"
 	"sync"
 	"time"
@@ -10,55 +11,139 @@ import (
 )
 
 type SessionManager struct {
-	client  *clientv3.Client
-	logger  *zap.Logger
+	// These fields must not be accessed by more than one
+	// goroutine.
+	// Session singleton that is refreshed if it closes.
 	session *Session
-	mutex   sync.Mutex
-	err     error
+	// Channel used by the session to communicate that it is closed.
+	sessionDone <-chan struct{}
+
+	logger     *zap.Logger
+	retryDelay time.Duration
+	get        chan sessionManagerGetRequest
+	close      chan struct{}
+	closeOnce  sync.Once
+	newSession func() (*Session, error)
 }
 
-// NewSessionManager creates a new session manager that will return an error if the
-// attempt to get a session fails or return a session manager instance that will
-// create new sessions if the existing one dies.
-func NewSessionManager(client *clientv3.Client, logger *zap.Logger) (*SessionManager, error) {
+// NewSessionManager creates a new session manager that manages a session singleton
+// that is replaced if it dies.
+func NewSessionManager(client *clientv3.Client, logger *zap.Logger) *SessionManager {
+	return newSessionManager(client, time.Second*10, logger)
+}
+func newSessionManager(client *clientv3.Client, retryDelay time.Duration, logger *zap.Logger) *SessionManager {
 	sm := &SessionManager{
-		client: client,
-		logger: logger,
+		logger:     logger,
+		get:        make(chan sessionManagerGetRequest),
+		close:      make(chan struct{}),
+		newSession: func() (*Session, error) { return NewSession(client) },
 	}
-	err := sm.initSession()
-	return sm, err
+	go sm.run()
+	return sm
 }
 
-func (sm *SessionManager) initSession() error {
-	sm.logger.Info("Initializing session")
-	sm.mutex.Lock()
-	defer sm.mutex.Unlock()
-	sm.session, sm.err = NewSession(sm.client)
-	if sm.err != nil {
-		sm.logger.Error("error initializing session", zap.Error(sm.err))
-		return sm.err
+// GetSession provides the singleton session or times out if a session
+// cannot be obtained.
+func (sm *SessionManager) GetSession(ctx context.Context) (*Session, error) {
+	request := sessionManagerGetRequest{
+		resp: make(chan *Session),
 	}
-	sm.logger.Info("new session initialized", zap.String("lease_id", fmt.Sprintf("%x", sm.session.Lease())))
-	sessionDone := sm.session.Done()
 	go func() {
-		time.Sleep(time.Minute)
-		// Create a new session if the session dies, most likely due to an etcd
-		// server issue.
-		<-sessionDone
-		err := sm.initSession()
-		for err != nil {
-			// If getting a new session fails, retry unti it succeeds.
-			// Attempts to get the managed session will fail quickly, which
-			// seems to be best alternative.
-			time.Sleep(time.Second * 10)
-			err = sm.initSession()
-		}
+		sm.get <- request
 	}()
-	return nil
+	select {
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	case session := <-request.resp:
+		return session, nil
+	}
 }
 
-func (sm *SessionManager) GetSession() (*Session, error) {
-	sm.mutex.Lock()
-	defer sm.mutex.Unlock()
-	return sm.session, sm.err
+// Close closes the manager, causing the current session to be closed
+// and no new ones to be created.
+func (sm *SessionManager) Close() {
+	sm.closeOnce.Do(func() {
+		close(sm.close)
+	})
+}
+
+func (sm *SessionManager) resetSession() {
+	sm.logger.Info("Initializing session")
+	session, err := sm.newSession()
+	for err != nil {
+		sm.logger.Error("Error getting session", zap.Error(err))
+		stopRetry := false
+		func() {
+			ctx, cancel := context.WithTimeout(context.Background(), sm.retryDelay)
+			defer cancel()
+			select {
+			case <-ctx.Done():
+				// Let pass so retry can be attempted.
+			case <-sm.close:
+				stopRetry = true
+			}
+		}()
+		if stopRetry {
+			return
+		}
+		session, err = sm.newSession()
+	}
+	sm.session = session
+	sm.sessionDone = session.Done()
+	sm.logger.Info("new session initialized", zap.String("lease_id", fmt.Sprintf("%x", sm.session.Lease())))
+}
+
+func (sm *SessionManager) run() {
+	// Thread safety is handled by controlling all activity
+	// through a single goroutine that interacts with other
+	// goroutines via channels.
+	sm.logger.Info("Starting session manager")
+run:
+	for {
+		// If the session manager should be closed, give
+		// that the highest priority.
+		select {
+		case <-sm.close:
+			sm.logger.Info("Closing session manager")
+			if sm.session != nil {
+				// This may fail the session was already closed
+				// due to some external cause, like etcd connectivity
+				// issues. The result is just a log message.
+				sm.session.Close()
+			}
+			break run
+		default:
+		}
+		switch {
+		case sm.sessionDone == nil:
+			sm.resetSession()
+			continue
+		}
+		// If the current session has closed,
+		// prioritize creating a new one ahead
+		// of remaining concerns.
+		select {
+		case <-sm.sessionDone:
+			// Create new session
+			sm.resetSession()
+			continue
+		default:
+		}
+		select {
+		case <-sm.close:
+			// Let the check above take care of cleanup
+			continue
+		case <-sm.sessionDone:
+			// Let the check above take care of creating a new session
+			continue
+		case req := <-sm.get:
+			// Get the current session
+			req.resp <- sm.session
+		}
+	}
+	sm.logger.Info("Session manager closed")
+}
+
+type sessionManagerGetRequest struct {
+	resp chan *Session
 }
