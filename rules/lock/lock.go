@@ -57,7 +57,7 @@ func (v3l *v3Locker) lockWithTimeout(key string, timeout int) (RuleLock, error) 
 		return nil, err
 	}
 	m := concurrency.NewMutex(s, key)
-	err = m.Lock(ctx)
+	err = m.TryLock(ctx)
 	if err != nil {
 		return nil, err
 	}
