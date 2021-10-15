@@ -102,7 +102,10 @@ func newV3Engine(logger *zap.Logger, cl *clientv3.Client, options ...EngineOptio
 	metricsEtcdLocker := lock.WithMetrics(baseEtcdLocker, "etcd")
 	baseMapLocker := lock.NewMapLocker()
 	metricsMapLocker := lock.WithMetrics(baseMapLocker, "map")
-	locker := lock.NewNestedLocker(metricsMapLocker, metricsEtcdLocker)
+	coolOffLocker := lock.NewCoolOffLocker(opts.lockCoolDown)
+	metricsCoolOffLocker := lock.WithMetrics(coolOffLocker, "cooloff")
+	localLocker := lock.NewNestedLocker(metricsCoolOffLocker, metricsMapLocker)
+	locker := lock.NewNestedLocker(localLocker, metricsEtcdLocker)
 	eng := v3Engine{
 		baseEngine: baseEngine{
 			keyProc:      &keyProc,
