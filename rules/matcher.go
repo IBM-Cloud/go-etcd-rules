@@ -21,6 +21,7 @@ type regexKeyMatcher struct {
 type keyMatch interface {
 	GetAttribute(name string) *string
 	Format(pattern string) string
+	names() []string
 }
 
 func (rkm *regexKeyMatcher) getPrefix() string {
@@ -91,6 +92,14 @@ func newKeyMatch(path string, kmr *regexKeyMatcher) *regexKeyMatch {
 		fieldMap:     kmr.fieldMap,
 	}
 	return km
+}
+
+func (m *regexKeyMatch) names() []string {
+	var names []string
+	for k := range m.fieldMap {
+		names = append(names, k)
+	}
+	return names
 }
 
 func (m *regexKeyMatch) GetAttribute(name string) *string {

@@ -14,6 +14,11 @@ type Attributes interface {
 	Format(string) string
 }
 
+type extendedAttributes interface {
+	Attributes
+	names() []string
+}
+
 // V3RuleTask instances contain contextual object instances and metadata
 // for use by rule callbacks.
 type V3RuleTask struct {
