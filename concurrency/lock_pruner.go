@@ -15,11 +15,11 @@ type lockKey struct {
 }
 
 type LockPruner struct {
-	keys          map[string]lockKey
-	timeout       time.Duration
-	lockPrefixes  []string
-	kv            clientv3.KV
-	lease         clientv3.Lease
+	keys         map[string]lockKey
+	timeout      time.Duration
+	lockPrefixes []string
+	kv           clientv3.KV
+	// lease         clientv3.Lease
 	logger        *zap.Logger
 	deleteLockKey func(ctx context.Context, key string, createRevision int64, keyLogger *zap.Logger) (success bool)
 }
@@ -86,12 +86,21 @@ func (lp LockPruner) checkLockPrefix(ctx context.Context, lockPrefix string, pre
 }
 
 func (lp LockPruner) runtimeDeleteLockKey(ctx context.Context, key string, createRevision int64, keyLogger *zap.Logger) (success bool) {
-	resp, err := lp.kv.Txn(ctx).If(clientv3.Compare(clientv3.CreateRevision(key), "=", createRevision)).Then(clientv3.OpDelete(key)).Commit()
+	// Only delete the key if the create revision matches.
+	// Break up the txn build to be able to isolate panic source by line number
+	txn := lp.kv.Txn(ctx)
+	txn = txn.If(clientv3.Compare(clientv3.CreateRevision(key), "=", createRevision))
+	txn = txn.Then(clientv3.OpDelete(key))
+	resp, err := txn.Commit()
 	if err != nil {
 		keyLogger.Error("error deleting key", zap.Error(err))
 		return false
 	} else {
-		keyLogger.Info("deleted key", zap.Bool("succeeded", resp.Succeeded))
+		keyLogger.Info("deleted key", zap.Bool("txn_succeeded", resp.Succeeded))
+		// If the delete did not succeed because a key with a newer create revision
+		// was added or another client deleted the key, the caller should still behave
+		// as if the delete had succeeded, since in either case the key metadata is no
+		// longer accurate and will get updated in the next run.
 		return true
 	}
 }
