@@ -1,0 +1,97 @@
+package concurrency
+
+import (
+	"context"
+	"strings"
+	"time"
+
+	"go.etcd.io/etcd/clientv3"
+	"go.uber.org/zap"
+)
+
+type lockKey struct {
+	createRevision int64
+	firstSeen      time.Time
+}
+
+type LockPruner struct {
+	keys          map[string]lockKey
+	timeout       time.Duration
+	lockPrefixes  []string
+	kv            clientv3.KV
+	lease         clientv3.Lease
+	logger        *zap.Logger
+	deleteLockKey func(ctx context.Context, key string, createRevision int64, keyLogger *zap.Logger) (success bool)
+}
+
+func (lp LockPruner) checkLocks() {
+	ctx := context.Background()
+	for _, lockPrefix := range lp.lockPrefixes {
+		lp.checkLockPrefix(ctx, lockPrefix, lp.logger)
+	}
+}
+
+func (lp LockPruner) checkLockPrefix(ctx context.Context, lockPrefix string, prefixLogger *zap.Logger) {
+	keysRetrieved := make(map[string]bool)
+	resp, err := lp.kv.Get(ctx, lockPrefix, clientv3.WithPrefix())
+	if err != nil {
+		prefixLogger.Error("error performing prefix query; aborting lock check", zap.Error(err))
+		return
+	}
+	for _, kv := range resp.Kvs {
+		// There are three possibilities:
+		// 1. This lock was not seen before
+		// 2. This lock was seen but has a different create revision
+		// 3. This lock was seen and has the same create revision
+		keyString := string(kv.Key)
+		keysRetrieved[keyString] = true
+		keyLogger := prefixLogger.With(zap.String("key", keyString), zap.Int64("create_revision", kv.CreateRevision), zap.Int64("lease", kv.Lease))
+		keyLogger.Info("Found lock")
+		var key lockKey
+		var found bool
+		// Key not seen before or seen before with different create revision
+		key, found = lp.keys[keyString]
+		keyLogger = keyLogger.With(zap.Bool("found", found))
+		if found {
+			keyLogger = keyLogger.With(zap.String("first_seen", key.firstSeen.Format(time.RFC3339)), zap.Int64("existing_create_revision", key.createRevision))
+		}
+		if !found || kv.CreateRevision != key.createRevision {
+			keyLogger.Info("creating new key entry")
+			key = lockKey{
+				createRevision: kv.CreateRevision,
+				firstSeen:      time.Now(),
+			}
+			lp.keys[keyString] = key
+			continue
+		}
+		// Key seen before with same create revision
+		now := time.Now()
+
+		if now.Sub(key.firstSeen) < lp.timeout {
+			keyLogger.Info("Lock not expired")
+		} else {
+			keyLogger.Info("Lock expired; deleting key")
+			if lp.deleteLockKey(ctx, keyString, key.createRevision, keyLogger) {
+				// Remove the key from the keys map, since it is no longer in etcd
+				delete(lp.keys, keyString)
+			}
+		}
+	}
+	for keyString := range lp.keys {
+		if strings.HasPrefix(keyString, lockPrefix) && !keysRetrieved[keyString] {
+			prefixLogger.Info("removing key from map", zap.String("key", keyString))
+			delete(lp.keys, keyString)
+		}
+	}
+}
+
+func (lp LockPruner) runtimeDeleteLockKey(ctx context.Context, key string, createRevision int64, keyLogger *zap.Logger) (success bool) {
+	resp, err := lp.kv.Txn(ctx).If(clientv3.Compare(clientv3.CreateRevision(key), "=", createRevision)).Then(clientv3.OpDelete(key)).Commit()
+	if err != nil {
+		keyLogger.Error("error deleting key", zap.Error(err))
+		return false
+	} else {
+		keyLogger.Info("deleted key", zap.Bool("succeeded", resp.Succeeded))
+		return true
+	}
+}
