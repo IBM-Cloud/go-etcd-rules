@@ -31,7 +31,11 @@ type baseKeyProcessor struct {
 	contextProviders map[int]ContextProvider
 	lockKeyPatterns  map[int]string
 	ruleIDs          map[int]string
-	rm               *ruleManager
+	rm               ruleMgr //*ruleManager
+}
+
+type ruleMgr interface {
+	getStaticRules(key string, value *string) map[staticRule]int
 }
 
 func (bkp *baseKeyProcessor) setLockKeyPattern(index int, pattern string) {
