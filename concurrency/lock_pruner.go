@@ -15,13 +15,25 @@ type lockKey struct {
 }
 
 type LockPruner struct {
-	keys         map[string]lockKey
-	timeout      time.Duration
-	lockPrefixes []string
-	kv           clientv3.KV
-	// lease         clientv3.Lease
-	logger        *zap.Logger
-	deleteLockKey func(ctx context.Context, key string, createRevision int64, keyLogger *zap.Logger) (success bool)
+	keys               map[string]lockKey
+	timeout            time.Duration
+	lockPrefixes       []string
+	kv                 clientv3.KV
+	logger             *zap.Logger
+	deleteLockKey      func(ctx context.Context, key string, createRevision int64, keyLogger *zap.Logger) (success bool)
+	observeExpiredLock func(prefix string)
+}
+
+func NewLockPruner(timeout time.Duration, lockPrefixes []string, kv clientv3.KV, observeExpiredLock func(prefix string), logger *zap.Logger) LockPruner {
+	lp := LockPruner{
+		keys:         make(map[string]lockKey),
+		timeout:      timeout,
+		lockPrefixes: lockPrefixes,
+		kv:           kv,
+		logger:       logger,
+	}
+	lp.deleteLockKey = lp.runtimeDeleteLockKey
+	return lp
 }
 
 func (lp LockPruner) checkLocks() {
@@ -72,6 +84,8 @@ func (lp LockPruner) checkLockPrefix(ctx context.Context, lockPrefix string, pre
 		} else {
 			keyLogger.Info("Lock expired; deleting key")
 			if lp.deleteLockKey(ctx, keyString, key.createRevision, keyLogger) {
+				// Observe the expired key as a metric
+				lp.observeExpiredLock(lockPrefix)
 				// Remove the key from the keys map, since it is no longer in etcd
 				delete(lp.keys, keyString)
 			}

@@ -97,6 +97,7 @@ func Test_LockPruner_checkLockPrefix(t *testing.T) {
 		updatedSeenKeys map[string]lockKey
 		deleteFailure   bool
 		getFailure      bool
+		observeExpired  bool
 	}{
 		{
 			// No locks in etcd and none previously seen
@@ -133,6 +134,7 @@ func Test_LockPruner_checkLockPrefix(t *testing.T) {
 				},
 			},
 			updatedSeenKeys: map[string]lockKey{},
+			observeExpired:  true,
 		},
 		{
 			// A previously seen lock that has not yet expired
@@ -230,7 +232,7 @@ func Test_LockPruner_checkLockPrefix(t *testing.T) {
 			updatedSeenKeys: map[string]lockKey{
 				testKey1: {
 					createRevision: 0,
-					firstSeen:      now,
+					firstSeen:      now.Add(-(testTimeout + time.Second)),
 				},
 			},
 			deleteFailure: true,
@@ -238,6 +240,7 @@ func Test_LockPruner_checkLockPrefix(t *testing.T) {
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			observeExpired := false
 			// Set up preconditions
 			_, cl := teststore.InitV3Etcd(t)
 			kv := clientv3.NewKV(cl)
@@ -269,6 +272,10 @@ func Test_LockPruner_checkLockPrefix(t *testing.T) {
 			lp := LockPruner{
 				timeout: testTimeout,
 				keys:    seenKeys,
+				observeExpiredLock: func(prefix string) {
+					assert.Equal(t, testLockPrefix, prefix)
+					observeExpired = true
+				},
 			}
 			if tc.getFailure {
 				lp.kv = errorKV{}
@@ -287,6 +294,7 @@ func Test_LockPruner_checkLockPrefix(t *testing.T) {
 			// Check results
 			resp, err := kv.Get(ctx, testLockPrefix, clientv3.WithPrefix())
 			require.NoError(t, err)
+			assert.Equal(t, tc.observeExpired, observeExpired)
 			remaining := make([]string, 0, len(resp.Kvs))
 			for _, result := range resp.Kvs {
 				remaining = append(remaining, string(result.Key))
