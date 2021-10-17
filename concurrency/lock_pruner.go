@@ -26,24 +26,30 @@ type LockPruner struct {
 
 func NewLockPruner(timeout time.Duration, lockPrefixes []string, kv clientv3.KV, observeExpiredLock func(prefix string), logger *zap.Logger) LockPruner {
 	lp := LockPruner{
-		keys:         make(map[string]lockKey),
-		timeout:      timeout,
-		lockPrefixes: lockPrefixes,
-		kv:           kv,
-		logger:       logger,
+		keys:               make(map[string]lockKey),
+		timeout:            timeout,
+		lockPrefixes:       lockPrefixes,
+		kv:                 kv,
+		logger:             logger,
+		observeExpiredLock: observeExpiredLock,
 	}
+	// Top-ten question from code reviews: why isn't this set as part of the literal above?
+	// Answer: because it requires referencing the struct instance "lp", which isn't defined
+	// at that point.
 	lp.deleteLockKey = lp.runtimeDeleteLockKey
 	return lp
 }
 
-func (lp LockPruner) checkLocks() {
+func (lp LockPruner) PruneLocks() {
 	ctx := context.Background()
 	for _, lockPrefix := range lp.lockPrefixes {
-		lp.checkLockPrefix(ctx, lockPrefix, lp.logger)
+		prefixLogger := lp.logger.With(zap.String("prefix", lockPrefix))
+		lp.checkLockPrefix(ctx, lockPrefix, prefixLogger)
 	}
 }
 
 func (lp LockPruner) checkLockPrefix(ctx context.Context, lockPrefix string, prefixLogger *zap.Logger) {
+	prefixLogger.Info("Checking prefix")
 	keysRetrieved := make(map[string]bool)
 	resp, err := lp.kv.Get(ctx, lockPrefix, clientv3.WithPrefix())
 	if err != nil {

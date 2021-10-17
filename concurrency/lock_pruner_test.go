@@ -3,6 +3,7 @@ package concurrency
 import (
 	"context"
 	"errors"
+	"fmt"
 	"sort"
 	"testing"
 	"time"
@@ -22,29 +23,47 @@ func check(err error) {
 	}
 }
 
-func xTest_Blah(t *testing.T) {
-	// ctx := context.Background()
-	cfg := clientv3.Config{Endpoints: []string{"http://127.0.0.1:2379"}}
-	cl, err := clientv3.New(cfg)
-	check(err)
-	kv := clientv3.NewKV(cl)
-	// resp, err := kv.Get(ctx, "/locks", clientv3.WithPrefix())
-	// check(err)
-	// for _, kv := range resp.Kvs {
-	// 	fmt.Printf("%v\n", kv)
-	// }
-	p := LockPruner{
-		keys:    make(map[string]lockKey),
-		timeout: time.Minute,
-		kv:      kv,
-		// lease:        clientv3.NewLease(cl),
-		logger:       zaptest.NewLogger(t),
-		lockPrefixes: []string{"/locks/hello"},
-	}
-	for i := 0; i < 10; i++ {
-		p.checkLocks()
-		time.Sleep(10 * time.Second)
-	}
+func Test_NewLockPruner(t *testing.T) {
+	// End-to-end test to verify that all fields were properly set.
+	// Additional code paths are tested in unit tests.
+	ctx := context.Background()
+	var observedPrefixes []string
+	_, cl := teststore.InitV3Etcd(t)
+	// Add bonafide locks
+	session, err := NewSession(cl)
+	defer session.Close()
+	require.NoError(t, err)
+	mutex1 := NewMutex(session, "/locks/l1") // slash is added by library before lease ID
+	err = mutex1.Lock(ctx)
+	require.NoError(t, err)
+	defer mutex1.Unlock(ctx)
+	mutex2 := NewMutex(session, "/locks/l2") // slash is added by library before lease ID
+	err = mutex2.Lock(ctx)
+	require.NoError(t, err)
+	defer mutex2.Unlock(ctx)
+
+	key1 := fmt.Sprintf("/locks/l1/%x", session.Lease())
+	key2 := fmt.Sprintf("/locks/l1/%x", session.Lease())
+	lp := NewLockPruner(
+		15*time.Minute,                       // timeout
+		[]string{"/locks/l1/", "/locks/l2/"}, // prefixes to watch
+		clientv3.NewKV(cl),                   // etcd client
+		func(prefix string) { observedPrefixes = append(observedPrefixes, prefix) }, // observe expired
+		zaptest.NewLogger(t), // logger
+	)
+	// Smoke test and populate seen locks
+	assert.NotPanics(t, lp.PruneLocks)
+	// Simulate passing of time...
+	keyData1 := lp.keys[key1]
+	keyData1.firstSeen = keyData1.firstSeen.Add(-(16 * time.Minute))
+	lp.keys[key1] = keyData1
+	// mutex2 is traveling closer to the speed of light, so time passes more slowly for it
+	keyData2 := lp.keys[key2]
+	keyData2.firstSeen = keyData2.firstSeen.Add(-(12 * time.Minute)) // 12 instead of 14 for larger margin of error
+	lp.keys[key2] = keyData2
+	// Run again, this time deleting the "expired" lock
+	assert.NotPanics(t, lp.PruneLocks)
+	assert.Equal(t, []string{"/locks/l1/"}, observedPrefixes)
 }
 
 type errorKV struct {
@@ -263,7 +282,7 @@ func Test_LockPruner_checkLockPrefix(t *testing.T) {
 				// The offset is to simulate an older lock with the same key
 				// which would happen if a lock was unlocked and a new instance
 				// obtained between checks. The logic distinguishes these kinds of
-				// lock by their create revisions. The value associated with a lock
+				// locks by their create revisions. The value associated with a lock
 				// key should never change in etcd. A zero offset means that
 				// this is still the same lock that was observed previously.
 				metadata.createRevision = revision - tc.currentKeys[key]
