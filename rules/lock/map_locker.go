@@ -97,10 +97,6 @@ func newMapLocker() mapLocker {
 	return locker
 }
 
-type toggleLocker interface {
-	toggle(key string, lock bool) bool
-	close()
-}
 type toggleLockerAdapter struct {
 	toggle    func(key string, lock bool) bool
 	close     func()
