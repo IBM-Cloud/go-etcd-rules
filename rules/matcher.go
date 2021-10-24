@@ -21,6 +21,7 @@ type regexKeyMatcher struct {
 type keyMatch interface {
 	GetAttribute(name string) *string
 	Format(pattern string) string
+	names() []string
 }
 
 func (rkm *regexKeyMatcher) getPrefix() string {
@@ -100,6 +101,14 @@ func (m *regexKeyMatch) GetAttribute(name string) *string {
 	}
 	result := m.matchStrings[index]
 	return &result
+}
+
+func (m *regexKeyMatch) names() []string {
+	names := make([]string, 0, len(m.fieldMap))
+	for name := range m.fieldMap {
+		names = append(names, name)
+	}
+	return names
 }
 
 func (m *regexKeyMatch) Format(pattern string) string {
