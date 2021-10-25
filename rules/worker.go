@@ -39,11 +39,12 @@ func newV3Worker(workerID string, engine *v3Engine) (v3Worker, error) {
 	}
 	w := v3Worker{
 		baseWorker: baseWorker{
-			api:      api,
-			locker:   engine.locker,
-			metrics:  engine.metrics,
-			workerID: workerID,
-			done:     make(chan bool, 1),
+			api:              api,
+			locker:           engine.locker,
+			metrics:          engine.metrics,
+			workerID:         workerID,
+			done:             make(chan bool, 1),
+			callbackListener: engine.callbackListener,
 		},
 		engine: engine,
 	}
