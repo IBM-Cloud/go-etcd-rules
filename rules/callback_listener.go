@@ -88,3 +88,15 @@ func (htcbh HTTPCallbackHandler) WaitForCallback(ctx context.Context, ruleID str
 	}
 	return nil
 }
+
+// ClearCallbacks flushes all previous callbacks from the buffered channel.
+func (htcbh HTTPCallbackHandler) ClearCallbacks() {
+clear:
+	for {
+		select {
+		case <-htcbh.events:
+		default:
+			break clear
+		}
+	}
+}
