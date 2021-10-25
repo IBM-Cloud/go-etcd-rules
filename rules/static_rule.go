@@ -292,14 +292,6 @@ func (nsr *notStaticRule) String() string {
 	return fmt.Sprintf("NOT (%s)", nsr.staticRule)
 }
 
-// func (nsr *notStaticRule) getAttributes() Attributes {
-// 	return nsr.nested.getAttributes()
-// }
-
-// func (nsr *notStaticRule) keyMatch(key string) bool {
-// 	return nsr.nested.keyMatch(key)
-// }
-
 func (nsr *notStaticRule) satisfiable(key string, value *string) bool {
 	return nsr.keyMatch(key)
 }
@@ -324,10 +316,6 @@ func (nsr *notStaticRule) satisfied(api readAPI) (bool, error) {
 	}
 	return !satisfied, nil
 }
-
-// func (nsr *notStaticRule) getKeys() []string {
-// 	return nsr.nested.getKeys()
-// }
 
 type equalsRule struct {
 	baseRule

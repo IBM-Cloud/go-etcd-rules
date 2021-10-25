@@ -171,7 +171,7 @@ func main() {
 	// Write data to be polled to etcd; this will trigger the callback.
 	for i := 0; i < idCount; i++ {
 		id := fmt.Sprint(i)
-		_, err := kv.Put(context.Background(), strings.Replace(dataPath, ":id", id, 1) /*"/rulesEngine/data/"+id*/, "0")
+		_, err := kv.Put(context.Background(), strings.Replace(dataPath, ":id", id, 1), "0")
 		check(err)
 	}
 
