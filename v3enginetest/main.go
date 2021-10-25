@@ -80,7 +80,10 @@ func main() {
 	// Set up a callback handler
 	cbHandler := rules.NewHTTPCallbackHander()
 	http.HandleFunc("/callback", cbHandler.HandleRequest)
-	go http.ListenAndServe(":6969", nil)
+	go func() {
+		err := http.ListenAndServe(":6969", nil)
+		check(err)
+	}()
 
 	// Set environment variable so the rules engine will use it
 	os.Setenv(rules.WebhookURLEnv, "http://localhost:6969/callback")

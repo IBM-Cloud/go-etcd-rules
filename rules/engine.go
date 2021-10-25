@@ -14,6 +14,8 @@ import (
 )
 
 const (
+	// WebhookURLEnv is the environment variable used to specify a callback
+	// webhook that will get called every time a callback has finished executing.
 	WebhookURLEnv = "RULES_ENGINE_CALLBACK_WEBHOOK"
 )
 
