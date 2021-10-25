@@ -153,7 +153,15 @@ func (w *v3Worker) singleRun() {
 	if is(&w.stopping) {
 		return
 	}
-	w.addWorkerID(task.Metadata)
+	// Make a copy of the metadata to add the worker ID to.
+	// It is unclear why, but this avoids a concurrent modification
+	// panic.
+	newMetadata := make(map[string]string)
+	for k, v := range task.Metadata {
+		newMetadata[k] = v
+	}
+	w.addWorkerID(newMetadata)
+	task.Metadata = newMetadata
 	task.Logger = task.Logger.With(zap.String("worker", w.workerID))
 	// Use wait group and go routine to prevent killing of workers
 	var wg sync.WaitGroup
