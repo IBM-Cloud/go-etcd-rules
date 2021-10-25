@@ -125,9 +125,15 @@ func (bw *baseWorker) doWork(loggerPtr **zap.Logger,
 		startTime := time.Now()
 		callback()
 		metrics.CallbackWaitTime(metricsInfo.keyPattern, startTime)
+		attributes := (*rulePtr).getAttributes()
 		if bw.callbackListener != nil {
-			bw.callbackListener.callbackDone(ruleID, (*rulePtr).getAttributes())
+			bw.callbackListener.callbackDone(ruleID, attributes)
 		}
+		attrMap := make(map[string]string)
+		for _, attrName := range attributes.names() {
+			attrMap[attrName] = *attributes.GetAttribute(attrName)
+		}
+		logger.Info("callback complete", zap.String("rule_id", ruleID), zap.Any("attributes", attrMap))
 	}
 }
 

@@ -38,7 +38,7 @@ func (htcbl httpCallbackListener) callbackDone(ruleID string, attributes extende
 		htcbl.logger.Error("Error sending request to callback done webhook", zap.Error(err))
 		return
 	}
-	htcbl.logger.Info("Request sent to callback done webhook", zap.Int("status", resp.StatusCode))
+	htcbl.logger.Info("Request sent to callback done webhook", zap.Int("status", resp.StatusCode), zap.String("data", string(postBody)))
 }
 
 type callbackEvent struct {
@@ -55,7 +55,8 @@ func NewHTTPCallbackHander() HTTPCallbackHandler {
 	}
 }
 
-// HTTPCallbackHandler instances can be used to get immediate confirmation that a callback was executed.
+// HTTPCallbackHandler instances can be used to get immediate confirmation that a callback was executed
+// when perfoming integration testing. Not for production use.
 type HTTPCallbackHandler struct {
 	events chan callbackEvent
 }
