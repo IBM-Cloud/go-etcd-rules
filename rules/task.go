@@ -37,6 +37,7 @@ type V3RuleTaskCallback func(task *V3RuleTask)
 type v3RuleWork struct {
 	//	baseWork
 	rule             staticRule
+	ruleID           string
 	ruleTask         V3RuleTask
 	ruleTaskCallback V3RuleTaskCallback
 	ruleIndex        int

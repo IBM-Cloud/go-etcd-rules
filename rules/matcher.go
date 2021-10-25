@@ -191,6 +191,14 @@ func (ma *mapAttributes) Format(path string) string {
 	return FormatWithAttributes(path, ma)
 }
 
+func (ma *mapAttributes) names() []string {
+	names := make([]string, 0, len(ma.values))
+	for key := range ma.values {
+		names = append(names, key)
+	}
+	return names
+}
+
 func parsePath(pattern string) (map[string]int, string) {
 	paths := strings.Split(pattern, "/")
 	regex := strings.Builder{}

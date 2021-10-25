@@ -10,14 +10,19 @@ import (
 	"github.com/IBM-Cloud/go-etcd-rules/rules/lock"
 )
 
+type callbackListener interface {
+	callbackDone(ruleID string, attributes extendedAttributes)
+}
+
 type baseWorker struct {
-	locker   lock.RuleLocker
-	metrics  MetricsCollector
-	api      readAPI
-	workerID string
-	stopping uint32
-	stopped  uint32
-	done     chan bool
+	locker           lock.RuleLocker
+	metrics          MetricsCollector
+	api              readAPI
+	workerID         string
+	stopping         uint32
+	stopped          uint32
+	done             chan bool
+	callbackListener callbackListener
 }
 
 type v3Worker struct {
@@ -66,7 +71,7 @@ func (bw *baseWorker) isStopped() bool {
 
 func (bw *baseWorker) doWork(loggerPtr **zap.Logger,
 	rulePtr *staticRule, lockTTL int, callback workCallback,
-	metricsInfo metricsInfo, lockKey string) {
+	metricsInfo metricsInfo, lockKey string, ruleID string) {
 	logger := *loggerPtr
 	rule := *rulePtr
 	capi, err1 := bw.api.getCachedAPI(rule.getKeys())
@@ -119,6 +124,9 @@ func (bw *baseWorker) doWork(loggerPtr **zap.Logger,
 		startTime := time.Now()
 		callback()
 		metrics.CallbackWaitTime(metricsInfo.keyPattern, startTime)
+		if bw.callbackListener != nil {
+			bw.callbackListener.callbackDone(ruleID, (*rulePtr).getAttributes())
+		}
 	}
 }
 
@@ -150,7 +158,7 @@ func (w *v3Worker) singleRun() {
 				task.Logger.Error("Panic", zap.Any("recover", r), zap.Stack("stack"))
 			}
 		}()
-		w.doWork(&task.Logger, &work.rule, w.engine.getLockTTLForRule(work.ruleIndex), func() { work.ruleTaskCallback(&task) }, work.metricsInfo, work.lockKey)
+		w.doWork(&task.Logger, &work.rule, w.engine.getLockTTLForRule(work.ruleIndex), func() { work.ruleTaskCallback(&task) }, work.metricsInfo, work.lockKey, work.ruleID)
 	}()
 	wg.Wait()
 }
