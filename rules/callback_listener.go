@@ -71,6 +71,7 @@ func (htcbh HTTPCallbackHandler) HandleRequest(w http.ResponseWriter, req *http.
 	if err != nil {
 		fmt.Printf("Error decoding event: %s\n", err.Error())
 	} else {
+		fmt.Printf("Event received %v", event)
 		htcbh.events <- event
 	}
 }
