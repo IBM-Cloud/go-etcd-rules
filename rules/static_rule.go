@@ -23,7 +23,7 @@ const (
 
 type ruleFactory interface {
 	// The actual keys derived from patterns
-	newRule(keys []string, attr Attributes) staticRule
+	newRule(keys []string, attr extendedAttributes) staticRule
 }
 
 type staticRule interface {
@@ -42,7 +42,7 @@ type staticRule interface {
 	// is passed in that would cause the second part of the rule to evaluate to qTrue or qMaybe.
 	qSatisfiable(key string, value *string) quadState
 	satisfied(api readAPI) (bool, error)
-	getAttributes() Attributes
+	getAttributes() extendedAttributes
 	getKeys() []string
 	String() string
 }
@@ -53,10 +53,10 @@ type readAPI interface {
 }
 
 type baseRule struct {
-	attr Attributes
+	attr extendedAttributes
 }
 
-func (br *baseRule) getAttributes() Attributes {
+func (br *baseRule) getAttributes() extendedAttributes {
 	return br.attr
 }
 
@@ -96,7 +96,7 @@ func newCompareLiteralRuleFactory(comparator func(*string) bool, stringTemplate 
 	return &factory
 }
 
-func (elrf *compareLiteralRuleFactory) newRule(keys []string, attr Attributes) staticRule {
+func (elrf *compareLiteralRuleFactory) newRule(keys []string, attr extendedAttributes) staticRule {
 	br := baseRule{
 		attr: attr,
 	}
@@ -147,7 +147,7 @@ type compoundStaticRule struct {
 	nestedRules []staticRule
 }
 
-func (csr *compoundStaticRule) getAttributes() Attributes {
+func (csr *compoundStaticRule) getAttributes() extendedAttributes {
 	return csr.nestedRules[0].getAttributes()
 }
 
@@ -285,27 +285,19 @@ func (osr *orStaticRule) satisfied(api readAPI) (bool, error) {
 }
 
 type notStaticRule struct {
-	nested staticRule
+	staticRule
 }
 
 func (nsr *notStaticRule) String() string {
-	return fmt.Sprintf("NOT (%s)", nsr.nested)
-}
-
-func (nsr *notStaticRule) getAttributes() Attributes {
-	return nsr.nested.getAttributes()
-}
-
-func (nsr *notStaticRule) keyMatch(key string) bool {
-	return nsr.nested.keyMatch(key)
+	return fmt.Sprintf("NOT (%s)", nsr.staticRule)
 }
 
 func (nsr *notStaticRule) satisfiable(key string, value *string) bool {
-	return nsr.nested.keyMatch(key)
+	return nsr.keyMatch(key)
 }
 
 func (nsr *notStaticRule) qSatisfiable(key string, value *string) quadState {
-	nqs := nsr.nested.qSatisfiable(key, value)
+	nqs := nsr.staticRule.qSatisfiable(key, value)
 	switch nqs {
 	case qMaybe:
 		return qMaybe
@@ -318,15 +310,11 @@ func (nsr *notStaticRule) qSatisfiable(key string, value *string) quadState {
 }
 
 func (nsr *notStaticRule) satisfied(api readAPI) (bool, error) {
-	satisfied, err := nsr.nested.satisfied(api)
+	satisfied, err := nsr.staticRule.satisfied(api)
 	if err != nil {
 		return false, err
 	}
 	return !satisfied, nil
-}
-
-func (nsr *notStaticRule) getKeys() []string {
-	return nsr.nested.getKeys()
 }
 
 type equalsRule struct {
@@ -405,7 +393,7 @@ func (er *equalsRule) getKeys() []string {
 
 type equalsRuleFactory struct{}
 
-func (erf *equalsRuleFactory) newRule(keys []string, attr Attributes) staticRule {
+func (erf *equalsRuleFactory) newRule(keys []string, attr extendedAttributes) staticRule {
 	br := baseRule{
 		attr: attr,
 	}

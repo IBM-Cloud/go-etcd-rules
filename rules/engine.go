@@ -2,6 +2,7 @@ package rules
 
 import (
 	"fmt"
+	"os"
 	"strings"
 	"time"
 
@@ -10,6 +11,12 @@ import (
 	"golang.org/x/net/context"
 
 	"github.com/IBM-Cloud/go-etcd-rules/rules/lock"
+)
+
+const (
+	// WebhookURLEnv is the environment variable used to specify a callback
+	// webhook that will get called every time a callback has finished executing.
+	WebhookURLEnv = "RULES_ENGINE_CALLBACK_WEBHOOK"
 )
 
 type stoppable interface {
@@ -30,17 +37,18 @@ type BaseEngine interface {
 }
 
 type baseEngine struct {
-	keyProc      setableKeyProcessor
-	metrics      AdvancedMetricsCollector
-	logger       *zap.Logger
-	options      engineOptions
-	ruleLockTTLs map[int]int
-	ruleMgr      ruleManager
-	stopped      uint32
-	crawlers     []stoppable
-	watchers     []stoppable
-	workers      []stoppable
-	locker       lock.RuleLocker
+	keyProc          setableKeyProcessor
+	metrics          AdvancedMetricsCollector
+	logger           *zap.Logger
+	options          engineOptions
+	ruleLockTTLs     map[int]int
+	ruleMgr          ruleManager
+	stopped          uint32
+	crawlers         []stoppable
+	watchers         []stoppable
+	workers          []stoppable
+	locker           lock.RuleLocker
+	callbackListener callbackListener
 }
 
 type v3Engine struct {
@@ -96,17 +104,26 @@ func newV3Engine(logger *zap.Logger, cl *clientv3.Client, options ...EngineOptio
 			MetricsCollector: baseMetrics,
 		}
 	}
+	var cbListener callbackListener
+	// Should be used for system testing only
+	if cblURL, ok := os.LookupEnv(WebhookURLEnv); ok {
+		cbListener = httpCallbackListener{
+			hookURL: cblURL,
+			logger:  logger,
+		}
+	}
 	baseEtcdLocker := lock.NewV3Locker(cl, opts.lockAcquisitionTimeout)
 	metricsEtcdLocker := lock.WithMetrics(baseEtcdLocker, "etcd")
 	eng := v3Engine{
 		baseEngine: baseEngine{
-			keyProc:      &keyProc,
-			metrics:      metrics,
-			logger:       logger,
-			options:      opts,
-			ruleLockTTLs: map[int]int{},
-			ruleMgr:      ruleMgr,
-			locker:       metricsEtcdLocker,
+			keyProc:          &keyProc,
+			metrics:          metrics,
+			logger:           logger,
+			options:          opts,
+			ruleLockTTLs:     map[int]int{},
+			ruleMgr:          ruleMgr,
+			locker:           metricsEtcdLocker,
+			callbackListener: cbListener,
 		},
 		keyProc:        keyProc,
 		workChannel:    channel,

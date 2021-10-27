@@ -10,14 +10,19 @@ import (
 	"github.com/IBM-Cloud/go-etcd-rules/rules/lock"
 )
 
+type callbackListener interface {
+	callbackDone(ruleID string, attributes extendedAttributes)
+}
+
 type baseWorker struct {
-	locker   lock.RuleLocker
-	metrics  MetricsCollector
-	api      readAPI
-	workerID string
-	stopping uint32
-	stopped  uint32
-	done     chan bool
+	locker           lock.RuleLocker
+	metrics          MetricsCollector
+	api              readAPI
+	workerID         string
+	stopping         uint32
+	stopped          uint32
+	done             chan bool
+	callbackListener callbackListener
 }
 
 type v3Worker struct {
@@ -34,11 +39,12 @@ func newV3Worker(workerID string, engine *v3Engine) (v3Worker, error) {
 	}
 	w := v3Worker{
 		baseWorker: baseWorker{
-			api:      api,
-			locker:   engine.locker,
-			metrics:  engine.metrics,
-			workerID: workerID,
-			done:     make(chan bool, 1),
+			api:              api,
+			locker:           engine.locker,
+			metrics:          engine.metrics,
+			workerID:         workerID,
+			done:             make(chan bool, 1),
+			callbackListener: engine.callbackListener,
 		},
 		engine: engine,
 	}
@@ -66,7 +72,7 @@ func (bw *baseWorker) isStopped() bool {
 
 func (bw *baseWorker) doWork(loggerPtr **zap.Logger,
 	rulePtr *staticRule, lockTTL int, callback workCallback,
-	metricsInfo metricsInfo, lockKey string) {
+	metricsInfo metricsInfo, lockKey string, ruleID string) {
 	logger := *loggerPtr
 	rule := *rulePtr
 	capi, err1 := bw.api.getCachedAPI(rule.getKeys())
@@ -119,6 +125,15 @@ func (bw *baseWorker) doWork(loggerPtr **zap.Logger,
 		startTime := time.Now()
 		callback()
 		metrics.CallbackWaitTime(metricsInfo.keyPattern, startTime)
+		attributes := (*rulePtr).getAttributes()
+		if bw.callbackListener != nil {
+			bw.callbackListener.callbackDone(ruleID, attributes)
+		}
+		attrMap := make(map[string]string)
+		for _, attrName := range attributes.names() {
+			attrMap[attrName] = *attributes.GetAttribute(attrName)
+		}
+		logger.Info("callback complete", zap.String("rule_id", ruleID), zap.Any("attributes", attrMap))
 	}
 }
 
@@ -138,7 +153,15 @@ func (w *v3Worker) singleRun() {
 	if is(&w.stopping) {
 		return
 	}
-	w.addWorkerID(task.Metadata)
+	// Make a copy of the metadata to add the worker ID to.
+	// It is unclear why, but this avoids a concurrent modification
+	// panic.
+	newMetadata := make(map[string]string)
+	for k, v := range task.Metadata {
+		newMetadata[k] = v
+	}
+	w.addWorkerID(newMetadata)
+	task.Metadata = newMetadata
 	task.Logger = task.Logger.With(zap.String("worker", w.workerID))
 	// Use wait group and go routine to prevent killing of workers
 	var wg sync.WaitGroup
@@ -150,7 +173,7 @@ func (w *v3Worker) singleRun() {
 				task.Logger.Error("Panic", zap.Any("recover", r), zap.Stack("stack"))
 			}
 		}()
-		w.doWork(&task.Logger, &work.rule, w.engine.getLockTTLForRule(work.ruleIndex), func() { work.ruleTaskCallback(&task) }, work.metricsInfo, work.lockKey)
+		w.doWork(&task.Logger, &work.rule, w.engine.getLockTTLForRule(work.ruleIndex), func() { work.ruleTaskCallback(&task) }, work.metricsInfo, work.lockKey, work.ruleID)
 	}()
 	wg.Wait()
 }

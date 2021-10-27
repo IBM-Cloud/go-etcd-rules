@@ -25,14 +25,14 @@ var errAPI = errors.New("API Error")
 type dummyRule struct {
 	satisfiableResponse, satisfiedResponse bool
 	key                                    string
-	attr                                   Attributes
+	attr                                   extendedAttributes
 	err                                    error
 	qSatisfiableResponse                   quadState
 	expectedKey                            *string
 	expectedValue                          **string
 }
 
-func (dr *dummyRule) getAttributes() Attributes {
+func (dr *dummyRule) getAttributes() extendedAttributes {
 	return dr.attr
 }
 
@@ -75,7 +75,7 @@ func (dr *dummyRule) getKeys() []string {
 	return []string{dr.key}
 }
 
-func getTestAttributes() Attributes {
+func getTestAttributes() extendedAttributes {
 	attributeMap := map[string]string{
 		"testkey": "testvalue",
 	}
@@ -362,7 +362,7 @@ func TestNotStaticRule(t *testing.T) {
 		attr:                getTestAttributes(),
 	}
 	rule := notStaticRule{
-		nested: &keyMatchNotSatisfied,
+		staticRule: &keyMatchNotSatisfied,
 	}
 	verifyTestAttributes(t, &rule)
 	api := newMapReadAPI()
@@ -381,7 +381,7 @@ func TestNotStaticRule(t *testing.T) {
 		key:                 "key1",
 	}
 	rule = notStaticRule{
-		nested: &keyMatchSatisfied,
+		staticRule: &keyMatchSatisfied,
 	}
 	sat, err = rule.satisfied(api)
 	assert.False(t, sat)
@@ -389,7 +389,7 @@ func TestNotStaticRule(t *testing.T) {
 	keyMatchError := dummyRule{
 		err: errAPI,
 	}
-	rule.nested = &keyMatchError
+	rule.staticRule = &keyMatchError
 	_, err = rule.satisfied(api)
 	assert.Error(t, err)
 }
@@ -399,7 +399,7 @@ func TestNotEquals(t *testing.T) {
 		keys: []string{"key1", "key2"},
 	}
 	rule := notStaticRule{
-		nested: &nested,
+		staticRule: &nested,
 	}
 	assert.True(t, rule.satisfiable("key1", sTP("whatever")))
 	assert.False(t, rule.satisfiable("key3", nil))
@@ -431,7 +431,7 @@ func Test_notStaticRule_getKeys(t *testing.T) {
 		key: "abc",
 	}
 	nsr := &notStaticRule{
-		nested: elr,
+		staticRule: elr,
 	}
 	assert.Equal(t, []string{"abc"}, nsr.getKeys())
 }
@@ -809,69 +809,69 @@ func TestCompoundQSatisfiable(t *testing.T) {
 		},
 		{
 			name:   "NotTrue",
-			rule:   func() staticRule { return &notStaticRule{nested: rules["dummyTrue"]} },
+			rule:   func() staticRule { return &notStaticRule{staticRule: rules["dummyTrue"]} },
 			qState: qFalse,
 		},
 		{
 			name:   "NotFalse",
-			rule:   func() staticRule { return &notStaticRule{nested: rules["dummyFalse"]} },
+			rule:   func() staticRule { return &notStaticRule{staticRule: rules["dummyFalse"]} },
 			qState: qTrue,
 		},
 		{
 			name:   "NotMaybe",
-			rule:   func() staticRule { return &notStaticRule{nested: rules["dummyMaybe"]} },
+			rule:   func() staticRule { return &notStaticRule{staticRule: rules["dummyMaybe"]} },
 			qState: qMaybe,
 		},
 		{
 			name:   "NotNone",
-			rule:   func() staticRule { return &notStaticRule{nested: rules["dummyNone"]} },
+			rule:   func() staticRule { return &notStaticRule{staticRule: rules["dummyNone"]} },
 			qState: qNone,
 		},
 		{
 			name:   "Not(TrueOrFalse) <=> NotTrueAndNotFalse",
-			rule:   func() staticRule { return &notStaticRule{nested: rules["TrueOrFalse"]} },
+			rule:   func() staticRule { return &notStaticRule{staticRule: rules["TrueOrFalse"]} },
 			qState: qFalse,
 		},
 		{
 			name: "NotTrueAndNotFalse <=> Not(TrueOrFalse)",
 			rule: func() staticRule {
-				return asrfn(&notStaticRule{nested: rules["dummyTrue"]}, &notStaticRule{nested: rules["dummyFalse"]})
+				return asrfn(&notStaticRule{staticRule: rules["dummyTrue"]}, &notStaticRule{staticRule: rules["dummyFalse"]})
 			},
 			qState: qFalse,
 		},
 		{
 			name:   "Not(FalseOrFalse) <=> NotFalseAndNotFalse",
-			rule:   func() staticRule { return &notStaticRule{nested: rules["FalseOrFalse"]} },
+			rule:   func() staticRule { return &notStaticRule{staticRule: rules["FalseOrFalse"]} },
 			qState: qTrue,
 		},
 		{
 			name: "NotFalseAndNotFalse <=> Not(FalseOrFalse)",
 			rule: func() staticRule {
-				return asrfn(&notStaticRule{nested: rules["dummyFalse"]}, &notStaticRule{nested: rules["dummyFalse"]})
+				return asrfn(&notStaticRule{staticRule: rules["dummyFalse"]}, &notStaticRule{staticRule: rules["dummyFalse"]})
 			},
 			qState: qTrue,
 		},
 		{
 			name:   "Not(TrueAndFalse) <=> NotTrueOrNotFalse",
-			rule:   func() staticRule { return &notStaticRule{nested: rules["TrueAndFalse"]} },
+			rule:   func() staticRule { return &notStaticRule{staticRule: rules["TrueAndFalse"]} },
 			qState: qTrue,
 		},
 		{
 			name: "NotTruOrNotFalse <=> Not(TrueAndFalse)",
 			rule: func() staticRule {
-				return osrfn(&notStaticRule{nested: rules["dummyTrue"]}, &notStaticRule{nested: rules["dummyFalse"]})
+				return osrfn(&notStaticRule{staticRule: rules["dummyTrue"]}, &notStaticRule{staticRule: rules["dummyFalse"]})
 			},
 			qState: qTrue,
 		},
 		{
 			name:   "Not(TrueAndTrue) <=> NotTrueOrNotTrue",
-			rule:   func() staticRule { return &notStaticRule{nested: rules["TrueAndTrue"]} },
+			rule:   func() staticRule { return &notStaticRule{staticRule: rules["TrueAndTrue"]} },
 			qState: qFalse,
 		},
 		{
 			name: "NotTrueOrNotTrue <=> Not(TrueOrTrue)",
 			rule: func() staticRule {
-				return asrfn(&notStaticRule{nested: rules["dummyTrue"]}, &notStaticRule{nested: rules["dummyTrue"]})
+				return asrfn(&notStaticRule{staticRule: rules["dummyTrue"]}, &notStaticRule{staticRule: rules["dummyTrue"]})
 			},
 			qState: qFalse,
 		},
