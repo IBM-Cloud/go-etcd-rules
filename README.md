@@ -38,7 +38,7 @@ import (
     "time"
 
     "github.com/IBM-Cloud/go-etcd-rules/rules"
-    "go.etcd.io/etcd/client/v3"
+    v3 "go.etcd.io/etcd/client/v3"
     "github.com/uber-go/zap"
     "golang.org/x/net/context"
 )
