@@ -3,7 +3,7 @@ package rules
 import (
 	"time"
 
-	"go.etcd.io/etcd/clientv3"
+	v3 "go.etcd.io/etcd/client/v3"
 	"golang.org/x/net/context"
 )
 
@@ -43,14 +43,14 @@ func GetMetricsMetadata(ctx context.Context) *EtcdMetricsMetadata {
 
 // WrapKV is used to provide a wrapper for the default etcd v3 KV implementation
 // used by the rules engine.
-type WrapKV func(clientv3.KV) clientv3.KV
+type WrapKV func(v3.KV) v3.KV
 
-func defaultWrapKV(kv clientv3.KV) clientv3.KV {
+func defaultWrapKV(kv v3.KV) v3.KV {
 	return kv
 }
 
-type WrapWatcher func(clientv3.Watcher) clientv3.Watcher
+type WrapWatcher func(v3.Watcher) v3.Watcher
 
-func defaultWrapWatcher(w clientv3.Watcher) clientv3.Watcher {
+func defaultWrapWatcher(w v3.Watcher) v3.Watcher {
 	return w
 }

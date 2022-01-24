@@ -6,14 +6,14 @@ import (
 	"time"
 
 	"github.com/IBM-Cloud/go-etcd-rules/metrics"
-	"go.etcd.io/etcd/mvcc/mvccpb"
+	"go.etcd.io/etcd/api/v3/mvccpb"
 
-	"go.etcd.io/etcd/clientv3"
+	v3 "go.etcd.io/etcd/client/v3"
 	"golang.org/x/net/context"
 )
 
 type etcdV3ReadAPI struct {
-	kV clientv3.KV
+	kV v3.KV
 }
 
 // This method is currently not used but is being kept around to limit
@@ -44,10 +44,10 @@ func (edv3ra *etcdV3ReadAPI) getCachedAPI(keys []string) (readAPI, error) {
 		uniqueKeys[key] = true
 	}
 
-	ops := make([]clientv3.Op, len(uniqueKeys))
+	ops := make([]v3.Op, len(uniqueKeys))
 	idx := 0
 	for key := range uniqueKeys {
-		ops[idx] = clientv3.OpGet(key)
+		ops[idx] = v3.OpGet(key)
 		idx++
 	}
 	// An etcd transaction consists of four parts:
@@ -82,7 +82,7 @@ type keyWatcher interface {
 	cancel()
 }
 
-func newEtcdV3KeyWatcher(watcher clientv3.Watcher, prefix string, timeout time.Duration, metrics AdvancedMetricsCollector) *etcdV3KeyWatcher {
+func newEtcdV3KeyWatcher(watcher v3.Watcher, prefix string, timeout time.Duration, metrics AdvancedMetricsCollector) *etcdV3KeyWatcher {
 	ctx, cancel := context.WithCancel(context.Background())
 	kw := etcdV3KeyWatcher{
 		baseKeyWatcher: baseKeyWatcher{
@@ -111,10 +111,10 @@ type baseKeyWatcher struct {
 
 type etcdV3KeyWatcher struct {
 	baseKeyWatcher
-	ch     clientv3.WatchChan
+	ch     v3.WatchChan
 	stopCh chan bool
-	events []*clientv3.Event
-	w      clientv3.Watcher
+	events []*v3.Event
+	w      v3.Watcher
 }
 
 func (ev3kw *etcdV3KeyWatcher) cancel() {
@@ -134,7 +134,7 @@ func (ev3kw *etcdV3KeyWatcher) reset() {
 
 func (ev3kw *etcdV3KeyWatcher) next() (string, *string, error) {
 	if ev3kw.ch == nil {
-		ev3kw.ch = ev3kw.w.Watch(ev3kw.ctx, ev3kw.prefix, clientv3.WithPrefix())
+		ev3kw.ch = ev3kw.w.Watch(ev3kw.ctx, ev3kw.prefix, v3.WithPrefix())
 	}
 	if ev3kw.events == nil || len(ev3kw.events) == 0 {
 		select {
@@ -185,7 +185,7 @@ func (ev3kw *etcdV3KeyWatcher) next() (string, *string, error) {
 	event := ev3kw.events[0]
 	ev3kw.events = ev3kw.events[1:]
 	key := string(event.Kv.Key)
-	if event.Type == clientv3.EventTypeDelete { // Covers lease expiration
+	if event.Type == v3.EventTypeDelete { // Covers lease expiration
 		return key, nil, nil
 	}
 	val := string(event.Kv.Value)

@@ -4,7 +4,7 @@ import (
 	"sync"
 	"time"
 
-	"go.etcd.io/etcd/clientv3"
+	v3 "go.etcd.io/etcd/client/v3"
 	"go.uber.org/zap"
 	"golang.org/x/net/context"
 
@@ -13,7 +13,7 @@ import (
 )
 
 func newIntCrawler(
-	cl *clientv3.Client,
+	cl *v3.Client,
 	interval int,
 	kp extKeyProc,
 	metrics MetricsCollector,
@@ -72,11 +72,11 @@ type intCrawler struct {
 	api          readAPI
 	cancelFunc   context.CancelFunc
 	cancelMutex  sync.Mutex
-	cl           *clientv3.Client
+	cl           *v3.Client
 	delay        int
 	interval     int
 	kp           extKeyProc
-	kv           clientv3.KV
+	kv           v3.KV
 	metrics      MetricsCollector
 	logger       *zap.Logger
 	mutex        *string
@@ -159,7 +159,7 @@ func (ic *intCrawler) singleRun(logger *zap.Logger) {
 	ic.rulesProcessedCount = make(map[string]int)
 	for _, prefix := range ic.prefixes {
 		pCtx := SetMethod(ctx, crawlerMethodName+"-"+prefix)
-		resp, err := ic.kv.Get(pCtx, prefix, clientv3.WithPrefix())
+		resp, err := ic.kv.Get(pCtx, prefix, v3.WithPrefix())
 		if err != nil {
 			logger.Error("Error retrieving prefix", zap.String("prefix", prefix), zap.Error(err))
 			return

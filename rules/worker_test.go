@@ -5,20 +5,20 @@ import (
 
 	"github.com/IBM-Cloud/go-etcd-rules/rules/lock"
 	"github.com/stretchr/testify/assert"
-	"go.etcd.io/etcd/clientv3"
+	v3 "go.etcd.io/etcd/client/v3"
 	"go.uber.org/zap"
 	"golang.org/x/net/context"
 )
 
 func TestWorkerSingleRun(t *testing.T) {
-	conf := clientv3.Config{
+	conf := v3.Config{
 		Endpoints: []string{""},
 	}
 	lgr, err := zap.NewDevelopment()
 	assert.NoError(t, err)
 	metrics := NewMockMetricsCollector()
 	metrics.SetLogger(lgr)
-	cl, err := clientv3.New(conf)
+	cl, err := v3.New(conf)
 	assert.NoError(t, err)
 	e := newV3Engine(getTestLogger(), cl, EngineLockTimeout(300))
 	channel := e.workChannel

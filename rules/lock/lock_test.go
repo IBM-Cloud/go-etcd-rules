@@ -4,14 +4,14 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"go.etcd.io/etcd/clientv3"
+	v3 "go.etcd.io/etcd/client/v3"
 
 	"github.com/IBM-Cloud/go-etcd-rules/rules/teststore"
 )
 
 func Test_V3Locker(t *testing.T) {
 	cfg, cl := teststore.InitV3Etcd(t)
-	c, err := clientv3.New(cfg)
+	c, err := v3.New(cfg)
 	assert.NoError(t, err)
 	rlckr := v3Locker{
 		cl:          cl,

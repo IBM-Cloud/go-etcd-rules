@@ -9,7 +9,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"go.etcd.io/etcd/clientv3"
+	v3 "go.etcd.io/etcd/client/v3"
 	"go.uber.org/zap"
 
 	"github.com/IBM-Cloud/go-etcd-rules/rules/teststore"
@@ -45,13 +45,13 @@ func Test_SessionManager_Close(t *testing.T) {
 	lgr, err := zap.NewDevelopment()
 	require.NoError(t, err)
 	_, goodClient := teststore.InitV3Etcd(t)
-	badClient, _ := clientv3.New(clientv3.Config{
+	badClient, _ := v3.New(v3.Config{
 		Endpoints: []string{"http://127.0.0.1:2377"},
 	})
 	testCases := []struct {
 		name string
 
-		client     *clientv3.Client
+		client     *v3.Client
 		newSession func() (*Session, error)
 	}{
 		{

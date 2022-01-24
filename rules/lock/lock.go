@@ -4,7 +4,7 @@ import (
 	"errors"
 	"time"
 
-	"go.etcd.io/etcd/clientv3"
+	v3 "go.etcd.io/etcd/client/v3"
 	"golang.org/x/net/context"
 
 	"github.com/IBM-Cloud/go-etcd-rules/concurrency"
@@ -19,7 +19,7 @@ type RuleLock interface {
 }
 
 // NewV3Locker creates a locker backed by etcd V3.
-func NewV3Locker(cl *clientv3.Client, lockTimeout int) RuleLocker {
+func NewV3Locker(cl *v3.Client, lockTimeout int) RuleLocker {
 	return &v3Locker{
 		cl:          cl,
 		lockTimeout: lockTimeout,
@@ -27,7 +27,7 @@ func NewV3Locker(cl *clientv3.Client, lockTimeout int) RuleLocker {
 }
 
 type v3Locker struct {
-	cl          *clientv3.Client
+	cl          *v3.Client
 	lockTimeout int
 }
 

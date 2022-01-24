@@ -4,15 +4,15 @@ import (
 	"strings"
 	"time"
 
-	"go.etcd.io/etcd/clientv3"
+	v3 "go.etcd.io/etcd/client/v3"
 	"go.uber.org/zap"
 )
 
-func newV3Watcher(ec *clientv3.Client, prefix string, logger *zap.Logger, proc keyProc, watchTimeout int, kvWrapper WrapKV, metrics AdvancedMetricsCollector, watcherWrapper WrapWatcher) (watcher, error) {
+func newV3Watcher(ec *v3.Client, prefix string, logger *zap.Logger, proc keyProc, watchTimeout int, kvWrapper WrapKV, metrics AdvancedMetricsCollector, watcherWrapper WrapWatcher) (watcher, error) {
 	api := etcdV3ReadAPI{
 		kV: kvWrapper(ec),
 	}
-	ew := newEtcdV3KeyWatcher(watcherWrapper(clientv3.NewWatcher(ec)), prefix, time.Duration(watchTimeout)*time.Second, metrics)
+	ew := newEtcdV3KeyWatcher(watcherWrapper(v3.NewWatcher(ec)), prefix, time.Duration(watchTimeout)*time.Second, metrics)
 	return watcher{
 		api:    &api,
 		kw:     ew,

@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/IBM-Cloud/go-etcd-rules/rules"
-	"go.etcd.io/etcd/clientv3"
+	v3 "go.etcd.io/etcd/client/v3"
 	"go.uber.org/zap"
 )
 
@@ -38,7 +38,7 @@ func check(err error) {
 	}
 }
 
-func checkWatchResp(resp []clientv3.WatchResponse) {
+func checkWatchResp(resp []v3.WatchResponse) {
 	// This number isn't deterministic, because it can't be known
 	// how many watch events are captured in terms of TTLs and
 	// when the engine finishes shutting down.
@@ -58,12 +58,12 @@ func main() {
 	check(err)
 
 	// cleanup etcd from previous runs
-	cfg := clientv3.Config{Endpoints: []string{"http://127.0.0.1:2379"}}
-	cl, err := clientv3.New(cfg)
+	cfg := v3.Config{Endpoints: []string{"http://127.0.0.1:2379"}}
+	cl, err := v3.New(cfg)
 	check(err)
-	kv := clientv3.NewKV(cl)
+	kv := v3.NewKV(cl)
 	// Clear out any data that may interfere
-	_, err = kv.Delete(context.Background(), "/rulesEngine", clientv3.WithPrefix())
+	_, err = kv.Delete(context.Background(), "/rulesEngine", v3.WithPrefix())
 	check(err)
 
 	// build the rules engine options, include a metrics collector and
@@ -91,7 +91,7 @@ func main() {
 	engine := rules.NewV3Engine(cfg, logger, rules.EngineContextProvider(cpFunc), rules.EngineMetricsCollector(mFunc), rules.EngineSyncInterval(300))
 	mw := &rules.MockWatcherWrapper{
 		Logger:    logger,
-		Responses: []clientv3.WatchResponse{},
+		Responses: []v3.WatchResponse{},
 	}
 	m := rules.MockWatchWrapper{Mww: mw}
 	engine.SetWatcherWrapper(m.WrapWatcher)

@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"go.etcd.io/etcd/clientv3"
+	v3 "go.etcd.io/etcd/client/v3"
 	"go.uber.org/zap"
 )
 
@@ -32,10 +32,10 @@ type SessionManager struct {
 
 // NewSessionManager creates a new session manager that manages a session singleton
 // that is replaced if it dies.
-func NewSessionManager(client *clientv3.Client, logger *zap.Logger) *SessionManager {
+func NewSessionManager(client *v3.Client, logger *zap.Logger) *SessionManager {
 	return newSessionManager(client, sessionManagerRetryDelay, logger)
 }
-func newSessionManager(client *clientv3.Client, retryDelay time.Duration, logger *zap.Logger) *SessionManager {
+func newSessionManager(client *v3.Client, retryDelay time.Duration, logger *zap.Logger) *SessionManager {
 	sm := &SessionManager{
 		logger:     logger,
 		retryDelay: retryDelay,

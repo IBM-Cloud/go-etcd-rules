@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"go.etcd.io/etcd/clientv3"
+	v3 "go.etcd.io/etcd/client/v3"
 	"go.uber.org/zap"
 	"golang.org/x/net/context"
 
@@ -57,7 +57,7 @@ type v3Engine struct {
 	workChannel    chan v3RuleWork
 	kvWrapper      WrapKV
 	watcherWrapper WrapWatcher
-	cl             *clientv3.Client
+	cl             *v3.Client
 }
 
 // V3Engine defines the interactions with a rule engine instance communicating with etcd v3.
@@ -76,8 +76,8 @@ type V3Engine interface {
 }
 
 // NewV3Engine creates a new V3Engine instance.
-func NewV3Engine(configV3 clientv3.Config, logger *zap.Logger, options ...EngineOption) V3Engine {
-	cl, err := clientv3.New(configV3)
+func NewV3Engine(configV3 v3.Config, logger *zap.Logger, options ...EngineOption) V3Engine {
+	cl, err := v3.New(configV3)
 	if err != nil {
 		logger.Fatal("Failed to connect to etcd", zap.Error(err))
 	}
@@ -85,12 +85,12 @@ func NewV3Engine(configV3 clientv3.Config, logger *zap.Logger, options ...Engine
 }
 
 // NewV3EngineWithClient creates a new V3Engine instance with the provided etcd v3 client instance.
-func NewV3EngineWithClient(cl *clientv3.Client, logger *zap.Logger, options ...EngineOption) V3Engine {
+func NewV3EngineWithClient(cl *v3.Client, logger *zap.Logger, options ...EngineOption) V3Engine {
 	eng := newV3Engine(logger, cl, options...)
 	return &eng
 }
 
-func newV3Engine(logger *zap.Logger, cl *clientv3.Client, options ...EngineOption) v3Engine {
+func newV3Engine(logger *zap.Logger, cl *v3.Client, options ...EngineOption) v3Engine {
 	opts := makeEngineOptions(options...)
 	ruleMgr := newRuleManager(opts.constraints, opts.enhancedRuleFilter)
 	channel := make(chan v3RuleWork, opts.ruleWorkBuffer)
@@ -318,8 +318,8 @@ type v3CallbackWrapper struct {
 	ttlPathPattern string
 	callback       V3RuleTaskCallback
 	ttl            int
-	kv             clientv3.KV
-	lease          clientv3.Lease
+	kv             v3.KV
+	lease          v3.Lease
 	engine         *v3Engine
 }
 
@@ -341,7 +341,7 @@ func (cbw *v3CallbackWrapper) doRule(task *V3RuleTask) {
 		ctx1,
 		path,
 		"",
-		clientv3.WithLease(resp.ID),
+		v3.WithLease(resp.ID),
 	)
 	if setErr != nil {
 		logger.Error("Error setting polling TTL", zap.Error(setErr), zap.String("path", path))

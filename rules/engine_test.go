@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/stretchr/testify/assert"
-	"go.etcd.io/etcd/clientv3"
+	v3 "go.etcd.io/etcd/client/v3"
 	"golang.org/x/net/context"
 )
 
@@ -113,7 +113,7 @@ func TestV3CallbackWrapper(t *testing.T) {
 		assert.Equal(t, "/b/ttl", string(resp.Kvs[0].Key))
 		leaseID := resp.Kvs[0].Lease
 		if assert.True(t, leaseID > 0) {
-			ttlResp, err := c.TimeToLive(context.Background(), clientv3.LeaseID(leaseID))
+			ttlResp, err := c.TimeToLive(context.Background(), v3.LeaseID(leaseID))
 			if assert.NoError(t, err) {
 				assert.InDelta(t, ttlResp.TTL, 30, 5)
 			}
