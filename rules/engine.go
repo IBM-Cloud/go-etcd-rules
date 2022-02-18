@@ -2,6 +2,7 @@ package rules
 
 import (
 	"fmt"
+	"os"
 	"strings"
 	"time"
 
@@ -11,6 +12,12 @@ import (
 
 	"github.com/IBM-Cloud/go-etcd-rules/concurrency"
 	"github.com/IBM-Cloud/go-etcd-rules/rules/lock"
+)
+
+const (
+	// WebhookURLEnv is the environment variable used to specify a callback
+	// webhook that will get called every time a callback has finished executing.
+	WebhookURLEnv = "RULES_ENGINE_CALLBACK_WEBHOOK"
 )
 
 type stoppable interface {
@@ -31,17 +38,18 @@ type BaseEngine interface {
 }
 
 type baseEngine struct {
-	keyProc      setableKeyProcessor
-	metrics      AdvancedMetricsCollector
-	logger       *zap.Logger
-	options      engineOptions
-	ruleLockTTLs map[int]int
-	ruleMgr      ruleManager
-	stopped      uint32
-	crawlers     []stoppable
-	watchers     []stoppable
-	workers      []stoppable
-	locker       lock.RuleLocker
+	keyProc          setableKeyProcessor
+	metrics          AdvancedMetricsCollector
+	logger           *zap.Logger
+	options          engineOptions
+	ruleLockTTLs     map[int]int
+	ruleMgr          ruleManager
+	stopped          uint32
+	crawlers         []stoppable
+	watchers         []stoppable
+	workers          []stoppable
+	locker           lock.RuleLocker
+	callbackListener callbackListener
 }
 
 type v3Engine struct {
@@ -99,22 +107,31 @@ func newV3Engine(logger *zap.Logger, cl *clientv3.Client, options ...EngineOptio
 	}
 	sessionManager := concurrency.NewSessionManager(cl, logger)
 	baseEtcdLocker := lock.NewSessionLocker(sessionManager.GetSession, opts.lockAcquisitionTimeout, false)
+	var cbListener callbackListener
+	// Should be used for system testing only
+	if cblURL, ok := os.LookupEnv(WebhookURLEnv); ok {
+		cbListener = httpCallbackListener{
+			hookURL: cblURL,
+			logger:  logger,
+		}
+	}
 	metricsEtcdLocker := lock.WithMetrics(baseEtcdLocker, "etcd")
-	baseMapLocker := lock.NewMapLocker()
-	metricsMapLocker := lock.WithMetrics(baseMapLocker, "map")
-	coolOffLocker := lock.NewCoolOffLocker(opts.lockCoolDown)
-	metricsCoolOffLocker := lock.WithMetrics(coolOffLocker, "cooloff")
-	localLocker := lock.NewNestedLocker(metricsCoolOffLocker, metricsMapLocker)
-	locker := lock.NewNestedLocker(localLocker, metricsEtcdLocker)
+	// baseMapLocker := lock.NewMapLocker()
+	// metricsMapLocker := lock.WithMetrics(baseMapLocker, "map")
+	// coolOffLocker := lock.NewCoolOffLocker(opts.lockCoolDown)
+	// metricsCoolOffLocker := lock.WithMetrics(coolOffLocker, "cooloff")
+	// localLocker := lock.NewNestedLocker(metricsCoolOffLocker, metricsMapLocker)
+	// locker := lock.NewNestedLocker(localLocker, metricsEtcdLocker)
 	eng := v3Engine{
 		baseEngine: baseEngine{
-			keyProc:      &keyProc,
-			metrics:      metrics,
-			logger:       logger,
-			options:      opts,
-			ruleLockTTLs: map[int]int{},
-			ruleMgr:      ruleMgr,
-			locker:       locker,
+			keyProc:          &keyProc,
+			metrics:          metrics,
+			logger:           logger,
+			options:          opts,
+			ruleLockTTLs:     map[int]int{},
+			ruleMgr:          ruleMgr,
+			locker:           metricsEtcdLocker,
+			callbackListener: cbListener,
 		},
 		keyProc:        keyProc,
 		workChannel:    channel,

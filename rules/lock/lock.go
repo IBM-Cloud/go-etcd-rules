@@ -80,11 +80,18 @@ var ErrNilMutex = errors.New("mutex is nil")
 
 func (v3l *v3Lock) Unlock() error {
 	if v3l.mutex != nil {
+		// This should be given every chance to complete, otherwise
+		// a lock could prevent future interactions with a resource.
 		ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 		defer cancel()
 		err := v3l.mutex.Unlock(ctx)
-		if err == nil && v3l.session != nil {
-			v3l.session.Close()
+		// If the lock failed to be released, as least closing the session
+		// will allow the lease it is associated with to expire.
+		if v3l.session != nil {
+			serr := v3l.session.Close()
+			if err == nil {
+				err = serr
+			}
 		}
 		return err
 	}

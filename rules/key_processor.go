@@ -24,7 +24,7 @@ type setableKeyProcessor interface {
 }
 
 type workDispatcher interface {
-	dispatchWork(index int, rule staticRule, logger *zap.Logger, keyPattern string, metadata map[string]string)
+	dispatchWork(index int, rule staticRule, logger *zap.Logger, keyPattern string, metadata map[string]string, ruleID string)
 }
 
 type baseKeyProcessor struct {
@@ -57,7 +57,7 @@ func (v3kp *v3KeyProcessor) setCallback(index int, callback interface{}) {
 	v3kp.callbacks[index] = callback.(V3RuleTaskCallback)
 }
 
-func (v3kp *v3KeyProcessor) dispatchWork(index int, rule staticRule, logger *zap.Logger, keyPattern string, metadata map[string]string) {
+func (v3kp *v3KeyProcessor) dispatchWork(index int, rule staticRule, logger *zap.Logger, keyPattern string, metadata map[string]string, ruleID string) {
 	context, cancelFunc := v3kp.contextProviders[index]()
 	task := V3RuleTask{
 		Attr:     rule.getAttributes(),
@@ -67,6 +67,7 @@ func (v3kp *v3KeyProcessor) dispatchWork(index int, rule staticRule, logger *zap
 		Metadata: metadata,
 	}
 	work := v3RuleWork{
+		ruleID:           ruleID,
 		rule:             rule,
 		ruleIndex:        index,
 		ruleTask:         task,
@@ -158,8 +159,9 @@ func (bkp *baseKeyProcessor) processKey(key string, value *string, rapi readAPI,
 		return
 	}
 	for rule, index := range rules {
+		ruleID := bkp.ruleIDs[index]
 		if timesEvaluated != nil {
-			timesEvaluated(bkp.ruleIDs[index])
+			timesEvaluated(ruleID)
 		}
 		satisfied, _ := rule.satisfied(api)
 		if logger.Core().Enabled(zap.DebugLevel) {
@@ -171,7 +173,7 @@ func (bkp *baseKeyProcessor) processKey(key string, value *string, rapi readAPI,
 				logger.Error("Unable to find key pattern for rule", zap.Int("index", index))
 				continue
 			}
-			dispatcher.dispatchWork(index, rule, logger, keyPattern, metadata)
+			dispatcher.dispatchWork(index, rule, logger, keyPattern, metadata, ruleID)
 		}
 	}
 }
