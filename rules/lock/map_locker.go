@@ -7,95 +7,50 @@ import (
 
 func NewMapLocker() RuleLocker {
 	ml := newMapLocker()
+	// Using the adapter to reduce the number of critical sections down to
+	// 1, lessening the chances of concurrency issues being introduced.
 	return toggleLockerAdapter{
 		toggle:    ml.toggle,
-		close:     ml.close,
 		errLocked: ErrLockedLocally,
 	}
 }
 
 type mapLocker struct {
-	once      *sync.Once
-	stopCh    chan struct{}
-	lockLocal chan mapLockItem
+	mutex  *sync.Mutex
+	m      map[string]bool
+	closed *bool
+}
+
+func newMapLocker() mapLocker {
+	return mapLocker{
+		m:     make(map[string]bool),
+		mutex: &sync.Mutex{},
+	}
+}
+
+func (ml mapLocker) toggle(key string, lock bool) bool {
+	ml.mutex.Lock()
+	defer ml.mutex.Unlock()
+	// 4 possibilities:
+	// 1. key is locked and lock is true: return false
+	// 2. key is locked and lock is false: unlock key and return true
+	if ml.m[key] {
+		if !lock {
+			delete(ml.m, key)
+		}
+		return !lock
+	}
+	// 3. key is unlocked and lock is true: lock key and return true
+	// 4. key is unlocked and lock is false: return true
+	if lock {
+		ml.m[key] = true
+	}
+	return true
 }
 
 // ErrLockedLocally indicates that a local goroutine holds the lock
 // and no attempt will be made to obtain the lock via etcd.
 var ErrLockedLocally = errors.New("locked locally")
-
-type mapLockItem struct {
-	// The key to lock
-	key string
-	// When lock is true the request is to lock, otherwise it is to unlock
-	lock bool
-	// true is sent in the response channel if the operator was successful
-	// unlocks are always successful.
-	response chan<- bool
-}
-
-func (ml mapLocker) close() {
-	ml.once.Do(func() {
-		// This is thread safe because no goroutine is writing
-		// to this channel.
-		close(ml.stopCh)
-	})
-}
-
-func (ml mapLocker) toggle(key string, lock bool) bool {
-	resp := make(chan bool)
-	item := mapLockItem{
-		key:      key,
-		response: resp,
-		lock:     lock,
-	}
-	select {
-	case <-ml.stopCh:
-		// Return false if the locker is closed.
-		return false
-	case ml.lockLocal <- item:
-	}
-	out := <-resp
-	return out
-}
-
-func newMapLocker() mapLocker {
-	locker := mapLocker{
-		stopCh:    make(chan struct{}),
-		lockLocal: make(chan mapLockItem),
-		once:      new(sync.Once),
-	}
-	// Thread safety is achieved by allowing only one goroutine to access
-	// this map and having it read from a channel with multiple goroutines
-	// writing to it.
-	locks := make(map[string]bool)
-	count := 0
-	go func() {
-		for item := range locker.lockLocal {
-			count++
-			// extraneous else's and continue's to make flow clearer.
-			if item.lock {
-				// Requesting a lock
-				if locks[item.key] {
-					// Lock already obtained
-					item.response <- false
-					continue
-				} else {
-					// Lock available
-					locks[item.key] = true
-					item.response <- true
-					continue
-				}
-			} else {
-				// Requesting an unlock
-				delete(locks, item.key)
-				item.response <- true
-				continue
-			}
-		}
-	}()
-	return locker
-}
 
 type toggleLockerAdapter struct {
 	toggle    func(key string, lock bool) bool

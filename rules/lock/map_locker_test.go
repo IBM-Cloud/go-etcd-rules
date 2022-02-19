@@ -51,29 +51,11 @@ func Test_mapLocker_toggle(t *testing.T) {
 			lock: false,
 			ok:   true,
 		},
-		{
-			name: "get_from_closed",
-			key:  "/foo",
-			setup: func(ml *mapLocker) {
-				ml.close()
-			},
-			lock: true,
-			ok:   false,
-		},
-		{
-			name: "release_from_closed",
-			key:  "/foo",
-			setup: func(ml *mapLocker) {
-				ml.close()
-			},
-			lock: false,
-			ok:   false,
-		},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			ml := newMapLocker()
-			defer ml.close()
+			// defer ml.close()
 
 			if tc.setup != nil {
 				tc.setup(&ml)

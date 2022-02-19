@@ -10,7 +10,6 @@ import (
 	"go.uber.org/zap"
 	"golang.org/x/net/context"
 
-	"github.com/IBM-Cloud/go-etcd-rules/concurrency"
 	"github.com/IBM-Cloud/go-etcd-rules/rules/lock"
 )
 
@@ -105,8 +104,6 @@ func newV3Engine(logger *zap.Logger, cl *clientv3.Client, options ...EngineOptio
 			MetricsCollector: baseMetrics,
 		}
 	}
-	sessionManager := concurrency.NewSessionManager(cl, logger)
-	baseEtcdLocker := lock.NewSessionLocker(sessionManager.GetSession, opts.lockAcquisitionTimeout, false)
 	var cbListener callbackListener
 	// Should be used for system testing only
 	if cblURL, ok := os.LookupEnv(WebhookURLEnv); ok {
@@ -115,13 +112,13 @@ func newV3Engine(logger *zap.Logger, cl *clientv3.Client, options ...EngineOptio
 			logger:  logger,
 		}
 	}
+	// sessionManager := concurrency.NewSessionManager(cl, logger)
+	// baseEtcdLocker := lock.NewSessionLocker(sessionManager.GetSession, opts.lockAcquisitionTimeout, false)
+	baseEtcdLocker := lock.NewV3Locker(cl, opts.lockAcquisitionTimeout)
 	metricsEtcdLocker := lock.WithMetrics(baseEtcdLocker, "etcd")
-	// baseMapLocker := lock.NewMapLocker()
-	// metricsMapLocker := lock.WithMetrics(baseMapLocker, "map")
-	// coolOffLocker := lock.NewCoolOffLocker(opts.lockCoolDown)
-	// metricsCoolOffLocker := lock.WithMetrics(coolOffLocker, "cooloff")
-	// localLocker := lock.NewNestedLocker(metricsCoolOffLocker, metricsMapLocker)
-	// locker := lock.NewNestedLocker(localLocker, metricsEtcdLocker)
+	baseMapLocker := lock.NewMapLocker()
+	metricsMapLocker := lock.WithMetrics(baseMapLocker, "map")
+	locker := lock.NewNestedLocker(metricsMapLocker, metricsEtcdLocker)
 	eng := v3Engine{
 		baseEngine: baseEngine{
 			keyProc:          &keyProc,
@@ -130,7 +127,7 @@ func newV3Engine(logger *zap.Logger, cl *clientv3.Client, options ...EngineOptio
 			options:          opts,
 			ruleLockTTLs:     map[int]int{},
 			ruleMgr:          ruleMgr,
-			locker:           metricsEtcdLocker,
+			locker:           locker,
 			callbackListener: cbListener,
 		},
 		keyProc:        keyProc,
