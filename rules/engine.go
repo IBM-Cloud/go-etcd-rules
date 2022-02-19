@@ -10,6 +10,7 @@ import (
 	"go.uber.org/zap"
 	"golang.org/x/net/context"
 
+	"github.com/IBM-Cloud/go-etcd-rules/concurrency"
 	"github.com/IBM-Cloud/go-etcd-rules/rules/lock"
 )
 
@@ -112,9 +113,9 @@ func newV3Engine(logger *zap.Logger, cl *clientv3.Client, options ...EngineOptio
 			logger:  logger,
 		}
 	}
-	// sessionManager := concurrency.NewSessionManager(cl, logger)
-	// baseEtcdLocker := lock.NewSessionLocker(sessionManager.GetSession, opts.lockAcquisitionTimeout, false)
-	baseEtcdLocker := lock.NewV3Locker(cl, opts.lockAcquisitionTimeout)
+	sessionManager := concurrency.NewSessionManager(cl, logger)
+	baseEtcdLocker := lock.NewSessionLocker(sessionManager.GetSession, opts.lockAcquisitionTimeout, false)
+	// baseEtcdLocker := lock.NewV3Locker(cl, opts.lockAcquisitionTimeout)
 	metricsEtcdLocker := lock.WithMetrics(baseEtcdLocker, "etcd")
 	baseMapLocker := lock.NewMapLocker()
 	metricsMapLocker := lock.WithMetrics(baseMapLocker, "map")

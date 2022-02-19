@@ -18,7 +18,7 @@ type RuleLock interface {
 	Unlock() error
 }
 
-type NewSession func(context.Context) (*concurrency.Session, error)
+type GetSession func(context.Context) (*concurrency.Session, error)
 
 // NewV3Locker creates a locker backed by etcd V3.
 func NewV3Locker(cl *clientv3.Client, lockTimeout int) RuleLocker {
@@ -32,17 +32,22 @@ func NewV3Locker(cl *clientv3.Client, lockTimeout int) RuleLocker {
 	return NewSessionLocker(newSession, lockTimeout, true)
 }
 
-func NewSessionLocker(newSession NewSession, lockTimeout int, closeSession bool) RuleLocker {
+// NewSessionLocker creates a new locker with the provided session constructor. Note that
+// if closeSession is false, it means that the session provided by getSession will not be
+// closed but instead be reused. In that case the locker must be protected by another locker
+// (for instance an in-memory locker) because locks within the same session are reentrant so
+// two goroutines can obtain the same lock.
+func NewSessionLocker(getSession GetSession, lockTimeout int, closeSession bool) RuleLocker {
 	return &v3Locker{
 		lockTimeout:  lockTimeout,
-		newSession:   newSession,
+		newSession:   getSession,
 		closeSession: closeSession,
 	}
 }
 
 type v3Locker struct {
 	lockTimeout  int
-	newSession   NewSession
+	newSession   GetSession
 	closeSession bool
 }
 
