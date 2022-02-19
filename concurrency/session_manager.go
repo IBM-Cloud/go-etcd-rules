@@ -59,7 +59,3 @@ func (sm *SessionManager) GetSession(ctx context.Context) (*Session, error) {
 	}
 	return sm.session, nil
 }
-
-type sessionManagerGetRequest struct {
-	resp chan *Session
-}

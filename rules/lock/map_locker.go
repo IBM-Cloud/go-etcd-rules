@@ -16,9 +16,8 @@ func NewMapLocker() RuleLocker {
 }
 
 type mapLocker struct {
-	mutex  *sync.Mutex
-	m      map[string]bool
-	closed *bool
+	mutex *sync.Mutex
+	m     map[string]bool
 }
 
 func newMapLocker() mapLocker {
@@ -54,7 +53,6 @@ var ErrLockedLocally = errors.New("locked locally")
 
 type toggleLockerAdapter struct {
 	toggle    func(key string, lock bool) bool
-	close     func()
 	errLocked error
 }
 
