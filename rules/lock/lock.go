@@ -21,7 +21,7 @@ type RuleLock interface {
 type GetSession func(context.Context) (*concurrency.Session, error)
 
 // NewV3Locker creates a locker backed by etcd V3.
-func NewV3Locker(cl *clientv3.Client, lockTimeout int) RuleLocker {
+func NewV3Locker(cl *clientv3.Client, lockTimeout int, useTryLock bool) RuleLocker {
 	// The TTL is for the lease associated with the session, in seconds. While the session is still open,
 	// the lease's TTL will keep getting renewed to keep it from expiring, so all this really does is
 	// set the amount of time it takes for the lease to expire if the lease stops being renewed due
@@ -29,15 +29,15 @@ func NewV3Locker(cl *clientv3.Client, lockTimeout int) RuleLocker {
 	newSession := func(_ context.Context) (*concurrency.Session, error) {
 		return concurrency.NewSession(cl, concurrency.WithTTL(30))
 	}
-	return NewSessionLocker(newSession, lockTimeout, true)
+	return NewSessionLocker(newSession, lockTimeout, true, useTryLock)
 }
 
 // NewSessionLocker creates a new locker with the provided session constructor. Note that
 // if closeSession is false, it means that the session provided by getSession will not be
 // closed but instead be reused. In that case the locker must be protected by another locker
-// (for instance an in-memory locker) because locks within the same session are reentrant so
-// two goroutines can obtain the same lock.
-func NewSessionLocker(getSession GetSession, lockTimeout int, closeSession bool) RuleLocker {
+// (for instance an in-memory locker) because locks within the same session are reentrant
+// which means that two goroutines can obtain the same lock.
+func NewSessionLocker(getSession GetSession, lockTimeout int, closeSession, useTryLock bool) RuleLocker {
 	return &v3Locker{
 		lockTimeout:  lockTimeout,
 		newSession:   getSession,
@@ -49,6 +49,7 @@ type v3Locker struct {
 	lockTimeout  int
 	newSession   GetSession
 	closeSession bool
+	useTryLock   bool
 }
 
 func (v3l *v3Locker) Lock(key string, options ...Option) (RuleLock, error) {
@@ -62,7 +63,11 @@ func (v3l *v3Locker) lockWithTimeout(key string, timeout int) (RuleLock, error) 
 		return nil, err
 	}
 	m := concurrency.NewMutex(s, key)
-	err = m.TryLock(ctx)
+	if v3l.useTryLock {
+		err = m.TryLock(ctx)
+	} else {
+		err = m.Lock(ctx)
+	}
 	if err != nil {
 		return nil, err
 	}

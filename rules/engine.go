@@ -116,9 +116,9 @@ func newV3Engine(logger *zap.Logger, cl *clientv3.Client, options ...EngineOptio
 	var baseEtcdLocker lock.RuleLocker
 	if opts.useSharedLockSession {
 		sessionManager := concurrency.NewSessionManager(cl, logger)
-		baseEtcdLocker = lock.NewSessionLocker(sessionManager.GetSession, opts.lockAcquisitionTimeout, false)
+		baseEtcdLocker = lock.NewSessionLocker(sessionManager.GetSession, opts.lockAcquisitionTimeout, false, opts.useTryLock)
 	} else {
-		baseEtcdLocker = lock.NewV3Locker(cl, opts.lockAcquisitionTimeout)
+		baseEtcdLocker = lock.NewV3Locker(cl, opts.lockAcquisitionTimeout, opts.useTryLock)
 	}
 	metricsEtcdLocker := lock.WithMetrics(baseEtcdLocker, "etcd")
 	var baseLocker lock.RuleLocker
