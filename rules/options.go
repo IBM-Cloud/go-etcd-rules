@@ -63,7 +63,8 @@ type engineOptions struct {
 	ruleWorkBuffer         int
 	enhancedRuleFilter     bool
 	metrics                MetricsCollectorOpt
-	lockCoolDown           time.Duration
+	lockCoolOff            time.Duration
+	useSharedLockSession   bool
 }
 
 func makeEngineOptions(options ...EngineOption) engineOptions {
@@ -80,7 +81,6 @@ func makeEngineOptions(options ...EngineOption) engineOptions {
 		keyProcConcurrency:     5,
 		keyProcBuffer:          1000,
 		metrics:                defaultMetricsCollector,
-		lockCoolDown:           time.Second * 2,
 	}
 	for _, opt := range options {
 		opt.apply(&opts)

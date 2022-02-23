@@ -113,13 +113,30 @@ func newV3Engine(logger *zap.Logger, cl *clientv3.Client, options ...EngineOptio
 			logger:  logger,
 		}
 	}
-	sessionManager := concurrency.NewSessionManager(cl, logger)
-	baseEtcdLocker := lock.NewSessionLocker(sessionManager.GetSession, opts.lockAcquisitionTimeout, false)
-	// baseEtcdLocker := lock.NewV3Locker(cl, opts.lockAcquisitionTimeout)
+	var baseEtcdLocker lock.RuleLocker
+	if opts.useSharedLockSession {
+		sessionManager := concurrency.NewSessionManager(cl, logger)
+		baseEtcdLocker = lock.NewSessionLocker(sessionManager.GetSession, opts.lockAcquisitionTimeout, false)
+	} else {
+		baseEtcdLocker = lock.NewV3Locker(cl, opts.lockAcquisitionTimeout)
+	}
 	metricsEtcdLocker := lock.WithMetrics(baseEtcdLocker, "etcd")
-	baseMapLocker := lock.NewMapLocker()
-	metricsMapLocker := lock.WithMetrics(baseMapLocker, "map")
-	locker := lock.NewNestedLocker(metricsMapLocker, metricsEtcdLocker)
+	var baseLocker lock.RuleLocker
+	if opts.useSharedLockSession {
+		baseMapLocker := lock.NewMapLocker()
+		metricsMapLocker := lock.WithMetrics(baseMapLocker, "map")
+		baseLocker = lock.NewNestedLocker(metricsMapLocker, metricsEtcdLocker)
+	} else {
+		baseLocker = metricsEtcdLocker
+	}
+	var finalLocker lock.RuleLocker
+	if opts.lockCoolOff == 0 {
+		finalLocker = baseLocker
+	} else {
+		coolOffLocker := lock.NewCoolOffLocker(opts.lockCoolOff)
+		metricsCoolOffLocker := lock.WithMetrics(coolOffLocker, "cooloff")
+		finalLocker = lock.NewNestedLocker(metricsCoolOffLocker, baseLocker)
+	}
 	eng := v3Engine{
 		baseEngine: baseEngine{
 			keyProc:          &keyProc,
@@ -128,7 +145,7 @@ func newV3Engine(logger *zap.Logger, cl *clientv3.Client, options ...EngineOptio
 			options:          opts,
 			ruleLockTTLs:     map[int]int{},
 			ruleMgr:          ruleMgr,
-			locker:           locker,
+			locker:           finalLocker,
 			callbackListener: cbListener,
 		},
 		keyProc:        keyProc,
