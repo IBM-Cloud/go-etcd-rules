@@ -42,6 +42,7 @@ func NewSessionLocker(getSession GetSession, lockTimeout int, closeSession, useT
 		lockTimeout:  lockTimeout,
 		newSession:   getSession,
 		closeSession: closeSession,
+		useTryLock:   useTryLock,
 	}
 }
 

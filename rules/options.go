@@ -203,7 +203,7 @@ func EngineUseSharedLockSession() EngineOption {
 
 // EngineLockCoolOff is an experimental option to preemptively fail locking attempts
 // if an attempt to obtain the same lock was made within the specified duration so
-// that two workers reacting to multiple elements of the same rule and attributes
+// that multiple workers reacting to multiple elements of the same rule and attributes
 // do not cause needless locking.
 func EngineLockCoolOff(timeout time.Duration) EngineOption {
 	return engineOptionFunction(func(o *engineOptions) {
