@@ -56,7 +56,7 @@ func Test_coolOffLocker(t *testing.T) {
 			require.NoError(t, err)
 			require.NotNil(t, lock1)
 			// Make sure that the lock works
-			defer require.NotPanics(t, func() { lock1.Unlock() })
+			defer require.NotPanics(t, func() { assert.NoError(t, lock1.Unlock()) })
 
 			// Wait some period of time
 			time.Sleep(tc.delay)
@@ -87,7 +87,7 @@ func Test_coolOffLocker(t *testing.T) {
 			assert.NoError(t, err)
 			assert.NotNil(t, lock2)
 			// Make sure the second lock works
-			require.NotPanics(t, func() { lock2.Unlock() })
+			require.NotPanics(t, func() { assert.NoError(t, lock2.Unlock()) })
 		})
 	}
 
