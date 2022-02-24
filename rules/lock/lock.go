@@ -18,44 +18,67 @@ type RuleLock interface {
 	Unlock() error
 }
 
+type GetSession func(context.Context) (*concurrency.Session, error)
+
 // NewV3Locker creates a locker backed by etcd V3.
-func NewV3Locker(cl *clientv3.Client, lockTimeout int) RuleLocker {
+func NewV3Locker(cl *clientv3.Client, lockTimeout int, useTryLock bool) RuleLocker {
+	// The TTL is for the lease associated with the session, in seconds. While the session is still open,
+	// the lease's TTL will keep getting renewed to keep it from expiring, so all this really does is
+	// set the amount of time it takes for the lease to expire if the lease stops being renewed due
+	// to the application shutting down before a session could be properly closed.
+	newSession := func(_ context.Context) (*concurrency.Session, error) {
+		return concurrency.NewSession(cl, concurrency.WithTTL(30))
+	}
+	return NewSessionLocker(newSession, lockTimeout, true, useTryLock)
+}
+
+// NewSessionLocker creates a new locker with the provided session constructor. Note that
+// if closeSession is false, it means that the session provided by getSession will not be
+// closed but instead be reused. In that case the locker must be protected by another locker
+// (for instance an in-memory locker) because locks within the same session are reentrant
+// which means that two goroutines can obtain the same lock.
+func NewSessionLocker(getSession GetSession, lockTimeout int, closeSession, useTryLock bool) RuleLocker {
 	return &v3Locker{
-		cl:          cl,
-		lockTimeout: lockTimeout,
+		lockTimeout:  lockTimeout,
+		newSession:   getSession,
+		closeSession: closeSession,
+		useTryLock:   useTryLock,
 	}
 }
 
 type v3Locker struct {
-	cl          *clientv3.Client
-	lockTimeout int
+	lockTimeout  int
+	newSession   GetSession
+	closeSession bool
+	useTryLock   bool
 }
 
 func (v3l *v3Locker) Lock(key string, options ...Option) (RuleLock, error) {
 	return v3l.lockWithTimeout(key, v3l.lockTimeout)
 }
 func (v3l *v3Locker) lockWithTimeout(key string, timeout int) (RuleLock, error) {
-	// TODO once we switch to a shared session, we can get rid of the TTL option
-	// and go to the default (60 seconds). This is the TTL for the lease that
-	// is associated with the session and the lease is renewed before it expires
-	// while the session is active (not closed). It is not the TTL of any locks;
-	// those persist until Unlock is called or the process dies and the session
-	// lease is allowed to expire.
-	s, err := concurrency.NewSession(v3l.cl, concurrency.WithTTL(30))
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(timeout)*time.Second)
+	defer cancel()
+	s, err := v3l.newSession(ctx)
 	if err != nil {
 		return nil, err
 	}
 	m := concurrency.NewMutex(s, key)
-	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(timeout)*time.Second)
-	defer cancel()
-	err = m.Lock(ctx)
+	if v3l.useTryLock {
+		err = m.TryLock(ctx)
+	} else {
+		err = m.Lock(ctx)
+	}
 	if err != nil {
 		return nil, err
 	}
-	return &v3Lock{
-		mutex:   m,
-		session: s,
-	}, nil
+	lock := &v3Lock{
+		mutex: m,
+	}
+	if v3l.closeSession {
+		lock.session = s
+	}
+	return lock, nil
 }
 
 type v3Lock struct {
