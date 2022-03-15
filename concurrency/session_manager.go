@@ -7,6 +7,8 @@ import (
 	"time"
 
 	v3 "go.etcd.io/etcd/client/v3"
+	v3c "go.etcd.io/etcd/client/v3/concurrency"
+
 	"go.uber.org/zap"
 )
 
@@ -18,7 +20,7 @@ type SessionManager struct {
 	// These fields must not be accessed by more than one
 	// goroutine.
 	// Session singleton that is refreshed if it closes.
-	session *Session
+	session *v3c.Session
 	// Channel used by the session to communicate that it is closed.
 	sessionDone <-chan struct{}
 
@@ -27,7 +29,7 @@ type SessionManager struct {
 	get        chan sessionManagerGetRequest
 	close      chan struct{}
 	closeOnce  sync.Once
-	newSession func() (*Session, error)
+	newSession func() (*v3c.Session, error)
 }
 
 // NewSessionManager creates a new session manager that manages a session singleton
@@ -41,7 +43,7 @@ func newSessionManager(client *v3.Client, retryDelay time.Duration, logger *zap.
 		retryDelay: retryDelay,
 		get:        make(chan sessionManagerGetRequest),
 		close:      make(chan struct{}),
-		newSession: func() (*Session, error) { return NewSession(client) },
+		newSession: func() (*v3c.Session, error) { return v3c.NewSession(client) },
 	}
 	go sm.run()
 	return sm
@@ -50,9 +52,9 @@ func newSessionManager(client *v3.Client, retryDelay time.Duration, logger *zap.
 // GetSession provides the singleton session or times out if a session
 // cannot be obtained. The context needs to have a timeout, otherwise it
 // is possible for the calling goroutine to hang.
-func (sm *SessionManager) GetSession(ctx context.Context) (*Session, error) {
+func (sm *SessionManager) GetSession(ctx context.Context) (*v3c.Session, error) {
 	request := sessionManagerGetRequest{
-		resp: make(chan *Session),
+		resp: make(chan *v3c.Session),
 	}
 	go func() {
 		sm.get <- request
@@ -151,5 +153,5 @@ run:
 }
 
 type sessionManagerGetRequest struct {
-	resp chan *Session
+	resp chan *v3c.Session
 }

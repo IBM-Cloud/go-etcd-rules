@@ -10,6 +10,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	v3 "go.etcd.io/etcd/client/v3"
+	v3c "go.etcd.io/etcd/client/v3/concurrency"
+
 	"go.uber.org/zap"
 
 	"github.com/IBM-Cloud/go-etcd-rules/rules/teststore"
@@ -52,19 +54,19 @@ func Test_SessionManager_Close(t *testing.T) {
 		name string
 
 		client     *v3.Client
-		newSession func() (*Session, error)
+		newSession func() (*v3c.Session, error)
 	}{
 		{
 			name:   "ok",
 			client: goodClient,
-			newSession: func() (*Session, error) {
-				return NewSession(goodClient)
+			newSession: func() (*v3c.Session, error) {
+				return v3c.NewSession(goodClient)
 			},
 		},
 		{
 			name:   "bad",
 			client: badClient,
-			newSession: func() (*Session, error) {
+			newSession: func() (*v3c.Session, error) {
 				return nil, errors.New("bad")
 			},
 		},

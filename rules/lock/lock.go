@@ -7,7 +7,7 @@ import (
 	v3 "go.etcd.io/etcd/client/v3"
 	"golang.org/x/net/context"
 
-	"github.com/IBM-Cloud/go-etcd-rules/concurrency"
+	v3c "go.etcd.io/etcd/client/v3/concurrency"
 )
 
 type RuleLocker interface {
@@ -41,11 +41,11 @@ func (v3l *v3Locker) lockWithTimeout(key string, timeout int) (RuleLock, error) 
 	// while the session is active (not closed). It is not the TTL of any locks;
 	// those persist until Unlock is called or the process dies and the session
 	// lease is allowed to expire.
-	s, err := concurrency.NewSession(v3l.cl, concurrency.WithTTL(30))
+	s, err := v3c.NewSession(v3l.cl, v3c.WithTTL(30))
 	if err != nil {
 		return nil, err
 	}
-	m := concurrency.NewMutex(s, key)
+	m := v3c.NewMutex(s, key)
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(timeout)*time.Second)
 	defer cancel()
 	err = m.Lock(ctx)
@@ -59,8 +59,8 @@ func (v3l *v3Locker) lockWithTimeout(key string, timeout int) (RuleLock, error) 
 }
 
 type v3Lock struct {
-	mutex   *concurrency.Mutex
-	session *concurrency.Session
+	mutex   *v3c.Mutex
+	session *v3c.Session
 }
 
 // ErrNilMutex indicates that the lock has a nil mutex
