@@ -4,9 +4,9 @@ import (
 	"errors"
 	"time"
 
-	v3 "go.etcd.io/etcd/client/v3"
 	"golang.org/x/net/context"
 
+	v3 "go.etcd.io/etcd/client/v3"
 	v3c "go.etcd.io/etcd/client/v3/concurrency"
 )
 
@@ -21,7 +21,7 @@ type RuleLock interface {
 type GetSession func(context.Context) (*v3c.Session, error)
 
 // NewV3Locker creates a locker backed by etcd V3.
-func NewV3Locker(cl *clientv3.Client, lockTimeout int, useTryLock bool) RuleLocker {
+func NewV3Locker(cl *v3.Client, lockTimeout int, useTryLock bool) RuleLocker {
 	// The TTL is for the lease associated with the session, in seconds. While the session is still open,
 	// the lease's TTL will keep getting renewed to keep it from expiring, so all this really does is
 	// set the amount of time it takes for the lease to expire if the lease stops being renewed due
