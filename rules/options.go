@@ -63,6 +63,9 @@ type engineOptions struct {
 	ruleWorkBuffer         int
 	enhancedRuleFilter     bool
 	metrics                MetricsCollectorOpt
+	lockCoolOff            time.Duration
+	useSharedLockSession   bool
+	useTryLock             bool
 }
 
 func makeEngineOptions(options ...EngineOption) engineOptions {
@@ -178,6 +181,33 @@ func KeyConstraint(attribute string, prefix string, chars [][]rune) EngineOption
 			chars:  chars,
 			prefix: prefix,
 		}
+	})
+}
+
+// EngineUseTryLock is an experimental option to fail locking immediately when a lock
+// is already held as opposed to trying to obtain the lock until the timeout expires
+func EngineUseTryLock() EngineOption {
+	return engineOptionFunction(func(o *engineOptions) {
+		o.useTryLock = true
+	})
+}
+
+// EngineUseSharedLockSession is an experimental option to use a single concurrency
+// session for managing locks to reduce the ETCD load by eliminating the need to
+// create new concurrency session for each locking attempt.
+func EngineUseSharedLockSession() EngineOption {
+	return engineOptionFunction(func(o *engineOptions) {
+		o.useSharedLockSession = true
+	})
+}
+
+// EngineLockCoolOff is an experimental option to preemptively fail locking attempts
+// if an attempt to obtain the same lock was made within the specified duration so
+// that multiple workers reacting to multiple elements of the same rule and attributes
+// do not cause needless locking.
+func EngineLockCoolOff(timeout time.Duration) EngineOption {
+	return engineOptionFunction(func(o *engineOptions) {
+		o.lockCoolOff = timeout
 	})
 }
 
