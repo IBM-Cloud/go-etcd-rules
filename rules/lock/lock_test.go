@@ -4,9 +4,9 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	v3 "go.etcd.io/etcd/client/v3"
-  v3c "go.etcd.io/etcd/client/v3/concurrency"
 	"github.com/stretchr/testify/require"
+	v3 "go.etcd.io/etcd/client/v3"
+	v3c "go.etcd.io/etcd/client/v3/concurrency"
 	"golang.org/x/net/context"
 
 	"github.com/IBM-Cloud/go-etcd-rules/rules/teststore"

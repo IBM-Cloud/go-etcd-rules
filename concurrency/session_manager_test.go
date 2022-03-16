@@ -7,7 +7,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
 	"go.uber.org/zap"
 
 	"github.com/IBM-Cloud/go-etcd-rules/rules/teststore"
