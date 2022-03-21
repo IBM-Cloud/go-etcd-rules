@@ -1,6 +1,6 @@
 language: go
 go:
-  - 1.16.13
+  - 1.16.15
   - tip
 
 matrix:
