@@ -34,6 +34,17 @@ func TestV3EngineConstructor(t *testing.T) {
 	err := eng.AddPolling("/polling", rule, 30, v3DummyCallback)
 	assert.NoError(t, err)
 	eng.Run()
+	eng.Stop()
+	stopped := false
+	for i := 0; i < 60; i++ {
+		stopped = eng.IsStopped()
+		if stopped {
+			break
+		}
+		time.Sleep(time.Second)
+	}
+	assert.True(t, stopped)
+
 	eng = NewV3Engine(cfg, getTestLogger(), KeyExpansion(map[string][]string{"a:": {"b"}}))
 	eng.AddRule(rule, "/lock", v3DummyCallback, RuleLockTimeout(30))
 	err = eng.AddPolling("/polling", rule, 30, v3DummyCallback)
@@ -42,7 +53,7 @@ func TestV3EngineConstructor(t *testing.T) {
 	assert.Error(t, err)
 	eng.Run()
 	eng.Stop()
-	stopped := false
+	stopped = false
 	for i := 0; i < 60; i++ {
 		stopped = eng.IsStopped()
 		if stopped {
