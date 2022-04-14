@@ -69,8 +69,8 @@ func TestWorkBufferWaitTime(t *testing.T) {
 }
 
 func TestCallbackWaitTime(t *testing.T) {
-	CallbackWaitTime("/desired/key/pattern", time.Now())
-	checkMetrics(t, `rules_etcd_callback_wait_ms_count{pattern="/desired/key/pattern"} 1`)
+	CallbackWaitTime("/desired/key/pattern", "ruleID", time.Now())
+	checkMetrics(t, `rules_etcd_callback_wait_ms_count{pattern="/desired/key/pattern",rule="ruleID"} 1`)
 }
 
 func Test_keyProcessBufferCap(t *testing.T) {
