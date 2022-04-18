@@ -57,6 +57,7 @@ func TestWorkerSingleRun(t *testing.T) {
 	// Test case: happy path
 	rule := dummyRule{
 		satisfiedResponse: true,
+		attr:              &attr,
 	}
 	rw := v3RuleWork{
 		rule:             &rule,

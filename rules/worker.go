@@ -122,16 +122,17 @@ func (bw *baseWorker) doWork(loggerPtr **zap.Logger,
 	metrics.WorkerQueueWaitTime(metricsInfo.method, metricsInfo.startTime)
 	bw.metrics.WorkerQueueWaitTime(metricsInfo.method, metricsInfo.startTime)
 	if sat && !is(&bw.stopping) {
-		startTime := time.Now()
-		callback()
-		metrics.CallbackWaitTime(metricsInfo.keyPattern, startTime)
 		attributes := (*rulePtr).getAttributes()
-		if bw.callbackListener != nil {
-			bw.callbackListener.callbackDone(ruleID, attributes)
-		}
 		attrMap := make(map[string]string)
 		for _, attrName := range attributes.names() {
 			attrMap[attrName] = *attributes.GetAttribute(attrName)
+		}
+		logger.Info("callback started", zap.String("rule_id", ruleID), zap.Any("attributes", attrMap))
+		startTime := time.Now()
+		callback()
+		metrics.CallbackWaitTime(metricsInfo.keyPattern, ruleID, startTime)
+		if bw.callbackListener != nil {
+			bw.callbackListener.callbackDone(ruleID, attributes)
 		}
 		logger.Info("callback complete", zap.String("rule_id", ruleID), zap.Any("attributes", attrMap))
 	}
