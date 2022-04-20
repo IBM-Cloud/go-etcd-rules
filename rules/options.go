@@ -3,6 +3,7 @@ package rules
 import (
 	"time"
 
+	"github.com/IBM-Cloud/go-etcd-rules/internal/jitter"
 	"golang.org/x/net/context"
 )
 
@@ -66,6 +67,7 @@ type engineOptions struct {
 	lockCoolOff            time.Duration
 	useSharedLockSession   bool
 	useTryLock             bool
+	watchDelay             jitter.Duration
 }
 
 func makeEngineOptions(options ...EngineOption) engineOptions {
@@ -272,6 +274,12 @@ func EngineRuleWorkBuffer(buffer int) EngineOption {
 func EngineEnhancedRuleFilter(enhancedRuleFilter bool) EngineOption {
 	return engineOptionFunction(func(o *engineOptions) {
 		o.enhancedRuleFilter = enhancedRuleFilter
+	})
+}
+
+func EngineWatchProcessDelay(base time.Duration, jitterPercent float64) EngineOption {
+	return engineOptionFunction(func(o *engineOptions) {
+		o.watchDelay = jitter.NewDuration(base, jitterPercent)
 	})
 }
 
