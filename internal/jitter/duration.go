@@ -5,23 +5,25 @@ import (
 	"time"
 )
 
-// Duration is a time.Duration with variance. Successive calls to Next() return new randomized durations.
-// The zero-value returns 0 for every time duration.
-type Duration struct {
+// DurationGenerator generates time.Durations with variance called "jitter".
+// Successive calls to Generate() return new randomized durations.
+//
+// The zero-value returns 0 for every duration.
+type DurationGenerator struct {
 	base          time.Duration
 	jitterPercent float64
 }
 
-// NewDuration returns a new Duration with a base time duration and a percentage of jitter
-func NewDuration(base time.Duration, jitterPercent float64) Duration {
-	return Duration{
+// NewDurationGenerator returns a new DurationGenerator with a base time duration and a percentage of jitter
+func NewDurationGenerator(base time.Duration, jitterPercent float64) DurationGenerator {
+	return DurationGenerator{
 		base:          base,
 		jitterPercent: clampPercent(jitterPercent),
 	}
 }
 
 // Next returns a new, randomized duration from the interval base±jitterPercent
-func (d Duration) Next() time.Duration {
+func (g DurationGenerator) Generate() time.Duration {
 	/*
 		Example formula:
 		base = 100ns
@@ -34,10 +36,10 @@ func (d Duration) Next() time.Duration {
 		100 + 100 * 0.1 * (2*0.9 - 1) = 108ns
 	*/
 	var (
-		dNano           = float64(d.base.Nanoseconds())
+		dNano           = float64(g.base.Nanoseconds())
 		random          = rand.Float64() // in range [0, 1)
 		randomPlusMinus = 2*random - 1   // in range [-0.5, 0.5)
-		resultNano      = dNano + dNano*d.jitterPercent*randomPlusMinus
+		resultNano      = dNano + dNano*g.jitterPercent*randomPlusMinus
 	)
 	return time.Duration(resultNano) * time.Nanosecond
 }

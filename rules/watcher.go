@@ -9,7 +9,7 @@ import (
 	"go.uber.org/zap"
 )
 
-func newV3Watcher(ec *clientv3.Client, prefix string, logger *zap.Logger, proc keyProc, watchTimeout int, kvWrapper WrapKV, metrics AdvancedMetricsCollector, watcherWrapper WrapWatcher, processDelay jitter.Duration) (watcher, error) {
+func newV3Watcher(ec *clientv3.Client, prefix string, logger *zap.Logger, proc keyProc, watchTimeout int, kvWrapper WrapKV, metrics AdvancedMetricsCollector, watcherWrapper WrapWatcher, processDelay jitter.DurationGenerator) (watcher, error) {
 	api := etcdV3ReadAPI{
 		kV: kvWrapper(ec),
 	}
@@ -28,7 +28,7 @@ type watcher struct {
 	kw           keyWatcher
 	kp           keyProc
 	logger       *zap.Logger
-	processDelay jitter.Duration
+	processDelay jitter.DurationGenerator
 	stopping     uint32
 	stopped      uint32
 }
@@ -63,7 +63,7 @@ func (w *watcher) singleRun() {
 		}
 		return
 	}
-	delay := w.processDelay.Next()
+	delay := w.processDelay.Generate()
 	if delay > 0 {
 		w.logger.Debug("Pausing before processing next key", zap.Duration("wait_time", delay))
 		time.Sleep(delay) // TODO ideally a context should be used for fast shutdown, e.g. select { case <-ctx.Done(); case <-time.After(delay) }

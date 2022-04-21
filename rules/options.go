@@ -67,7 +67,7 @@ type engineOptions struct {
 	lockCoolOff            time.Duration
 	useSharedLockSession   bool
 	useTryLock             bool
-	watchDelay             jitter.Duration
+	watchDelay             jitter.DurationGenerator
 }
 
 func makeEngineOptions(options ...EngineOption) engineOptions {
@@ -279,7 +279,7 @@ func EngineEnhancedRuleFilter(enhancedRuleFilter bool) EngineOption {
 
 func EngineWatchProcessDelay(base time.Duration, jitterPercent float64) EngineOption {
 	return engineOptionFunction(func(o *engineOptions) {
-		o.watchDelay = jitter.NewDuration(base, jitterPercent)
+		o.watchDelay = jitter.NewDurationGenerator(base, jitterPercent)
 	})
 }
 
