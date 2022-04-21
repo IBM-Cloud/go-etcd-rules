@@ -8,13 +8,14 @@ import (
 	"go.uber.org/zap"
 	"golang.org/x/net/context"
 
+	"github.com/IBM-Cloud/go-etcd-rules/internal/jitter"
 	"github.com/IBM-Cloud/go-etcd-rules/metrics"
 	"github.com/IBM-Cloud/go-etcd-rules/rules/lock"
 )
 
 func newIntCrawler(
 	cl *clientv3.Client,
-	interval int,
+	interval jitter.DurationGenerator,
 	kp extKeyProc,
 	metrics MetricsCollector,
 	logger *zap.Logger,
@@ -74,7 +75,7 @@ type intCrawler struct {
 	cancelMutex  sync.Mutex
 	cl           *clientv3.Client
 	delay        int
-	interval     int
+	interval     jitter.DurationGenerator
 	kp           extKeyProc
 	kv           clientv3.KV
 	metrics      MetricsCollector
@@ -133,7 +134,8 @@ func (ic *intCrawler) run() {
 			}
 		}
 		logger.Info("Crawler run complete")
-		for i := 0; i < ic.interval; i++ {
+		intervalSeconds := int(ic.interval.Generate().Seconds())
+		for i := 0; i < intervalSeconds; i++ {
 			time.Sleep(time.Second)
 			if ic.isStopping() {
 				break

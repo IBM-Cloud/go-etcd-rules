@@ -9,6 +9,8 @@ import (
 
 const (
 	defaultRuleID = "NO_ID_SET"
+
+	syncIntervalJitterPercent = 0.1
 )
 
 // ContextProvider is used to specify a custom provider of a context
@@ -50,11 +52,11 @@ type engineOptions struct {
 	concurrency,
 	crawlerTTL,
 	syncGetTimeout,
-	syncInterval,
 	watchTimeout,
 	syncDelay,
 	keyProcConcurrency,
 	keyProcBuffer int
+	syncInterval           jitter.DurationGenerator
 	constraints            map[string]constraint
 	contextProvider        ContextProvider
 	keyExpansion           map[string][]string
@@ -78,7 +80,7 @@ func makeEngineOptions(options ...EngineOption) engineOptions {
 		syncDelay:              1,
 		lockTimeout:            30,
 		lockAcquisitionTimeout: 5,
-		syncInterval:           300,
+		syncInterval:           jitter.NewDurationGenerator(5*time.Minute, syncIntervalJitterPercent),
 		syncGetTimeout:         0,
 		watchTimeout:           0,
 		keyProcConcurrency:     5,
@@ -217,7 +219,7 @@ func EngineLockCoolOff(timeout time.Duration) EngineOption {
 // The interval is in seconds.
 func EngineSyncInterval(interval int) EngineOption {
 	return engineOptionFunction(func(o *engineOptions) {
-		o.syncInterval = interval
+		o.syncInterval = jitter.NewDurationGenerator(time.Duration(interval)*time.Second, syncIntervalJitterPercent)
 	})
 }
 
