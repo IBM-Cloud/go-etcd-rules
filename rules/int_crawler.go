@@ -135,6 +135,7 @@ func (ic *intCrawler) run() {
 		}
 		logger.Info("Crawler run complete")
 		intervalSeconds := int(ic.interval.Generate().Seconds())
+		logger.Debug("Pausing before next crawler run", zap.Int("wait_time_seconds", intervalSeconds))
 		for i := 0; i < intervalSeconds; i++ {
 			time.Sleep(time.Second)
 			if ic.isStopping() {
