@@ -10,7 +10,7 @@ import (
 const (
 	defaultRuleID = "NO_ID_SET"
 
-	syncIntervalJitterPercent = 0.1
+	syncJitterPercent = 0.1
 )
 
 // ContextProvider is used to specify a custom provider of a context
@@ -53,10 +53,10 @@ type engineOptions struct {
 	crawlerTTL,
 	syncGetTimeout,
 	watchTimeout,
-	syncDelay,
 	keyProcConcurrency,
 	keyProcBuffer int
-	syncInterval           jitter.DurationGenerator
+	syncInterval,
+	syncDelay jitter.DurationGenerator
 	constraints            map[string]constraint
 	contextProvider        ContextProvider
 	keyExpansion           map[string][]string
@@ -77,10 +77,10 @@ func makeEngineOptions(options ...EngineOption) engineOptions {
 		concurrency:            5,
 		constraints:            map[string]constraint{},
 		contextProvider:        defaultContextProvider,
-		syncDelay:              1,
+		syncDelay:              jitter.NewDurationGenerator(10*time.Second, syncJitterPercent),
 		lockTimeout:            30,
 		lockAcquisitionTimeout: 5,
-		syncInterval:           jitter.NewDurationGenerator(5*time.Minute, syncIntervalJitterPercent),
+		syncInterval:           jitter.NewDurationGenerator(5*time.Minute, syncJitterPercent),
 		syncGetTimeout:         0,
 		watchTimeout:           0,
 		keyProcConcurrency:     5,
@@ -219,7 +219,7 @@ func EngineLockCoolOff(timeout time.Duration) EngineOption {
 // The interval is in seconds.
 func EngineSyncInterval(interval int) EngineOption {
 	return engineOptionFunction(func(o *engineOptions) {
-		o.syncInterval = jitter.NewDurationGenerator(time.Duration(interval)*time.Second, syncIntervalJitterPercent)
+		o.syncInterval = jitter.NewDurationGenerator(time.Duration(interval)*time.Second, syncJitterPercent)
 	})
 }
 
@@ -227,7 +227,7 @@ func EngineSyncInterval(interval int) EngineOption {
 // between queries to keep the crawlers from overwhelming etcd.
 func EngineSyncDelay(delay int) EngineOption {
 	return engineOptionFunction(func(o *engineOptions) {
-		o.syncDelay = delay
+		o.syncDelay = jitter.NewDurationGenerator(time.Duration(delay)*time.Millisecond, syncJitterPercent)
 	})
 }
 

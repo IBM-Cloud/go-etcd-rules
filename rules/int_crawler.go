@@ -23,7 +23,7 @@ func newIntCrawler(
 	mutexTimeout int,
 	prefixes []string,
 	kvWrapper WrapKV,
-	delay int,
+	delay jitter.DurationGenerator,
 	locker lock.RuleLocker,
 ) (crawler, error) {
 	kv := kvWrapper(cl)
@@ -74,7 +74,7 @@ type intCrawler struct {
 	cancelFunc   context.CancelFunc
 	cancelMutex  sync.Mutex
 	cl           *clientv3.Client
-	delay        int
+	delay        jitter.DurationGenerator
 	interval     jitter.DurationGenerator
 	kp           extKeyProc
 	kv           clientv3.KV
@@ -190,7 +190,7 @@ func (ic *intCrawler) processData(values map[string]string, logger *zap.Logger) 
 			// Process key if it is
 			ic.kp.processKey(k, &v, ic.api, logger, map[string]string{"source": "crawler"}, ic.incRuleProcessedCount)
 		}
-		time.Sleep(time.Duration(ic.delay) * time.Millisecond)
+		time.Sleep(ic.delay.Generate())
 	}
 }
 
