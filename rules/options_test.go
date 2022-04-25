@@ -25,11 +25,15 @@ func TestRuleOptions(t *testing.T) {
 }
 
 func TestEngineOptions(t *testing.T) {
-	var noOp noOpMetricsCollector
-	opts := makeEngineOptions(EngineSyncInterval(5))
+	opts := makeEngineOptions()
+	assert.Equal(t, jitter.NewDurationGenerator(5*time.Minute, 0.1), opts.syncInterval)
+	assert.Equal(t, jitter.NewDurationGenerator(10*time.Second, 0.1), opts.syncDelay)
+	assert.Zero(t, opts.watchDelay)
+	assert.IsType(t, &noOpMetricsCollector{}, opts.metrics())
+
+	opts = makeEngineOptions(EngineSyncInterval(5))
 	assert.Equal(t, jitter.NewDurationGenerator(5*time.Second, 0.1), opts.syncInterval)
 	assert.Equal(t, jitter.NewDurationGenerator(10*time.Second, 0.1), opts.syncDelay)
-	assert.IsType(t, &noOp, opts.metrics())
 
 	opts = makeEngineOptions(EngineConcurrency(10))
 	assert.Equal(t, 10, opts.concurrency)
@@ -61,13 +65,16 @@ func TestEngineOptions(t *testing.T) {
 
 	opts = makeEngineOptions(EngineRuleWorkBuffer(10))
 	assert.Equal(t, 10, opts.ruleWorkBuffer)
+
 	mm := NewMockMetricsCollector()
 	mFunc := func() MetricsCollector {
 		return &mm
 	}
-
 	opts = makeEngineOptions(EngineMetricsCollector(mFunc))
 	assert.IsType(t, &mm, opts.metrics())
+
+	opts = makeEngineOptions(EngineWatchProcessDelay(10*time.Minute, 0.2))
+	assert.Equal(t, jitter.NewDurationGenerator(10*time.Minute, 0.2), opts.watchDelay)
 }
 
 var contextKeyTest = contextKey("test")
