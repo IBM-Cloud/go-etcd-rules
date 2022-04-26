@@ -77,7 +77,7 @@ func makeEngineOptions(options ...EngineOption) engineOptions {
 		concurrency:            5,
 		constraints:            map[string]constraint{},
 		contextProvider:        defaultContextProvider,
-		syncDelay:              jitter.NewDurationGenerator(10*time.Second, syncJitterPercent),
+		syncDelay:              jitter.NewDurationGenerator(2*time.Millisecond, syncJitterPercent),
 		lockTimeout:            30,
 		lockAcquisitionTimeout: 5,
 		syncInterval:           jitter.NewDurationGenerator(5*time.Minute, syncJitterPercent),

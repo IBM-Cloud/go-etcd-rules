@@ -27,13 +27,13 @@ func TestRuleOptions(t *testing.T) {
 func TestEngineOptions(t *testing.T) {
 	opts := makeEngineOptions()
 	assert.Equal(t, jitter.NewDurationGenerator(5*time.Minute, 0.1), opts.syncInterval)
-	assert.Equal(t, jitter.NewDurationGenerator(10*time.Second, 0.1), opts.syncDelay)
+	assert.Equal(t, jitter.NewDurationGenerator(2*time.Millisecond, 0.1), opts.syncDelay)
 	assert.Zero(t, opts.watchDelay)
 	assert.IsType(t, &noOpMetricsCollector{}, opts.metrics())
 
 	opts = makeEngineOptions(EngineSyncInterval(5))
 	assert.Equal(t, jitter.NewDurationGenerator(5*time.Second, 0.1), opts.syncInterval)
-	assert.Equal(t, jitter.NewDurationGenerator(10*time.Second, 0.1), opts.syncDelay)
+	assert.Equal(t, jitter.NewDurationGenerator(2*time.Millisecond, 0.1), opts.syncDelay)
 
 	opts = makeEngineOptions(EngineConcurrency(10))
 	assert.Equal(t, 10, opts.concurrency)
