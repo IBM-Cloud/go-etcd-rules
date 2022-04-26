@@ -4,30 +4,33 @@ import (
 	"strings"
 	"time"
 
+	"github.com/IBM-Cloud/go-etcd-rules/internal/jitter"
 	"go.etcd.io/etcd/clientv3"
 	"go.uber.org/zap"
 )
 
-func newV3Watcher(ec *clientv3.Client, prefix string, logger *zap.Logger, proc keyProc, watchTimeout int, kvWrapper WrapKV, metrics AdvancedMetricsCollector, watcherWrapper WrapWatcher) (watcher, error) {
+func newV3Watcher(ec *clientv3.Client, prefix string, logger *zap.Logger, proc keyProc, watchTimeout int, kvWrapper WrapKV, metrics AdvancedMetricsCollector, watcherWrapper WrapWatcher, processDelay jitter.DurationGenerator) (watcher, error) {
 	api := etcdV3ReadAPI{
 		kV: kvWrapper(ec),
 	}
 	ew := newEtcdV3KeyWatcher(watcherWrapper(clientv3.NewWatcher(ec)), prefix, time.Duration(watchTimeout)*time.Second, metrics)
 	return watcher{
-		api:    &api,
-		kw:     ew,
-		kp:     proc,
-		logger: logger,
+		api:          &api,
+		kw:           ew,
+		kp:           proc,
+		logger:       logger,
+		processDelay: processDelay,
 	}, nil
 }
 
 type watcher struct {
-	api      readAPI
-	kw       keyWatcher
-	kp       keyProc
-	logger   *zap.Logger
-	stopping uint32
-	stopped  uint32
+	api          readAPI
+	kw           keyWatcher
+	kp           keyProc
+	logger       *zap.Logger
+	processDelay jitter.DurationGenerator
+	stopping     uint32
+	stopped      uint32
 }
 
 func (w *watcher) run() {
@@ -59,6 +62,11 @@ func (w *watcher) singleRun() {
 			time.Sleep(time.Second)
 		}
 		return
+	}
+	delay := w.processDelay.Generate()
+	if delay > 0 {
+		w.logger.Debug("Pausing before processing next key", zap.Duration("wait_time", delay))
+		time.Sleep(delay) // TODO ideally a context should be used for fast shutdown, e.g. select { case <-ctx.Done(); case <-time.After(delay) }
 	}
 	w.logger.Debug("Calling process key", zap.String("key", key))
 	w.kp.processKey(key, value, w.api, w.logger, map[string]string{}, nil)

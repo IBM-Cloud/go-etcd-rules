@@ -3,11 +3,14 @@ package rules
 import (
 	"time"
 
+	"github.com/IBM-Cloud/go-etcd-rules/internal/jitter"
 	"golang.org/x/net/context"
 )
 
 const (
 	defaultRuleID = "NO_ID_SET"
+
+	syncJitterPercent = 0.1
 )
 
 // ContextProvider is used to specify a custom provider of a context
@@ -49,11 +52,11 @@ type engineOptions struct {
 	concurrency,
 	crawlerTTL,
 	syncGetTimeout,
-	syncInterval,
 	watchTimeout,
-	syncDelay,
 	keyProcConcurrency,
 	keyProcBuffer int
+	syncInterval,
+	syncDelay jitter.DurationGenerator
 	constraints            map[string]constraint
 	contextProvider        ContextProvider
 	keyExpansion           map[string][]string
@@ -66,6 +69,7 @@ type engineOptions struct {
 	lockCoolOff            time.Duration
 	useSharedLockSession   bool
 	useTryLock             bool
+	watchDelay             jitter.DurationGenerator
 }
 
 func makeEngineOptions(options ...EngineOption) engineOptions {
@@ -73,10 +77,10 @@ func makeEngineOptions(options ...EngineOption) engineOptions {
 		concurrency:            5,
 		constraints:            map[string]constraint{},
 		contextProvider:        defaultContextProvider,
-		syncDelay:              1,
+		syncDelay:              jitter.NewDurationGenerator(2*time.Millisecond, syncJitterPercent),
 		lockTimeout:            30,
 		lockAcquisitionTimeout: 5,
-		syncInterval:           300,
+		syncInterval:           jitter.NewDurationGenerator(5*time.Minute, syncJitterPercent),
 		syncGetTimeout:         0,
 		watchTimeout:           0,
 		keyProcConcurrency:     5,
@@ -215,7 +219,7 @@ func EngineLockCoolOff(timeout time.Duration) EngineOption {
 // The interval is in seconds.
 func EngineSyncInterval(interval int) EngineOption {
 	return engineOptionFunction(func(o *engineOptions) {
-		o.syncInterval = interval
+		o.syncInterval = jitter.NewDurationGenerator(time.Duration(interval)*time.Second, syncJitterPercent)
 	})
 }
 
@@ -223,7 +227,7 @@ func EngineSyncInterval(interval int) EngineOption {
 // between queries to keep the crawlers from overwhelming etcd.
 func EngineSyncDelay(delay int) EngineOption {
 	return engineOptionFunction(func(o *engineOptions) {
-		o.syncDelay = delay
+		o.syncDelay = jitter.NewDurationGenerator(time.Duration(delay)*time.Millisecond, syncJitterPercent)
 	})
 }
 
@@ -272,6 +276,12 @@ func EngineRuleWorkBuffer(buffer int) EngineOption {
 func EngineEnhancedRuleFilter(enhancedRuleFilter bool) EngineOption {
 	return engineOptionFunction(func(o *engineOptions) {
 		o.enhancedRuleFilter = enhancedRuleFilter
+	})
+}
+
+func EngineWatchProcessDelay(base time.Duration, jitterPercent float64) EngineOption {
+	return engineOptionFunction(func(o *engineOptions) {
+		o.watchDelay = jitter.NewDurationGenerator(base, jitterPercent)
 	})
 }
 
