@@ -1,6 +1,7 @@
-GO111MODULE := on
+SHELL = /bin/bash
+
 export
-LINT_VERSION="1.40.1"
+LINT_VERSION="1.45.2"
 
 .PHONY: all
 all: deps lint test
