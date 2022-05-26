@@ -4,8 +4,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/IBM-Cloud/go-etcd-rules/internal/jitter"
 	v3 "go.etcd.io/etcd/client/v3"
-  "github.com/IBM-Cloud/go-etcd-rules/internal/jitter"
 	"go.uber.org/zap"
 )
 
