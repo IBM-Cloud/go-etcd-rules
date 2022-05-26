@@ -1,12 +1,6 @@
 language: go
 go:
-  - 1.16.13
-  - tip
-
-matrix:
-  fast_finish: true
-  allow_failures:
-  - go: tip
+  - 1.17.9
 
 services:
   - docker

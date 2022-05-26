@@ -8,13 +8,14 @@ import (
 	"go.uber.org/zap"
 	"golang.org/x/net/context"
 
+	"github.com/IBM-Cloud/go-etcd-rules/internal/jitter"
 	"github.com/IBM-Cloud/go-etcd-rules/metrics"
 	"github.com/IBM-Cloud/go-etcd-rules/rules/lock"
 )
 
 func newIntCrawler(
 	cl *v3.Client,
-	interval int,
+	interval jitter.DurationGenerator,
 	kp extKeyProc,
 	metrics MetricsCollector,
 	logger *zap.Logger,
@@ -22,7 +23,7 @@ func newIntCrawler(
 	mutexTimeout int,
 	prefixes []string,
 	kvWrapper WrapKV,
-	delay int,
+	delay jitter.DurationGenerator,
 	locker lock.RuleLocker,
 ) (crawler, error) {
 	kv := kvWrapper(cl)
@@ -73,8 +74,8 @@ type intCrawler struct {
 	cancelFunc   context.CancelFunc
 	cancelMutex  sync.Mutex
 	cl           *v3.Client
-	delay        int
-	interval     int
+	delay        jitter.DurationGenerator
+	interval     jitter.DurationGenerator
 	kp           extKeyProc
 	kv           v3.KV
 	metrics      MetricsCollector
@@ -133,7 +134,9 @@ func (ic *intCrawler) run() {
 			}
 		}
 		logger.Info("Crawler run complete")
-		for i := 0; i < ic.interval; i++ {
+		intervalSeconds := int(ic.interval.Generate().Seconds())
+		logger.Debug("Pausing before next crawler run", zap.Int("wait_time_seconds", intervalSeconds))
+		for i := 0; i < intervalSeconds; i++ {
 			time.Sleep(time.Second)
 			if ic.isStopping() {
 				break
@@ -188,7 +191,7 @@ func (ic *intCrawler) processData(values map[string]string, logger *zap.Logger) 
 			// Process key if it is
 			ic.kp.processKey(k, &v, ic.api, logger, map[string]string{"source": "crawler"}, ic.incRuleProcessedCount)
 		}
-		time.Sleep(time.Duration(ic.delay) * time.Millisecond)
+		time.Sleep(ic.delay.Generate())
 	}
 }
 
