@@ -1,6 +1,6 @@
 language: go
 go:
-  - 1.17.9
+  - 1.18.3
 
 services:
   - docker
