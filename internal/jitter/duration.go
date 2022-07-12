@@ -37,8 +37,8 @@ func (g DurationGenerator) Generate() time.Duration {
 	*/
 	var (
 		dNano           = float64(g.base.Nanoseconds())
-		random          = rand.Float64() /* in range [0, 1) */ // nolint:gosec // Generating random durations is not security-sensitive. A pseudo-random number generator is ok.
-		randomPlusMinus = 2*random - 1   /* in range [-0.5, 0.5) */
+		random          = rand.Float64() // #nosec G404 -- Generating random durations is not security-sensitive. A pseudo-random number generator is ok. in range [0, 1)
+		randomPlusMinus = 2*random - 1   // in range [-0.5, 0.5)
 		resultNano      = dNano + dNano*g.jitterPercent*randomPlusMinus
 	)
 	return time.Duration(resultNano) * time.Nanosecond

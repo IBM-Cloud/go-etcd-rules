@@ -87,14 +87,14 @@ func (m *Mutex) Lock(ctx context.Context) error {
 	_, werr := waitDeletes(ctx, client, m.pfx, m.myRev-1)
 	// release lock key if wait failed
 	if werr != nil {
-		_ = m.Unlock(client.Ctx())
+		_ = m.Unlock(client.Ctx()) // #nosec G104 -- Try to release lock
 		return werr
 	}
 
 	// make sure the session is not expired, and the owner key still exists.
 	gresp, werr := client.Get(ctx, m.myKey)
 	if werr != nil {
-		_ = m.Unlock(client.Ctx())
+		_ = m.Unlock(client.Ctx()) // #nosec G104 -- Try to release lock
 		return werr
 	}
 

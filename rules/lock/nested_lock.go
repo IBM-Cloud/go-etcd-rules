@@ -28,7 +28,7 @@ func (nl nestedLocker) Lock(key string, options ...Option) (RuleLock, error) {
 	nested, err := nl.nested.Lock(key, options...)
 	if err != nil {
 		// First unlock own lock
-		_ = lock.Unlock()
+		_ = lock.Unlock() // #nosec G104 -- Try to unlock
 		return nil, err
 	}
 	return nestedLock{
