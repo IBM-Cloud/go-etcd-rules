@@ -163,7 +163,7 @@ func (bkp *baseKeyProcessor) processKey(key string, value *string, rapi readAPI,
 		if timesEvaluated != nil {
 			timesEvaluated(ruleID)
 		}
-		satisfied, _ := rule.satisfied(api)
+		satisfied, _ := rule.satisfied(api) // #nosec G104 -- Map lookup
 		if logger.Core().Enabled(zap.DebugLevel) {
 			logger.Debug("Rule evaluated", zap.Bool("satisfied", satisfied), zap.String("rule", rule.String()), zap.String("value", fmt.Sprintf("%.30s", valueString)), zap.String("key", key))
 		}
@@ -181,7 +181,7 @@ func (bkp *baseKeyProcessor) processKey(key string, value *string, rapi readAPI,
 func (bkp *baseKeyProcessor) isWork(key string, value *string, api readAPI) bool {
 	rules := bkp.rm.getStaticRules(key, value)
 	for rule := range rules {
-		satisfied, _ := rule.satisfied(api)
+		satisfied, _ := rule.satisfied(api) // #nosec G104 -- Map lookup
 		if satisfied {
 			return true
 		}

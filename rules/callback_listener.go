@@ -63,7 +63,7 @@ type HTTPCallbackHandler struct {
 
 func (htcbh HTTPCallbackHandler) HandleRequest(w http.ResponseWriter, req *http.Request) {
 	defer func() {
-		_ = req.Body.Close()
+		_ = req.Body.Close() // #nosec G104 -- Try to close body
 	}()
 	decoder := json.NewDecoder(req.Body)
 	var event callbackEvent
