@@ -6,8 +6,7 @@ services:
   - docker
 
 script:
-  - make test
-  - make lint
+  - make lint test
 
 after_success:
     - 'if [ "$TRAVIS_PULL_REQUEST" = "false" ]; then goveralls -coverprofile=coverage.out -service=travis-ci -repotoken $COVERALLS_TOKEN; fi'
