@@ -81,7 +81,7 @@ func main() {
 	cbHandler := rules.NewHTTPCallbackHander()
 	http.HandleFunc("/callback", cbHandler.HandleRequest)
 	go func() {
-		err := http.ListenAndServe(":6969", nil)
+		err := http.ListenAndServe(":6969", nil) // #nosec G114 - For testing
 		check(err)
 	}()
 
