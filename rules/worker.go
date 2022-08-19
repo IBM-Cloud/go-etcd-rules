@@ -74,6 +74,7 @@ func (bw *baseWorker) doWork(loggerPtr **zap.Logger,
 	rulePtr *staticRule, lockTTL int, callback workCallback,
 	metricsInfo metricsInfo, lockKey string, ruleID string) {
 	logger := *loggerPtr
+	logger = logger.With(zap.String("ruleID", ruleID), zap.String("mutex", lockKey))
 	rule := *rulePtr
 	capi, err1 := bw.api.getCachedAPI(rule.getKeys())
 	if err1 != nil {
@@ -94,13 +95,13 @@ func (bw *baseWorker) doWork(loggerPtr **zap.Logger,
 	}
 	l, err2 := bw.locker.Lock(lockKey, lock.PatternForLock(metricsInfo.keyPattern), lock.MethodForLock("worker_lock"))
 	if err2 != nil {
-		logger.Debug("Failed to acquire lock", zap.Error(err2), zap.String("mutex", lockKey))
+		logger.Debug("Failed to acquire lock", zap.Error(err2))
 		return
 	}
 	defer func() {
 		err := l.Unlock()
 		if err != nil {
-			logger.Error("Could not unlock mutex", zap.Error(err), zap.String("mutex", lockKey))
+			logger.Error("Could not unlock mutex", zap.Error(err))
 		}
 	}()
 	// Check for a second time, since checking and locking
@@ -127,14 +128,14 @@ func (bw *baseWorker) doWork(loggerPtr **zap.Logger,
 		for _, attrName := range attributes.names() {
 			attrMap[attrName] = *attributes.GetAttribute(attrName)
 		}
-		logger.Info("callback started", zap.String("rule_id", ruleID), zap.Any("attributes", attrMap))
+		logger.Info("callback started", zap.Any("attributes", attrMap))
 		startTime := time.Now()
 		callback()
 		metrics.CallbackWaitTime(metricsInfo.keyPattern, ruleID, startTime)
 		if bw.callbackListener != nil {
 			bw.callbackListener.callbackDone(ruleID, attributes)
 		}
-		logger.Info("callback complete", zap.String("rule_id", ruleID), zap.Any("attributes", attrMap))
+		logger.Info("callback complete", zap.Any("attributes", attrMap))
 	}
 }
 
