@@ -81,12 +81,12 @@ func main() {
 	cbHandler := rules.NewHTTPCallbackHander()
 	http.HandleFunc("/callback", cbHandler.HandleRequest)
 	go func() {
-		err := http.ListenAndServe(":6969", nil)
+		err := http.ListenAndServe(":6969", nil) // #nosec G114 - For testing
 		check(err)
 	}()
 
 	// Set environment variable so the rules engine will use it
-	os.Setenv(rules.WebhookURLEnv, "http://localhost:6969/callback")
+	os.Setenv(rules.WebhookURLEnv, "http://localhost:6969/callback") // #nosec G104 - For testing
 
 	engine := rules.NewV3Engine(cfg, logger, rules.EngineContextProvider(cpFunc), rules.EngineMetricsCollector(mFunc), rules.EngineSyncInterval(300))
 	mw := &rules.MockWatcherWrapper{
@@ -193,5 +193,5 @@ func main() {
 	defer cancel()
 	err = cbHandler.WaitForCallback(tenSecCtx, doneRuleID, map[string]string{"id": doneID})
 	check(err)
-	_ = engine.Shutdown(ctx)
+	_ = engine.Shutdown(ctx) // #nosec G104 -- For testing only
 }

@@ -13,8 +13,11 @@ func InitV3Etcd(t *testing.T) (v3.Config, *v3.Client) {
 	cfg := v3.Config{
 		Endpoints: []string{"http://127.0.0.1:2379"},
 	}
-	c, _ := v3.New(cfg)
-	_, err := c.Delete(context.Background(), "/", v3.WithPrefix())
+	c, err := v3.New(cfg)
 	require.NoError(t, err)
+	var r *v3.DeleteResponse
+	r, err = c.Delete(context.Background(), "/", v3.WithPrefix())
+	require.NoError(t, err)
+	require.NotNil(t, r)
 	return cfg, c
 }

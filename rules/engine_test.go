@@ -30,7 +30,8 @@ func TestV3EngineConstructor(t *testing.T) {
 	eng := NewV3Engine(cfg, getTestLogger())
 	value := "val"
 	rule, _ := NewEqualsLiteralRule("/key", &value)
-	eng.AddRule(rule, "/lock", v3DummyCallback)
+	eng.AddRule(rule, "/lock", v3DummyCallback, RuleID("test"))
+	assert.PanicsWithValue(t, "Rule ID option missing", func() { eng.AddRule(rule, "/lock", v3DummyCallback) })
 	err := eng.AddPolling("/polling", rule, 30, v3DummyCallback)
 	assert.NoError(t, err)
 	eng.Run()
@@ -46,7 +47,7 @@ func TestV3EngineConstructor(t *testing.T) {
 	assert.True(t, stopped)
 
 	eng = NewV3Engine(cfg, getTestLogger(), KeyExpansion(map[string][]string{"a:": {"b"}}))
-	eng.AddRule(rule, "/lock", v3DummyCallback, RuleLockTimeout(30))
+	eng.AddRule(rule, "/lock", v3DummyCallback, RuleLockTimeout(30), RuleID("test"))
 	err = eng.AddPolling("/polling", rule, 30, v3DummyCallback)
 	assert.NoError(t, err)
 	err = eng.AddPolling("/polling[", rule, 30, v3DummyCallback)

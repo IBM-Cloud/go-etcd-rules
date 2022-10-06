@@ -73,6 +73,7 @@ func main() {
         rules.NewAndRule(serverActive, pollDelayGone),
         "/:serverid/poll",
         pollServer,
+        RuleID("example")
     )
 
     engine.Run()

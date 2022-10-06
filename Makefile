@@ -1,7 +1,7 @@
 SHELL = /bin/bash
 
 export
-LINT_VERSION="1.45.2"
+LINT_VERSION="1.49.0"
 
 .PHONY: all
 all: deps lint test
@@ -23,6 +23,7 @@ lint-fix: deps
 .PHONY: lint
 lint: deps
 	golangci-lint run
+	go install github.com/securego/gosec/v2/cmd/gosec@latest && gosec ./...
 
 .PHONY: test
 test: int-setup

@@ -261,7 +261,7 @@ func (e *v3Engine) AddPolling(namespacePattern string, preconditions DynamicRule
 		lease:          e.cl,
 		engine:         e,
 	}
-	e.AddRule(rule, "/rule_locks"+namespacePattern+"lock", cbw.doRule)
+	e.AddRule(rule, "/rule_locks"+namespacePattern+"lock", cbw.doRule, RuleID(namespacePattern))
 	return nil
 }
 
@@ -278,6 +278,9 @@ func (e *baseEngine) addRule(rule DynamicRule,
 	contextProvider := opts.contextProvider
 	if contextProvider == nil {
 		contextProvider = e.options.contextProvider
+	}
+	if opts.ruleID == defaultRuleID {
+		panic("Rule ID option missing")
 	}
 	ruleID := opts.ruleID
 	e.ruleLockTTLs[ruleIndex] = ttl
