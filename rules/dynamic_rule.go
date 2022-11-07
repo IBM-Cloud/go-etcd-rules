@@ -51,7 +51,7 @@ type dynamicRule struct {
 	rep        string
 }
 
-func getEssentialRepresentations(rule DynamicRule) []string {
+func GetEssentialRepresentations(rule DynamicRule) []string {
 	// Provides the string representations of the leaf rules that must
 	// always be true in order for the overall rule to evaluate to true
 	mustAlwaysBeTrue := map[string]bool{}
@@ -397,7 +397,7 @@ func GetCrawlerPatterns(rule DynamicRule) []string {
 	}
 	// Get all the representations of leaf rules that must evaluate
 	// to true for the overall rule to evaluate to true
-	eReps := getEssentialRepresentations(rule)
+	eReps := GetEssentialRepresentations(rule)
 	mappings := rule.getLeafRepresentationPatternMap()
 	for _, rep := range eReps {
 		if strings.HasSuffix(rep, "<nil>") {

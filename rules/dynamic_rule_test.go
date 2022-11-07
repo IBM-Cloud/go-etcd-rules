@@ -749,7 +749,7 @@ func TestGetEssentialRepresentations(t *testing.T) {
 			assert.NoError(t, err, "index %d", idx)
 		}
 		rules = append(rules, dr)
-		result := getEssentialRepresentations(dr)
+		result := GetEssentialRepresentations(dr)
 		compareUnorderedStringArrays(t, testCase.expect, result, "index %d", idx)
 	}
 }
