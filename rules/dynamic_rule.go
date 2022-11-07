@@ -390,7 +390,7 @@ func (cdr *compoundDynamicRule) getPatterns() []string {
 	return cdr.patterns
 }
 
-func getCrawlerPatterns(rule DynamicRule) []string {
+func GetCrawlerPatterns(rule DynamicRule) []string {
 	patterns := map[string]bool{}
 	for _, pattern := range rule.getPatterns() {
 		patterns[pattern] = true

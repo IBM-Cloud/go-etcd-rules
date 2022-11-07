@@ -664,7 +664,7 @@ func TestGetCrawlerPatterns(t *testing.T) {
 			assert.NoError(t, err, "index %d", idx)
 		}
 		rules = append(rules, dr)
-		result := getCrawlerPatterns(dr)
+		result := GetCrawlerPatterns(dr)
 		compareUnorderedStringArrays(t, testCase.expect, result, "index %d", idx)
 	}
 }
