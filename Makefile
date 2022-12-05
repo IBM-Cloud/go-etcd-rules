@@ -32,7 +32,7 @@ test: int-setup
 
 .PHONY: int-setup
 int-setup: int-teardown
-	docker run -d -p 2379:2379 --name etcd quay.io/coreos/etcd:v3.5.2 \
+	docker run -d -p 2379:2379 --name etcd quay.io/coreos/etcd:v3.5.4 \
 		/usr/local/bin/etcd --listen-client-urls http://0.0.0.0:2379 \
 		--advertise-client-urls http://0.0.0.0:2379
 
