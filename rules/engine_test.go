@@ -34,17 +34,7 @@ func TestV3EngineConstructor(t *testing.T) {
 	assert.PanicsWithValue(t, "Rule ID option missing", func() { eng.AddRule(rule, "/lock", v3DummyCallback) })
 	err := eng.AddPolling("/polling", rule, 30, v3DummyCallback)
 	assert.NoError(t, err)
-	eng.Run()
-	eng.Stop()
-	stopped := false
-	for i := 0; i < 60; i++ {
-		stopped = eng.IsStopped()
-		if stopped {
-			break
-		}
-		time.Sleep(time.Second)
-	}
-	assert.True(t, stopped)
+	assertEngineRunStop(t, eng)
 
 	eng = NewV3Engine(cfg, getTestLogger(), KeyExpansion(map[string][]string{"a:": {"b"}}))
 	eng.AddRule(rule, "/lock", v3DummyCallback, RuleLockTimeout(30), RuleID("test"))
@@ -52,9 +42,13 @@ func TestV3EngineConstructor(t *testing.T) {
 	assert.NoError(t, err)
 	err = eng.AddPolling("/polling[", rule, 30, v3DummyCallback)
 	assert.Error(t, err)
+	assertEngineRunStop(t, eng)
+}
+
+func assertEngineRunStop(t *testing.T, eng V3Engine) {
 	eng.Run()
 	eng.Stop()
-	stopped = false
+	stopped := false
 	for i := 0; i < 60; i++ {
 		stopped = eng.IsStopped()
 		if stopped {
