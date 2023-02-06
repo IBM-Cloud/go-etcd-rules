@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/stretchr/testify/assert"
-	"go.etcd.io/etcd/clientv3"
+	v3 "go.etcd.io/etcd/client/v3"
 	"golang.org/x/net/context"
 )
 
@@ -34,13 +34,18 @@ func TestV3EngineConstructor(t *testing.T) {
 	assert.PanicsWithValue(t, "Rule ID option missing", func() { eng.AddRule(rule, "/lock", v3DummyCallback) })
 	err := eng.AddPolling("/polling", rule, 30, v3DummyCallback)
 	assert.NoError(t, err)
-	eng.Run()
+	assertEngineRunStop(t, eng)
+
 	eng = NewV3Engine(cfg, getTestLogger(), KeyExpansion(map[string][]string{"a:": {"b"}}))
 	eng.AddRule(rule, "/lock", v3DummyCallback, RuleLockTimeout(30), RuleID("test"))
 	err = eng.AddPolling("/polling", rule, 30, v3DummyCallback)
 	assert.NoError(t, err)
 	err = eng.AddPolling("/polling[", rule, 30, v3DummyCallback)
 	assert.Error(t, err)
+	assertEngineRunStop(t, eng)
+}
+
+func assertEngineRunStop(t *testing.T, eng V3Engine) {
 	eng.Run()
 	eng.Stop()
 	stopped := false
@@ -114,7 +119,7 @@ func TestV3CallbackWrapper(t *testing.T) {
 		assert.Equal(t, "/b/ttl", string(resp.Kvs[0].Key))
 		leaseID := resp.Kvs[0].Lease
 		if assert.True(t, leaseID > 0) {
-			ttlResp, err := c.TimeToLive(context.Background(), clientv3.LeaseID(leaseID))
+			ttlResp, err := c.TimeToLive(context.Background(), v3.LeaseID(leaseID))
 			if assert.NoError(t, err) {
 				assert.InDelta(t, ttlResp.TTL, 30, 5)
 			}

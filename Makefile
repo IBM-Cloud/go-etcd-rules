@@ -1,7 +1,7 @@
 SHELL = /bin/bash
 
 export
-LINT_VERSION="1.49.0"
+LINT_VERSION="1.51.1"
 
 .PHONY: all
 all: deps lint test
@@ -32,7 +32,7 @@ test: int-setup
 
 .PHONY: int-setup
 int-setup: int-teardown
-	docker run -d -p 2379:2379 --name etcd quay.io/coreos/etcd:v3.4.18 \
+	docker run -d -p 2379:2379 --name etcd quay.io/coreos/etcd:v3.5.6 \
 		/usr/local/bin/etcd --listen-client-urls http://0.0.0.0:2379 \
 		--advertise-client-urls http://0.0.0.0:2379
 

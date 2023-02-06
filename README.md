@@ -38,7 +38,7 @@ import (
     "time"
 
     "github.com/IBM-Cloud/go-etcd-rules/rules"
-    "go.etcd.io/etcd/clientv3"
+    v3 "go.etcd.io/etcd/client/v3"
     "github.com/uber-go/zap"
     "golang.org/x/net/context"
 )
@@ -54,7 +54,7 @@ func main() {
         zap.AddCaller(),
     )
 
-    cfg := clientv3.Config{
+    cfg := v3.Config{
         Endpoints: []string{"http://127.0.0.1:2379"},
     }
 
@@ -83,11 +83,11 @@ func main() {
 }
 
 func pollServer(task *rules.V3RuleTask) {
-    cl, err := clientv3.New(task.Conf)
+    cl, err := v3.New(task.Conf)
     if err != nil {
         return
     }
-    kv := clientv3.NewKV(cl)
+    kv := v3.NewKV(cl)
     resp, err := kv.Get(task.Context, task.Attr.Format("/servers/:serverid/ip"))
     if err != nil {
         return
@@ -110,6 +110,6 @@ func pollServer(task *rules.V3RuleTask) {
     if err != nil {
         return
     }
-    kv.Put(task.Context, task.Attr.Format("/servers/internal/:serverid/poll_delay"), "", clientv3.WithLease(resp.ID))
+    kv.Put(task.Context, task.Attr.Format("/servers/internal/:serverid/poll_delay"), "", v3.WithLease(resp.ID))
 }
 ```

@@ -6,7 +6,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"go.etcd.io/etcd/clientv3"
+	v3 "go.etcd.io/etcd/client/v3"
 	"golang.org/x/net/context"
 
 	"github.com/IBM-Cloud/go-etcd-rules/rules/teststore"
@@ -14,7 +14,7 @@ import (
 
 func TestV3EtcdReadAPI(t *testing.T) {
 	_, c := teststore.InitV3Etcd(t)
-	kV := clientv3.NewKV(c)
+	kV := v3.NewKV(c)
 	api := etcdV3ReadAPI{kV: kV}
 
 	_, err := kV.Put(context.Background(), "/test0", "value")
@@ -31,7 +31,7 @@ func TestV3EtcdReadAPI(t *testing.T) {
 
 func Test_etcdV3ReadAPI_getCachedAPI(t *testing.T) {
 	_, c := teststore.InitV3Etcd(t)
-	kV := clientv3.NewKV(c)
+	kV := v3.NewKV(c)
 	api := etcdV3ReadAPI{kV: kV}
 
 	_, err := kV.Put(context.Background(), "/test0", "value")
@@ -52,7 +52,7 @@ func Test_etcdV3ReadAPI_getCachedAPI(t *testing.T) {
 
 func TestEctdV3Watcher(t *testing.T) {
 	_, cl := teststore.InitV3Etcd(t)
-	w := clientv3.NewWatcher(cl)
+	w := v3.NewWatcher(cl)
 	watcher := newEtcdV3KeyWatcher(w, "/pre", time.Duration(60)*time.Second, newMetricsCollector())
 	done := make(chan bool)
 	go checkWatcher1(done, t, watcher)
@@ -85,7 +85,7 @@ func checkWatcher2(done chan bool, t *testing.T, watcher keyWatcher) {
 
 func TestEctdV3WatcherCancel(t *testing.T) {
 	_, cl := teststore.InitV3Etcd(t)
-	w := clientv3.NewWatcher(cl)
+	w := v3.NewWatcher(cl)
 	watcher := newEtcdV3KeyWatcher(w, "/pre", time.Duration(60)*time.Second, newMetricsCollector())
 	done := make(chan bool)
 	go checkWatcher3(done, t, watcher)

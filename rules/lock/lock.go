@@ -4,10 +4,10 @@ import (
 	"errors"
 	"time"
 
-	"go.etcd.io/etcd/clientv3"
 	"golang.org/x/net/context"
 
-	"github.com/IBM-Cloud/go-etcd-rules/concurrency"
+	v3 "go.etcd.io/etcd/client/v3"
+	v3c "go.etcd.io/etcd/client/v3/concurrency"
 )
 
 type RuleLocker interface {
@@ -18,16 +18,16 @@ type RuleLock interface {
 	Unlock() error
 }
 
-type GetSession func(context.Context) (*concurrency.Session, error)
+type GetSession func(context.Context) (*v3c.Session, error)
 
 // NewV3Locker creates a locker backed by etcd V3.
-func NewV3Locker(cl *clientv3.Client, lockTimeout int, useTryLock bool) RuleLocker {
+func NewV3Locker(cl *v3.Client, lockTimeout int, useTryLock bool) RuleLocker {
 	// The TTL is for the lease associated with the session, in seconds. While the session is still open,
 	// the lease's TTL will keep getting renewed to keep it from expiring, so all this really does is
 	// set the amount of time it takes for the lease to expire if the lease stops being renewed due
 	// to the application shutting down before a session could be properly closed.
-	newSession := func(_ context.Context) (*concurrency.Session, error) {
-		return concurrency.NewSession(cl, concurrency.WithTTL(30))
+	newSession := func(_ context.Context) (*v3c.Session, error) {
+		return v3c.NewSession(cl, v3c.WithTTL(30))
 	}
 	return NewSessionLocker(newSession, lockTimeout, true, useTryLock)
 }
@@ -63,7 +63,7 @@ func (v3l *v3Locker) lockWithTimeout(key string, timeout int) (RuleLock, error) 
 	if err != nil {
 		return nil, err
 	}
-	m := concurrency.NewMutex(s, key)
+	m := v3c.NewMutex(s, key)
 	if v3l.useTryLock {
 		err = m.TryLock(ctx)
 	} else {
@@ -82,8 +82,8 @@ func (v3l *v3Locker) lockWithTimeout(key string, timeout int) (RuleLock, error) 
 }
 
 type v3Lock struct {
-	mutex   *concurrency.Mutex
-	session *concurrency.Session
+	mutex   *v3c.Mutex
+	session *v3c.Session
 }
 
 // ErrNilMutex indicates that the lock has a nil mutex

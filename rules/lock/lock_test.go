@@ -5,19 +5,19 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"go.etcd.io/etcd/clientv3"
+	v3 "go.etcd.io/etcd/client/v3"
+	v3c "go.etcd.io/etcd/client/v3/concurrency"
 	"golang.org/x/net/context"
 
-	"github.com/IBM-Cloud/go-etcd-rules/concurrency"
 	"github.com/IBM-Cloud/go-etcd-rules/rules/teststore"
 )
 
 func Test_V3Locker(t *testing.T) {
 	cfg, cl := teststore.InitV3Etcd(t)
-	c, err := clientv3.New(cfg)
+	c, err := v3.New(cfg)
 	require.NoError(t, err)
-	newSession := func(_ context.Context) (*concurrency.Session, error) {
-		return concurrency.NewSession(cl, concurrency.WithTTL(30))
+	newSession := func(_ context.Context) (*v3c.Session, error) {
+		return v3c.NewSession(cl, v3c.WithTTL(30))
 	}
 
 	for _, useTryLock := range []bool{false, true} {
