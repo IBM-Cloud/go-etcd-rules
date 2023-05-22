@@ -175,6 +175,11 @@ func (w *v3Worker) singleRun() {
 				task.Logger.Error("Panic", zap.Any("recover", r), zap.Stack("stack"))
 			}
 		}()
+		// Get/populate context for task as callback is started
+		context, cancelFunc := work.contextProvider()
+		task.Context = context
+		task.cancel = cancelFunc
+		work.metricsInfo = newMetricsInfo(context, work.keyPattern)
 		w.doWork(&task.Logger, &work.rule, w.engine.getLockTTLForRule(work.ruleIndex), func() { work.ruleTaskCallback(&task) }, work.metricsInfo, work.lockKey, work.ruleID)
 	}()
 	wg.Wait()

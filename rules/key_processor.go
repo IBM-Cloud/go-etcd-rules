@@ -58,12 +58,9 @@ func (v3kp *v3KeyProcessor) setCallback(index int, callback interface{}) {
 }
 
 func (v3kp *v3KeyProcessor) dispatchWork(index int, rule staticRule, logger *zap.Logger, keyPattern string, metadata map[string]string, ruleID string) {
-	context, cancelFunc := v3kp.contextProviders[index]()
 	task := V3RuleTask{
 		Attr:     rule.getAttributes(),
 		Logger:   logger,
-		Context:  context,
-		cancel:   cancelFunc,
 		Metadata: metadata,
 	}
 	work := v3RuleWork{
@@ -72,8 +69,11 @@ func (v3kp *v3KeyProcessor) dispatchWork(index int, rule staticRule, logger *zap
 		ruleIndex:        index,
 		ruleTask:         task,
 		ruleTaskCallback: v3kp.callbacks[index],
-		metricsInfo:      newMetricsInfo(context, keyPattern),
 		lockKey:          FormatWithAttributes(keyPattern, rule.getAttributes()),
+
+		// context info
+		keyPattern:      keyPattern,
+		contextProvider: v3kp.contextProviders[index],
 	}
 
 	start := time.Now()

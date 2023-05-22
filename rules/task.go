@@ -43,4 +43,7 @@ type v3RuleWork struct {
 	ruleIndex        int
 	metricsInfo      metricsInfo
 	lockKey          string
+	// context handling
+	keyPattern      string
+	contextProvider ContextProvider
 }
