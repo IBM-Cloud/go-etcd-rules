@@ -20,15 +20,24 @@ type metricsInfo struct {
 }
 
 func newMetricsInfo(ctx context.Context, keyPattern string, startTime time.Time) metricsInfo {
+	return metricsInfo{
+		keyPattern: keyPattern,
+		method:     getMethodNameFromContext(ctx),
+		startTime:  startTime,
+	}
+}
+
+func getMethodNameFromProvider(cp ContextProvider) string {
+	ctx, _ := cp()
+	return getMethodNameFromContext(ctx)
+}
+
+func getMethodNameFromContext(ctx context.Context) string {
 	methodName := notSetMethodName
 	if data := GetMetricsMetadata(ctx); data != nil {
 		methodName = data.Method
 	}
-	return metricsInfo{
-		keyPattern: keyPattern,
-		method:     methodName,
-		startTime:  startTime,
-	}
+	return methodName
 }
 
 // MetricsCollector used for collecting metrics, implement this interface using
