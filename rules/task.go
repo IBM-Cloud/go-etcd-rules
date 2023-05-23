@@ -1,6 +1,8 @@
 package rules
 
 import (
+	"time"
+
 	"go.uber.org/zap"
 	"golang.org/x/net/context"
 )
@@ -44,6 +46,7 @@ type v3RuleWork struct {
 	metricsInfo      metricsInfo
 	lockKey          string
 	// context handling
-	keyPattern      string
-	contextProvider ContextProvider
+	keyPattern       string
+	metricsStartTime time.Time
+	contextProvider  ContextProvider
 }

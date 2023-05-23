@@ -19,7 +19,7 @@ type metricsInfo struct {
 	startTime time.Time
 }
 
-func newMetricsInfo(ctx context.Context, keyPattern string) metricsInfo {
+func newMetricsInfo(ctx context.Context, keyPattern string, startTime time.Time) metricsInfo {
 	methodName := notSetMethodName
 	if data := GetMetricsMetadata(ctx); data != nil {
 		methodName = data.Method
@@ -27,7 +27,7 @@ func newMetricsInfo(ctx context.Context, keyPattern string) metricsInfo {
 	return metricsInfo{
 		keyPattern: keyPattern,
 		method:     methodName,
-		startTime:  time.Now(),
+		startTime:  startTime,
 	}
 }
 

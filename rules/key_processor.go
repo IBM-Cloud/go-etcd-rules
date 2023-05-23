@@ -72,8 +72,9 @@ func (v3kp *v3KeyProcessor) dispatchWork(index int, rule staticRule, logger *zap
 		lockKey:          FormatWithAttributes(keyPattern, rule.getAttributes()),
 
 		// context info
-		keyPattern:      keyPattern,
-		contextProvider: v3kp.contextProviders[index],
+		keyPattern:       keyPattern,
+		metricsStartTime: time.Now(),
+		contextProvider:  v3kp.contextProviders[index],
 	}
 
 	start := time.Now()

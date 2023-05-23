@@ -179,7 +179,7 @@ func (w *v3Worker) singleRun() {
 		context, cancelFunc := work.contextProvider()
 		task.Context = context
 		task.cancel = cancelFunc
-		work.metricsInfo = newMetricsInfo(context, work.keyPattern)
+		work.metricsInfo = newMetricsInfo(context, work.keyPattern, work.metricsStartTime)
 		w.doWork(&task.Logger, &work.rule, w.engine.getLockTTLForRule(work.ruleIndex), func() { work.ruleTaskCallback(&task) }, work.metricsInfo, work.lockKey, work.ruleID)
 	}()
 	wg.Wait()
