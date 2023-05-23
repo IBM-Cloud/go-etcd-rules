@@ -2,9 +2,10 @@ package rules
 
 import (
 	"context"
-	"github.com/stretchr/testify/assert"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestNewMetricsInfo(t *testing.T) {
@@ -28,7 +29,8 @@ func TestNewMetricsInfo(t *testing.T) {
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			mi := newMetricsInfo(tc.ctx, tc.pattern)
+			startTime := time.Now()
+			mi := newMetricsInfo(tc.ctx, tc.pattern, startTime)
 			assert.Equal(t, tc.expectedMethodName, mi.method)
 			assert.Equal(t, tc.pattern, mi.keyPattern)
 			assert.True(t, time.Since(mi.startTime) < (1*time.Minute))

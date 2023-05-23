@@ -40,14 +40,10 @@ func TestWorkerSingleRun(t *testing.T) {
 	attr := mapAttributes{
 		values: attrMap,
 	}
-	ctx, cancel := context.WithCancel(context.Background())
-	ctx = SetMethod(ctx, "workerTest")
 	task := V3RuleTask{
 		Attr:     &attr,
 		Logger:   getTestLogger(),
 		Metadata: map[string]string{},
-		Context:  ctx,
-		cancel:   cancel,
 	}
 	cbChannel := make(chan bool)
 	callback := testCallback{
@@ -64,7 +60,8 @@ func TestWorkerSingleRun(t *testing.T) {
 		ruleTask:         task,
 		ruleTaskCallback: callback.callback,
 		lockKey:          "key",
-		metricsInfo:      newMetricsInfo(ctx, "/test/item"),
+		keyPattern:       "/test/item",
+		contextProvider:  mockContextProvider(),
 	}
 	expectedMethodNames := []string{"workerTest"}
 
@@ -110,4 +107,12 @@ func TestWorkerSingleRun(t *testing.T) {
 	// all the way through
 	assert.Equal(t, expectedMethodNames, metrics.WorkerQueueWaitTimeMethod)
 	assert.NotEmpty(t, metrics.WorkerQueueWaitTime)
+}
+
+func mockContextProvider() ContextProvider {
+	return func() (context.Context, context.CancelFunc) {
+		ctx, cancel := context.WithCancel(context.Background())
+		ctx = SetMethod(ctx, "workerTest")
+		return ctx, cancel
+	}
 }

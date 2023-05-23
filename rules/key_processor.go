@@ -58,12 +58,9 @@ func (v3kp *v3KeyProcessor) setCallback(index int, callback interface{}) {
 }
 
 func (v3kp *v3KeyProcessor) dispatchWork(index int, rule staticRule, logger *zap.Logger, keyPattern string, metadata map[string]string, ruleID string) {
-	context, cancelFunc := v3kp.contextProviders[index]()
 	task := V3RuleTask{
 		Attr:     rule.getAttributes(),
 		Logger:   logger,
-		Context:  context,
-		cancel:   cancelFunc,
 		Metadata: metadata,
 	}
 	work := v3RuleWork{
@@ -72,14 +69,18 @@ func (v3kp *v3KeyProcessor) dispatchWork(index int, rule staticRule, logger *zap
 		ruleIndex:        index,
 		ruleTask:         task,
 		ruleTaskCallback: v3kp.callbacks[index],
-		metricsInfo:      newMetricsInfo(context, keyPattern),
 		lockKey:          FormatWithAttributes(keyPattern, rule.getAttributes()),
+
+		// context info
+		keyPattern:       keyPattern,
+		metricsStartTime: time.Now(),
+		contextProvider:  v3kp.contextProviders[index],
 	}
 
 	start := time.Now()
 	v3kp.channel <- work
 	// measures the amount of time work is blocked from being added to the buffer
-	metrics.WorkBufferWaitTime(work.metricsInfo.method, keyPattern, start)
+	metrics.WorkBufferWaitTime(getMethodNameFromProvider(work.contextProvider), keyPattern, start)
 }
 
 func newV3KeyProcessor(channel chan v3RuleWork, rm *ruleManager, kpChannel chan *keyTask, concurrency int, logger *zap.Logger) v3KeyProcessor {
