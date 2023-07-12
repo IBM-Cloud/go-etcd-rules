@@ -115,7 +115,7 @@ func (ic *intCrawler) run() {
 			zap.String("source", "crawler"),
 			zap.String("crawler_start", time.Now().Format("2006-01-02T15:04:05-0700")),
 		)
-		logger.Info("Starting crawler run")
+		logger.Info("Starting crawler run", zap.Int("prefixes", len(ic.prefixes)))
 		if ic.mutex == nil {
 			ic.singleRun(logger)
 		} else {
