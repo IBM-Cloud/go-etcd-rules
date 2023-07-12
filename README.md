@@ -5,7 +5,7 @@ etcd-rules
 [![Coverage Status](https://coveralls.io/repos/github/IBM-Bluemix/go-etcd-rules/badge.svg?branch=master)](https://coveralls.io/github/IBM-Bluemix/go-etcd-rules?branch=master)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
-**NOTE: Built with the etcd 3.4.x client.  That version has go.mod [issue](https://github.com/etcd-io/etcd/issues/11154) and a [workaround](https://github.com/etcd-io/etcd/pull/11477) is being used to include it.**
+**NOTE: Built with the etcd 3.5.x client.**
 
 This is a rules engine for use with etcd.  Simple dynamic rules allow the specification
 of keys based on the gin attribute syntax and the comparison to literals or other
