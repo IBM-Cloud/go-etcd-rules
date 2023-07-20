@@ -53,8 +53,14 @@ func checkWatchResp(resp []v3.WatchResponse) {
 	}
 }
 
+// Main
+// Optional paramater for port "6969"
 func main() {
-	logger, err := zap.NewDevelopment()
+	port := "6969"
+	if len(os.Args) > 1 {
+		port = os.Args[1]
+	}
+	logger, err := zap.NewDevelopment(zap.Fields(zap.String("port", port)))
 	check(err)
 
 	// cleanup etcd from previous runs
@@ -81,14 +87,20 @@ func main() {
 	cbHandler := rules.NewHTTPCallbackHander()
 	http.HandleFunc("/callback", cbHandler.HandleRequest)
 	go func() {
-		err := http.ListenAndServe(":6969", nil) // #nosec G114 - For testing
+		err := http.ListenAndServe(":"+port, nil) // #nosec G114 - For testing
 		check(err)
 	}()
 
 	// Set environment variable so the rules engine will use it
-	os.Setenv(rules.WebhookURLEnv, "http://localhost:6969/callback") // #nosec G104 - For testing
+	os.Setenv(rules.WebhookURLEnv, "http://localhost:"+port+"/callback") // #nosec G104 - For testing
 
-	engine := rules.NewV3Engine(cfg, logger, rules.EngineContextProvider(cpFunc), rules.EngineMetricsCollector(mFunc), rules.EngineSyncInterval(300))
+	engine := rules.NewV3Engine(cfg, logger,
+		rules.EngineContextProvider(cpFunc),
+		rules.EngineMetricsCollector(mFunc),
+		rules.EngineSyncInterval(5),
+		rules.EngineCrawlMutex("inttest", 5),
+		rules.EngineLockAcquisitionTimeout(5),
+		rules.EngineUseSharedLockSession())
 	mw := &rules.MockWatcherWrapper{
 		Logger:    logger,
 		Responses: []v3.WatchResponse{},

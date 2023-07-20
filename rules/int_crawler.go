@@ -126,6 +126,8 @@ func (ic *intCrawler) run() {
 			if err != nil {
 				logger.Debug("Could not obtain mutex; skipping crawler run", zap.Error(err), zap.String("mutex", mutex))
 			} else {
+				logger.Debug("Crawler mutex obtained", zap.String("mutex", mutex))
+				time.Sleep(30 * time.Second)
 				ic.singleRun(logger)
 				err := lock.Unlock()
 				if err != nil {
@@ -133,7 +135,6 @@ func (ic *intCrawler) run() {
 				}
 			}
 		}
-		logger.Info("Crawler run complete")
 		intervalSeconds := int(ic.interval.Generate().Seconds())
 		logger.Debug("Pausing before next crawler run", zap.Int("wait_time_seconds", intervalSeconds))
 		for i := 0; i < intervalSeconds; i++ {
@@ -178,6 +179,7 @@ func (ic *intCrawler) singleRun(logger *zap.Logger) {
 		metrics.TimesEvaluated(crawlerMethodName, ruleID, count)
 		ic.metrics.TimesEvaluated(crawlerMethodName, ruleID, count)
 	}
+	logger.Info("Crawler run complete")
 }
 func (ic *intCrawler) processData(values map[string]string, logger *zap.Logger) {
 	api := &cacheReadAPI{values: values}
