@@ -3,6 +3,8 @@ package jitter
 import (
 	"math/rand" // nolint:gosec // Only generating random durations, which is not security-sensitive. A pseudo-random number generator is ok.
 	"time"
+
+	"go.uber.org/zap/zapcore"
 )
 
 // DurationGenerator generates time.Durations with variance called "jitter".
@@ -12,6 +14,13 @@ import (
 type DurationGenerator struct {
 	base          time.Duration
 	jitterPercent float64
+}
+
+// MarshalLogObject allow zap logging
+func (g *DurationGenerator) MarshalLogObject(enc zapcore.ObjectEncoder) error {
+	enc.AddInt("base", int(g.base.Seconds()))
+	enc.AddFloat64("jitterPercent", g.jitterPercent)
+	return nil
 }
 
 // NewDurationGenerator returns a new DurationGenerator with a base time duration and a percentage of jitter

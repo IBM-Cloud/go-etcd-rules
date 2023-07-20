@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/IBM-Cloud/go-etcd-rules/internal/jitter"
+	"go.uber.org/zap/zapcore"
 	"golang.org/x/net/context"
 )
 
@@ -70,6 +71,44 @@ type engineOptions struct {
 	useSharedLockSession   bool
 	useTryLock             bool
 	watchDelay             jitter.DurationGenerator
+}
+
+// MarshalLogObject allow zap logging
+func (eo *engineOptions) MarshalLogObject(enc zapcore.ObjectEncoder) (err error) {
+	enc.AddInt("concurrency", eo.concurrency)
+	enc.AddInt("ruleWorkBuffer", eo.ruleWorkBuffer)
+	enc.AddBool("contextProvider", eo.contextProvider != nil)
+	if err = enc.AddObject("syncInterval", &eo.syncInterval); err != nil {
+		return
+	}
+	if err = enc.AddObject("syncDelay", &eo.syncDelay); err != nil {
+		return
+	}
+	enc.AddInt("syncGetTimeout", eo.syncGetTimeout)
+	enc.AddInt("watchTimeout", eo.watchTimeout)
+	if err = enc.AddObject("watchDelay", &eo.watchDelay); err != nil {
+		return
+	}
+	enc.AddInt("lockTimeout", eo.lockTimeout)
+	enc.AddInt("lockAcquisitionTimeout", eo.lockAcquisitionTimeout)
+	enc.AddInt("lockCoolOff", int(eo.lockCoolOff.Seconds()))
+	if eo.crawlMutex != nil {
+		enc.AddString("crawlMutex", *eo.crawlMutex)
+		enc.AddInt("crawlerTTL", eo.crawlerTTL)
+	}
+	if err = enc.AddReflected("constraints", eo.constraints); err != nil {
+		return
+	}
+	if err = enc.AddReflected("keyExpansion", eo.keyExpansion); err != nil {
+		return
+	}
+
+	enc.AddInt("keyProcConcurrency", eo.keyProcConcurrency)
+	enc.AddInt("keyProcBuffer", eo.keyProcBuffer)
+	enc.AddBool("enhancedRuleFilter", eo.enhancedRuleFilter)
+	enc.AddBool("useSharedLockSession", eo.useSharedLockSession)
+	enc.AddBool("useTryLock", eo.useTryLock)
+	return nil
 }
 
 func makeEngineOptions(options ...EngineOption) engineOptions {
