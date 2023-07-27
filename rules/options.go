@@ -235,6 +235,14 @@ func EngineUseTryLock() EngineOption {
 	})
 }
 
+// EngineUseSharedLockSession is an experimental option to use a single concurrency
+// session for managing locks to reduce the ETCD load by eliminating the need to
+// create new concurrency session for each locking attempt.
+// Deprecated: This option is now used by default.
+func EngineUseSharedLockSession() EngineOption {
+	return engineOptionFunction(func(o *engineOptions) {})
+}
+
 // EngineDontShareLockSession forces ETCD to create a new concurrency session for each
 // locking attempt. This can increase the load on ETCD.
 func EngineDontShareLockSession() EngineOption {
