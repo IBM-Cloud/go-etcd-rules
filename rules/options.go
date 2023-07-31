@@ -58,19 +58,19 @@ type engineOptions struct {
 	keyProcBuffer int
 	syncInterval,
 	syncDelay jitter.DurationGenerator
-	constraints            map[string]constraint
-	contextProvider        ContextProvider
-	keyExpansion           map[string][]string
-	lockTimeout            int
-	lockAcquisitionTimeout int
-	crawlMutex             *string
-	ruleWorkBuffer         int
-	enhancedRuleFilter     bool
-	metrics                MetricsCollectorOpt
-	lockCoolOff            time.Duration
-	useSharedLockSession   bool
-	useTryLock             bool
-	watchDelay             jitter.DurationGenerator
+	constraints              map[string]constraint
+	contextProvider          ContextProvider
+	keyExpansion             map[string][]string
+	lockTimeout              int
+	lockAcquisitionTimeout   int
+	crawlMutex               *string
+	ruleWorkBuffer           int
+	enhancedRuleFilter       bool
+	metrics                  MetricsCollectorOpt
+	lockCoolOff              time.Duration
+	dontUseSharedLockSession bool
+	useTryLock               bool
+	watchDelay               jitter.DurationGenerator
 }
 
 // MarshalLogObject allow zap logging
@@ -106,7 +106,7 @@ func (eo *engineOptions) MarshalLogObject(enc zapcore.ObjectEncoder) (err error)
 	enc.AddInt("keyProcConcurrency", eo.keyProcConcurrency)
 	enc.AddInt("keyProcBuffer", eo.keyProcBuffer)
 	enc.AddBool("enhancedRuleFilter", eo.enhancedRuleFilter)
-	enc.AddBool("useSharedLockSession", eo.useSharedLockSession)
+	enc.AddBool("dontUseSharedLockSession", eo.dontUseSharedLockSession)
 	enc.AddBool("useTryLock", eo.useTryLock)
 	return nil
 }
@@ -238,9 +238,16 @@ func EngineUseTryLock() EngineOption {
 // EngineUseSharedLockSession is an experimental option to use a single concurrency
 // session for managing locks to reduce the ETCD load by eliminating the need to
 // create new concurrency session for each locking attempt.
+// Deprecated: This option is now used by default.
 func EngineUseSharedLockSession() EngineOption {
+	return engineOptionFunction(func(o *engineOptions) {})
+}
+
+// EngineDontShareLockSession forces ETCD to create a new concurrency session for each
+// locking attempt. This can increase the load on ETCD.
+func EngineDontShareLockSession() EngineOption {
 	return engineOptionFunction(func(o *engineOptions) {
-		o.useSharedLockSession = true
+		o.dontUseSharedLockSession = true
 	})
 }
 

@@ -114,20 +114,20 @@ func newV3Engine(logger *zap.Logger, cl *v3.Client, options ...EngineOption) v3E
 		}
 	}
 	var baseEtcdLocker lock.RuleLocker
-	if opts.useSharedLockSession {
+	if opts.dontUseSharedLockSession {
+		baseEtcdLocker = lock.NewV3Locker(cl, opts.lockAcquisitionTimeout, opts.useTryLock)
+	} else {
 		sessionManager := concurrency.NewSessionManager(cl, logger)
 		baseEtcdLocker = lock.NewSessionLocker(sessionManager.GetSession, opts.lockAcquisitionTimeout, false, opts.useTryLock)
-	} else {
-		baseEtcdLocker = lock.NewV3Locker(cl, opts.lockAcquisitionTimeout, opts.useTryLock)
 	}
 	metricsEtcdLocker := lock.WithMetrics(baseEtcdLocker, "etcd")
 	var baseLocker lock.RuleLocker
-	if opts.useSharedLockSession {
+	if opts.dontUseSharedLockSession {
+		baseLocker = metricsEtcdLocker
+	} else {
 		baseMapLocker := lock.NewMapLocker()
 		metricsMapLocker := lock.WithMetrics(baseMapLocker, "map")
 		baseLocker = lock.NewNestedLocker(metricsMapLocker, metricsEtcdLocker)
-	} else {
-		baseLocker = metricsEtcdLocker
 	}
 	var finalLocker lock.RuleLocker
 	if opts.lockCoolOff == 0 {

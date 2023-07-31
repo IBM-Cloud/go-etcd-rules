@@ -75,6 +75,13 @@ func TestEngineOptions(t *testing.T) {
 
 	opts = makeEngineOptions(EngineWatchProcessDelay(10*time.Minute, 0.2))
 	assert.Equal(t, jitter.NewDurationGenerator(10*time.Minute, 0.2), opts.watchDelay)
+
+	optsBlank := makeEngineOptions()
+	opts = makeEngineOptions(EngineUseSharedLockSession())
+	assert.Equal(t, optsBlank.dontUseSharedLockSession, opts.dontUseSharedLockSession)
+	opts = makeEngineOptions(EngineDontShareLockSession())
+	assert.Equal(t, true, opts.dontUseSharedLockSession)
+
 }
 
 var contextKeyTest = contextKey("test")

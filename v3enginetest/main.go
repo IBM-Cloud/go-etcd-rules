@@ -99,8 +99,7 @@ func main() {
 		rules.EngineMetricsCollector(mFunc),
 		rules.EngineSyncInterval(5),
 		rules.EngineCrawlMutex("inttest", 5),
-		rules.EngineLockAcquisitionTimeout(5),
-		rules.EngineUseSharedLockSession())
+		rules.EngineLockAcquisitionTimeout(5))
 	mw := &rules.MockWatcherWrapper{
 		Logger:    logger,
 		Responses: []v3.WatchResponse{},
