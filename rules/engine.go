@@ -317,6 +317,7 @@ func (e *v3Engine) Run() {
 		e.kvWrapper,
 		e.options.syncDelay,
 		e.locker,
+		"default",
 	)
 	if err != nil {
 		e.logger.Fatal("Failed to initialize crawler", zap.Error(err))
