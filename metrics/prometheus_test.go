@@ -82,3 +82,18 @@ func Test_incWatcherErrMetric(t *testing.T) {
 	IncWatcherErrMetric("err", "/desired/key/prefix")
 	checkMetrics(t, `rules_etcd_watcher_errors{error="err",prefix="/desired/key/prefix"} 1`)
 }
+
+func TestCrawlerQueryTime(t *testing.T) {
+	CrawlerQueryTime("default", time.Now())
+	checkMetrics(t, `rules_etcd_crawler_query_seconds_count{name="default"} 1`)
+}
+
+func TestCrawlerEvalTime(t *testing.T) {
+	CrawlerEvalTime("default", time.Now())
+	checkMetrics(t, `rules_etcd_crawler_eval_seconds_count{name="default"} 1`)
+}
+
+func TestCrawlerValuesCount(t *testing.T) {
+	CrawlerValuesCount("default", 100)
+	checkMetrics(t, `rules_etcd_crawler_values_count{name="default"} 100`)
+}

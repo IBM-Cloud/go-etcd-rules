@@ -18,7 +18,7 @@ type DurationGenerator struct {
 
 // MarshalLogObject allow zap logging
 func (g *DurationGenerator) MarshalLogObject(enc zapcore.ObjectEncoder) error {
-	enc.AddInt("base", int(g.base.Seconds()))
+	enc.AddDuration("base", g.base)
 	enc.AddFloat64("jitterPercent", g.jitterPercent)
 	return nil
 }

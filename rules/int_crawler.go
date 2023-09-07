@@ -25,6 +25,7 @@ func newIntCrawler(
 	kvWrapper WrapKV,
 	delay jitter.DurationGenerator,
 	locker lock.RuleLocker,
+	name string,
 ) (crawler, error) {
 	kv := kvWrapper(cl)
 	api := etcdV3ReadAPI{
@@ -44,6 +45,7 @@ func newIntCrawler(
 		delay:               delay,
 		rulesProcessedCount: make(map[string]int),
 		locker:              locker,
+		name:                name,
 	}
 	return &c, nil
 }
@@ -70,6 +72,7 @@ func (cra *cacheReadAPI) getCachedAPI(keys []string) (readAPI, error) {
 }
 
 type intCrawler struct {
+	name         string
 	api          readAPI
 	cancelFunc   context.CancelFunc
 	cancelMutex  sync.Mutex
@@ -143,13 +146,13 @@ func (ic *intCrawler) run() {
 }
 
 func (ic *intCrawler) singleRun(logger *zap.Logger) {
+	crawlerStart := time.Now()
 	logger.Info("Starting crawler run", zap.Int("prefixes", len(ic.prefixes)))
 	crawlerMethodName := "crawler"
 	if ic.isStopping() {
 		return
 	}
-	//logger := ic.logger.With(zap.String("source", "crawler"))
-	ctx, cancelFunc := context.WithTimeout(context.Background(), time.Duration(1)*time.Minute)
+	ctx, cancelFunc := context.WithTimeout(context.Background(), time.Duration(15)*time.Minute)
 	defer cancelFunc()
 	ic.cancelMutex.Lock()
 	ic.cancelFunc = cancelFunc
@@ -157,6 +160,8 @@ func (ic *intCrawler) singleRun(logger *zap.Logger) {
 	values := map[string]string{}
 	// starting a new run so reset the rules processed count so we get reliable metrics
 	ic.rulesProcessedCount = make(map[string]int)
+
+	queryStart := time.Now()
 	for _, prefix := range ic.prefixes {
 		pCtx := SetMethod(ctx, crawlerMethodName+"-"+prefix)
 		resp, err := ic.kv.Get(pCtx, prefix, v3.WithPrefix())
@@ -168,14 +173,19 @@ func (ic *intCrawler) singleRun(logger *zap.Logger) {
 			values[string(kv.Key)] = string(kv.Value)
 		}
 	}
+	metrics.CrawlerQueryTime(ic.name, queryStart)
+	metrics.CrawlerValuesCount(ic.name, len(values))
+	evalStart := time.Now()
 	ic.processData(values, logger)
+	metrics.CrawlerEvalTime(ic.name, evalStart)
+
 	ic.metricMutex.Lock()
 	defer ic.metricMutex.Unlock()
 	for ruleID, count := range ic.rulesProcessedCount {
 		metrics.TimesEvaluated(crawlerMethodName, ruleID, count)
 		ic.metrics.TimesEvaluated(crawlerMethodName, ruleID, count)
 	}
-	logger.Info("Crawler run complete")
+	logger.Info("Crawler run complete", zap.Duration("time", time.Since(crawlerStart)), zap.Int("values", len(values)))
 }
 func (ic *intCrawler) processData(values map[string]string, logger *zap.Logger) {
 	api := &cacheReadAPI{values: values}

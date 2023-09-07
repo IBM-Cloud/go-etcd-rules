@@ -59,17 +59,33 @@ var (
 		Namespace: "rules",
 		Help:      "etcd rules engine watcher errors",
 	}, []string{"error", "prefix"})
+	rulesEngineCrawlerQueryTime = prometheus.NewHistogramVec(prometheus.HistogramOpts{
+		Name:      "crawler_query_seconds",
+		Subsystem: "etcd",
+		Namespace: "rules",
+		Help:      "etcd rules engine crawler queries time in seconds",
+		Buckets:   prometheus.ExponentialBuckets(0.01, 1800, 30),
+	}, []string{"name"})
+	rulesEngineCrawlerEvalTime = prometheus.NewHistogramVec(prometheus.HistogramOpts{
+		Name:      "crawler_eval_seconds",
+		Subsystem: "etcd",
+		Namespace: "rules",
+		Help:      "etcd rules engine crawler eval time in seconds",
+		Buckets:   prometheus.ExponentialBucketsRange(0.01, 600, 30),
+	}, []string{"name"})
+	rulesEngineCrawlerValues = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Name:      "crawler_values_count",
+		Subsystem: "etcd",
+		Namespace: "rules",
+		Help:      "etcd rules engine crawler values count",
+	}, []string{"name"})
 )
 
 func init() {
-	prometheus.MustRegister(rulesEngineLockCount)
-	prometheus.MustRegister(rulesEngineSatisfiedThenNot)
-	prometheus.MustRegister(rulesEngineEvaluations)
-	prometheus.MustRegister(rulesEngineWorkerQueueWait)
-	prometheus.MustRegister(rulesEngineWorkBufferWaitTime)
-	prometheus.MustRegister(rulesEngineCallbackWaitTime)
-	prometheus.MustRegister(rulesEngineKeyProcessBufferCap)
-	prometheus.MustRegister(rulesEngineWatcherErrors)
+	prometheus.MustRegister(rulesEngineLockCount, rulesEngineSatisfiedThenNot, rulesEngineEvaluations,
+		rulesEngineWorkerQueueWait, rulesEngineWorkBufferWaitTime, rulesEngineCallbackWaitTime,
+		rulesEngineKeyProcessBufferCap, rulesEngineWatcherErrors, rulesEngineCrawlerQueryTime,
+		rulesEngineCrawlerEvalTime, rulesEngineCrawlerValues)
 }
 
 // IncLockMetric increments the lock count.
@@ -113,4 +129,19 @@ func KeyProcessBufferCap(count int) {
 // IncWatcherErrMetric increments the watcher error count.
 func IncWatcherErrMetric(err, prefix string) {
 	rulesEngineWatcherErrors.WithLabelValues(err, prefix).Inc()
+}
+
+// CrawlerQueryTime tracks how much time for crawler queries
+func CrawlerQueryTime(name string, startTime time.Time) {
+	rulesEngineCrawlerQueryTime.WithLabelValues(name).Observe(float64(time.Since(startTime).Seconds()))
+}
+
+// CrawlerEvalTime tracks how much time for crawler evals
+func CrawlerEvalTime(name string, startTime time.Time) {
+	rulesEngineCrawlerEvalTime.WithLabelValues(name).Observe(float64(time.Since(startTime).Seconds()))
+}
+
+// CrawlerValuesCount tracks the number of crawler prefix values
+func CrawlerValuesCount(name string, count int) {
+	rulesEngineCrawlerValues.WithLabelValues(name).Set(float64(count))
 }
