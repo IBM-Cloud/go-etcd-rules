@@ -18,7 +18,7 @@ func newV3Watcher(ec *v3.Client, prefix string, logger *zap.Logger, proc keyProc
 		api:          &api,
 		kw:           ew,
 		kp:           proc,
-		logger:       logger,
+		logger:       logger.With(zap.String("source", "watcher")),
 		processDelay: processDelay,
 	}, nil
 }
