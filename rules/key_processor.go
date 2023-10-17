@@ -99,7 +99,7 @@ func newV3KeyProcessor(channel chan v3RuleWork, rm *ruleManager, kpChannel chan 
 	for i := 0; i < concurrency; i++ {
 		go kp.keyWorker(logger)
 	}
-	go kp.bufferCapacitySampler()
+	go kp.bufferCapacitySampler(logger)
 	return kp
 }
 
@@ -117,9 +117,13 @@ func (v3kp *v3KeyProcessor) processKey(key string, value *string, api readAPI, l
 	v3kp.kpChannel <- task
 }
 
-func (v3kp *v3KeyProcessor) bufferCapacitySampler() {
+func (v3kp *v3KeyProcessor) bufferCapacitySampler(logger *zap.Logger) {
 	for {
-		metrics.KeyProcessBufferCap(cap(v3kp.kpChannel) - len(v3kp.kpChannel))
+		remainingBuffer := cap(v3kp.kpChannel) - len(v3kp.kpChannel)
+		metrics.KeyProcessBufferCap(remainingBuffer)
+		if (float32(remainingBuffer) / float32(cap(v3kp.kpChannel))) < 0.05 {
+			logger.Info("Rules engine buffer is near capacity")
+		}
 		time.Sleep(time.Minute)
 	}
 }
