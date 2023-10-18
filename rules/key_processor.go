@@ -92,9 +92,10 @@ func newV3KeyProcessor(channel chan v3RuleWork, rm *ruleManager, kpChannel chan 
 			rm:               rm,
 			ruleIDs:          make(map[int]string),
 		},
-		callbacks: map[int]V3RuleTaskCallback{},
-		channel:   channel,
-		kpChannel: kpChannel,
+		callbacks:    map[int]V3RuleTaskCallback{},
+		channel:      channel,
+		kpChannel:    kpChannel,
+		lastNotified: -1,
 	}
 	logger.Info("Starting key processor workers", zap.Int("concurrency", concurrency))
 	for i := 0; i < concurrency; i++ {
