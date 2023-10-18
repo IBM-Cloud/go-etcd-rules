@@ -48,9 +48,10 @@ func (bkp *baseKeyProcessor) setContextProvider(index int, cp ContextProvider) {
 
 type v3KeyProcessor struct {
 	baseKeyProcessor
-	callbacks map[int]V3RuleTaskCallback
-	channel   chan v3RuleWork
-	kpChannel chan *keyTask
+	callbacks    map[int]V3RuleTaskCallback
+	channel      chan v3RuleWork
+	kpChannel    chan *keyTask
+	lastNotified int
 }
 
 func (v3kp *v3KeyProcessor) setCallback(index int, callback interface{}) {
@@ -121,8 +122,10 @@ func (v3kp *v3KeyProcessor) bufferCapacitySampler(logger *zap.Logger) {
 	for {
 		remainingBuffer := cap(v3kp.kpChannel) - len(v3kp.kpChannel)
 		metrics.KeyProcessBufferCap(remainingBuffer)
-		if (float32(remainingBuffer) / float32(cap(v3kp.kpChannel))) < 0.05 {
-			logger.Info("Rules engine buffer is near capacity")
+		currentHour := time.Now().UTC().Hour()
+		if (float32(remainingBuffer)/float32(cap(v3kp.kpChannel))) < 0.05 && v3kp.lastNotified != currentHour {
+			logger.Info("Rules engine buffer is near capacity", zap.Int("capacity", cap(v3kp.kpChannel)), zap.Int("remaining", remainingBuffer))
+			v3kp.lastNotified = currentHour
 		}
 		time.Sleep(time.Minute)
 	}
