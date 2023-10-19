@@ -48,9 +48,10 @@ func (bkp *baseKeyProcessor) setContextProvider(index int, cp ContextProvider) {
 
 type v3KeyProcessor struct {
 	baseKeyProcessor
-	callbacks map[int]V3RuleTaskCallback
-	channel   chan v3RuleWork
-	kpChannel chan *keyTask
+	callbacks    map[int]V3RuleTaskCallback
+	channel      chan v3RuleWork
+	kpChannel    chan *keyTask
+	lastNotified int
 }
 
 func (v3kp *v3KeyProcessor) setCallback(index int, callback interface{}) {
@@ -91,15 +92,16 @@ func newV3KeyProcessor(channel chan v3RuleWork, rm *ruleManager, kpChannel chan 
 			rm:               rm,
 			ruleIDs:          make(map[int]string),
 		},
-		callbacks: map[int]V3RuleTaskCallback{},
-		channel:   channel,
-		kpChannel: kpChannel,
+		callbacks:    map[int]V3RuleTaskCallback{},
+		channel:      channel,
+		kpChannel:    kpChannel,
+		lastNotified: -1,
 	}
 	logger.Info("Starting key processor workers", zap.Int("concurrency", concurrency))
 	for i := 0; i < concurrency; i++ {
 		go kp.keyWorker(logger)
 	}
-	go kp.bufferCapacitySampler()
+	go kp.bufferCapacitySampler(logger)
 	return kp
 }
 
@@ -117,9 +119,15 @@ func (v3kp *v3KeyProcessor) processKey(key string, value *string, api readAPI, l
 	v3kp.kpChannel <- task
 }
 
-func (v3kp *v3KeyProcessor) bufferCapacitySampler() {
+func (v3kp *v3KeyProcessor) bufferCapacitySampler(logger *zap.Logger) {
 	for {
-		metrics.KeyProcessBufferCap(cap(v3kp.kpChannel) - len(v3kp.kpChannel))
+		remainingBuffer := cap(v3kp.kpChannel) - len(v3kp.kpChannel)
+		metrics.KeyProcessBufferCap(remainingBuffer)
+		currentHour := time.Now().UTC().Hour()
+		if (float32(remainingBuffer)/float32(cap(v3kp.kpChannel))) < 0.05 && v3kp.lastNotified != currentHour {
+			logger.Warn("Rules engine buffer is near capacity", zap.Int("capacity", cap(v3kp.kpChannel)), zap.Int("remaining", remainingBuffer))
+			v3kp.lastNotified = currentHour
+		}
 		time.Sleep(time.Minute)
 	}
 }
