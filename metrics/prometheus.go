@@ -71,7 +71,7 @@ var (
 		Subsystem: "etcd",
 		Namespace: "rules",
 		Help:      "etcd rules engine crawler eval time in seconds",
-		Buckets:   prometheus.ExponentialBucketsRange(0.01, 1800, 30),
+		Buckets:   prometheus.ExponentialBucketsRange(1, 3600, 60),
 	}, []string{"name"})
 	rulesEngineCrawlerValues = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Name:      "crawler_values_count",
