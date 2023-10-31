@@ -82,6 +82,7 @@ func TestEngineOptions(t *testing.T) {
 	opts = makeEngineOptions(EngineDontShareLockSession())
 	assert.Equal(t, true, opts.dontUseSharedLockSession)
 
+	assert.Panics(t, func() { makeEngineOptions(EngineSyncDelay(0)) })
 }
 
 var contextKeyTest = contextKey("test")
