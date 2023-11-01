@@ -272,6 +272,10 @@ func EngineSyncInterval(interval int) EngineOption {
 // EngineSyncDelay enables the throttling of the crawlers by introducing a delay (in ms)
 // between queries to keep the crawlers from overwhelming etcd.
 func EngineSyncDelay(delay int) EngineOption {
+	if delay == 0 {
+		panic("EngineSyncDelay (default 2ms) cannot be zero, possible high impact on etcd load")
+	}
+
 	return engineOptionFunction(func(o *engineOptions) {
 		o.syncDelay = jitter.NewDurationGenerator(time.Duration(delay)*time.Millisecond, syncJitterPercent)
 	})

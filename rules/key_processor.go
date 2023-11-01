@@ -164,7 +164,7 @@ func (bkp *baseKeyProcessor) processKey(key string, value *string, rapi readAPI,
 	}
 	api, err := rapi.getCachedAPI(keys)
 	if err != nil {
-		logger.Error("Error getting keys to evaluate rules", zap.Error(err))
+		logger.Error("Error getting keys to evaluate rules", zap.Error(err), zap.Int("rules", len(rules)), zap.Int("keys", len(keys)))
 		return
 	}
 	for rule, index := range rules {
