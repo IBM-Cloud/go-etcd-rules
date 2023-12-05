@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/IBM-Cloud/go-etcd-rules/internal/jitter"
+	"github.com/IBM-Cloud/go-etcd-rules/metrics"
 	v3 "go.etcd.io/etcd/client/v3"
 	"go.uber.org/zap"
 )
@@ -69,5 +70,9 @@ func (w *watcher) singleRun() {
 		time.Sleep(delay) // TODO ideally a context should be used for fast shutdown, e.g. select { case <-ctx.Done(); case <-time.After(delay) }
 	}
 	w.logger.Debug("Calling process key", zap.String("key", key))
-	w.kp.processKey(key, value, w.api, w.logger, map[string]string{}, nil)
+	w.kp.processKey(key, value, w.api, w.logger, map[string]string{}, incRuleProcessedCount)
+}
+
+func incRuleProcessedCount(ruleID string) {
+	metrics.TimesEvaluated("watcher", ruleID, 1)
 }
