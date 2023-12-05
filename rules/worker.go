@@ -135,7 +135,7 @@ func (bw *baseWorker) doWork(loggerPtr **zap.Logger,
 		if bw.callbackListener != nil {
 			bw.callbackListener.callbackDone(ruleID, attributes)
 		}
-		logger.Info("callback complete", zap.Any("attributes", attrMap))
+		logger.Info("callback complete", zap.Any("attributes", attrMap), zap.Duration("duration", time.Since(startTime)))
 	}
 }
 

@@ -41,10 +41,10 @@ var (
 		Buckets:   []float64{1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 30000, 60000, 300000, 600000},
 	}, []string{"method", "pattern"})
 	rulesEngineCallbackWaitTime = prometheus.NewHistogramVec(prometheus.HistogramOpts{
-		Name:      "callback_wait_ms",
+		Name:      "callback_duration_ms",
 		Subsystem: "etcd",
 		Namespace: "rules",
-		Help:      "etcd rules engine callback wait time in ms",
+		Help:      "etcd rules engine callback duration in ms",
 		Buckets:   []float64{1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 30000, 60000, 300000, 600000},
 	}, []string{"pattern", "rule"})
 	rulesEngineKeyProcessBufferCap = prometheus.NewGauge(prometheus.GaugeOpts{
