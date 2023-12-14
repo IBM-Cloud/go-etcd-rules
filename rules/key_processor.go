@@ -121,6 +121,7 @@ func (v3kp *v3KeyProcessor) processKey(key string, value *string, api readAPI, l
 
 func (v3kp *v3KeyProcessor) bufferCapacitySampler(logger *zap.Logger) {
 	for {
+		time.Sleep(time.Minute)
 		remainingBuffer := cap(v3kp.kpChannel) - len(v3kp.kpChannel)
 		metrics.KeyProcessBufferCap(remainingBuffer)
 		currentHour := time.Now().UTC().Hour()
@@ -128,7 +129,6 @@ func (v3kp *v3KeyProcessor) bufferCapacitySampler(logger *zap.Logger) {
 			logger.Warn("Rules engine buffer is near capacity", zap.Int("capacity", cap(v3kp.kpChannel)), zap.Int("remaining", remainingBuffer))
 			v3kp.lastNotified = currentHour
 		}
-		time.Sleep(time.Minute)
 	}
 }
 
