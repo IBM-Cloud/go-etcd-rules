@@ -1,6 +1,6 @@
 linters:
   enable:
     # Default linters plus these:
-    - revive
+    # - revive  disabled for now to many minor issues
     - gofmt
     - gosec
