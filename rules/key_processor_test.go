@@ -2,6 +2,7 @@ package rules
 
 import (
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/zap"
@@ -74,6 +75,29 @@ func TestV3KeyProcessor(t *testing.T) {
 	logger := getTestLogger()
 	go kp.keyWorker(logger)
 	go kp.processKey("/test/key", &value, api, logger, map[string]string{}, nil)
+	work := <-channel
+	assert.Equal(t, "/test/lock/key", work.lockKey)
+}
+
+func TestNewV3KeyProcessor(t *testing.T) {
+	value := "value"
+	rule, err := NewEqualsLiteralRule("/test/:key", &value)
+	assert.NoError(t, err)
+	rm := newRuleManager(map[string]constraint{}, false)
+	rm.addRule(rule)
+	api := newMapReadAPI()
+	api.put("/test/key", value)
+
+	channel := make(chan v3RuleWork)
+	kpChannel := make(chan *keyTask, 1000)
+	logger := getTestLogger()
+	kp := newV3KeyProcessor(channel, &rm, kpChannel, 1, logger)
+	kp.setCallback(0, V3RuleTaskCallback(v3DummyCallback))
+	kp.setContextProvider(0, defaultContextProvider)
+	kp.setRuleID(0, "testKey")
+	kp.setLockKeyPattern(0, "/test/lock/:key")
+	go kp.processKey("/test/key", &value, api, logger, map[string]string{}, nil)
+	time.Sleep(time.Second)
 	work := <-channel
 	assert.Equal(t, "/test/lock/key", work.lockKey)
 }
