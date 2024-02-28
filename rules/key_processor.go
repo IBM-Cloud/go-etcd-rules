@@ -120,6 +120,7 @@ func (v3kp *v3KeyProcessor) processKey(key string, value *string, api readAPI, l
 }
 
 func (v3kp *v3KeyProcessor) bufferCapacitySampler(logger *zap.Logger) {
+	time.Sleep(5 * time.Minute) // Wait until pod startup has settled down
 	for {
 		time.Sleep(time.Minute)
 		remainingBuffer := cap(v3kp.kpChannel) - len(v3kp.kpChannel)
