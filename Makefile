@@ -1,7 +1,7 @@
 SHELL = /bin/bash
 
 export
-LINT_VERSION="1.55.2"
+LINT_VERSION="1.57.2"
 
 .PHONY: all
 all: deps lint test
