@@ -2,8 +2,6 @@ module github.com/IBM-Cloud/go-etcd-rules
 
 go 1.21
 
-toolchain go1.22.1
-
 require (
 	github.com/gorilla/mux v1.8.1
 	github.com/prometheus/client_golang v1.19.0
