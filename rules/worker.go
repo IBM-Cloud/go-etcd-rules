@@ -27,8 +27,7 @@ type baseWorker struct {
 
 type v3Worker struct {
 	baseWorker
-	engine       *v3Engine
-	lastNotified int
+	engine *v3Engine
 }
 
 func newV3Worker(workerID string, engine *v3Engine) (v3Worker, error) {
@@ -47,8 +46,7 @@ func newV3Worker(workerID string, engine *v3Engine) (v3Worker, error) {
 			done:             make(chan bool, 1),
 			callbackListener: engine.callbackListener,
 		},
-		engine:       engine,
-		lastNotified: -1,
+		engine: engine,
 	}
 	return w, nil
 }
@@ -139,6 +137,7 @@ func (bw *baseWorker) doWork(loggerPtr **zap.Logger,
 		}
 		logger.Info("callback complete", zap.Any("attributes", attrMap), zap.Duration("duration", time.Since(startTime)))
 	}
+	metrics.IncAvaliableWorkersCount()
 }
 
 func (bw *baseWorker) addWorkerID(ruleContext map[string]string) {
@@ -182,22 +181,8 @@ func (w *v3Worker) singleRun() {
 		task.Context = context
 		task.cancel = cancelFunc
 		metricsInfo := newMetricsInfo(context, work.keyPattern, work.metricsStartTime)
+		metrics.DecAvaliableWorkersCount()
 		w.doWork(&task.Logger, &work.rule, w.engine.getLockTTLForRule(work.ruleIndex), func() { work.ruleTaskCallback(&task) }, metricsInfo, work.lockKey, work.ruleID)
-		go w.bufferCapacitySampler(task.Logger)
 	}()
 	wg.Wait()
-}
-
-func (w *v3Worker) bufferCapacitySampler(logger *zap.Logger) {
-	time.Sleep(5 * time.Minute) // Wait until pod startup has settled down
-	for {
-		time.Sleep(time.Minute)
-		remainingBuffer := cap(w.engine.workChannel) - len(w.engine.workChannel)
-		metrics.KeyProcessBufferCap(remainingBuffer)
-		currentHour := time.Now().UTC().Hour()
-		if (float32(remainingBuffer)/float32(cap(w.engine.workChannel))) < 0.05 && w.lastNotified != currentHour {
-			logger.Warn("Rules engine work buffer is near capacity", zap.Int("capacity", cap(w.engine.workChannel)), zap.Int("remaining", remainingBuffer))
-			w.lastNotified = currentHour
-		}
-	}
 }

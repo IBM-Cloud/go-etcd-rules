@@ -11,6 +11,7 @@ import (
 	"golang.org/x/net/context"
 
 	"github.com/IBM-Cloud/go-etcd-rules/concurrency"
+	"github.com/IBM-Cloud/go-etcd-rules/metrics"
 	"github.com/IBM-Cloud/go-etcd-rules/rules/lock"
 )
 
@@ -333,6 +334,7 @@ func (e *v3Engine) Run() {
 			e.logger.Fatal("Failed to start worker", zap.String("worker", id), zap.Error(err))
 		}
 		e.workers = append(e.workers, &w)
+		metrics.IncAvaliableWorkersCount()
 		go w.run()
 	}
 
