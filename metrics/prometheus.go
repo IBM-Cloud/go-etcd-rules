@@ -112,7 +112,7 @@ func WorkerQueueWaitTime(methodName string, startTime time.Time) {
 }
 
 // WorkBufferWaitTime tracks the amount of time a work item was in the work buffer.
-func WorkBufferWaitTime(methodName, pattern, capacity string, startTime time.Time) {
+func WorkBufferWaitTime(capacity, methodName, pattern string, startTime time.Time) {
 	rulesEngineWorkBufferWaitTime.WithLabelValues(methodName, pattern, capacity).Observe(float64(time.Since(startTime).Nanoseconds() / 1e6))
 }
 

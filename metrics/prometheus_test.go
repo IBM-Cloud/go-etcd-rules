@@ -64,7 +64,7 @@ func TestWokerQueueWaitTime(t *testing.T) {
 }
 
 func TestWorkBufferWaitTime(t *testing.T) {
-	WorkBufferWaitTime("getKey", "/desired/key/pattern", "10", time.Now())
+	WorkBufferWaitTime("10", "getKey", "/desired/key/pattern", time.Now())
 	checkMetrics(t, `rules_etcd_work_buffer_wait_ms_count{capacity="10",method="getKey",pattern="/desired/key/pattern"} 1`)
 }
 
@@ -73,12 +73,12 @@ func TestCallbackWaitTime(t *testing.T) {
 	checkMetrics(t, `rules_etcd_callback_wait_ms_count{pattern="/desired/key/pattern",rule="ruleID"} 1`)
 }
 
-func Test_keyProcessBufferCap(t *testing.T) {
+func TestKeyProcessBufferCap(t *testing.T) {
 	KeyProcessBufferCap(100)
 	checkMetrics(t, `rules_etcd_key_process_buffer_cap 100`)
 }
 
-func Test_incWatcherErrMetric(t *testing.T) {
+func TestIncWatcherErrMetric(t *testing.T) {
 	IncWatcherErrMetric("err", "/desired/key/prefix")
 	checkMetrics(t, `rules_etcd_watcher_errors{error="err",prefix="/desired/key/prefix"} 1`)
 }

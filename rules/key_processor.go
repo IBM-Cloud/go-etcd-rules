@@ -82,7 +82,7 @@ func (v3kp *v3KeyProcessor) dispatchWork(index int, rule staticRule, logger *zap
 	start := time.Now()
 	v3kp.channel <- work
 	// measures the amount of time work is blocked from being added to the buffer
-	metrics.WorkBufferWaitTime(getMethodNameFromProvider(work.contextProvider), keyPattern, strconv.Itoa(cap(v3kp.channel)), start)
+	metrics.WorkBufferWaitTime(strconv.Itoa(cap(v3kp.channel)), getMethodNameFromProvider(work.contextProvider), keyPattern, start)
 }
 
 func newV3KeyProcessor(channel chan v3RuleWork, rm *ruleManager, kpChannel chan *keyTask, concurrency int, logger *zap.Logger) v3KeyProcessor {
