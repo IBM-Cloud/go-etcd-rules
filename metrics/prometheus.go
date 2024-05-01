@@ -79,19 +79,13 @@ var (
 		Namespace: "rules",
 		Help:      "etcd rules engine crawler values count",
 	}, []string{"name"})
-	rulesEngineAvaliableWorkers = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name:      "avaliable_workers_count",
-		Subsystem: "etcd",
-		Namespace: "rules",
-		Help:      "etcd rules engine avaliable workers count",
-	})
 )
 
 func init() {
 	prometheus.MustRegister(rulesEngineLockCount, rulesEngineSatisfiedThenNot, rulesEngineEvaluations,
 		rulesEngineWorkerQueueWait, rulesEngineWorkBufferWaitTime, rulesEngineCallbackWaitTime,
 		rulesEngineKeyProcessBufferCap, rulesEngineWatcherErrors, rulesEngineCrawlerQueryTime,
-		rulesEngineCrawlerEvalTime, rulesEngineCrawlerValues, rulesEngineAvaliableWorkers)
+		rulesEngineCrawlerEvalTime, rulesEngineCrawlerValues)
 }
 
 // IncLockMetric increments the lock count.
