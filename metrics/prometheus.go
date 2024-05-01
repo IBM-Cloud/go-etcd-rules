@@ -39,7 +39,7 @@ var (
 		Namespace: "rules",
 		Help:      "etcd rules engine work buffer wait time in ms",
 		Buckets:   []float64{1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 30000, 60000, 300000, 600000},
-	}, []string{"method", "pattern"})
+	}, []string{"method", "pattern", "capacity"})
 	rulesEngineCallbackWaitTime = prometheus.NewHistogramVec(prometheus.HistogramOpts{
 		Name:      "callback_duration_ms",
 		Subsystem: "etcd",
@@ -118,8 +118,8 @@ func WorkerQueueWaitTime(methodName string, startTime time.Time) {
 }
 
 // WorkBufferWaitTime tracks the amount of time a work item was in the work buffer.
-func WorkBufferWaitTime(methodName, pattern string, startTime time.Time) {
-	rulesEngineWorkBufferWaitTime.WithLabelValues(methodName, pattern).Observe(float64(time.Since(startTime).Nanoseconds() / 1e6))
+func WorkBufferWaitTime(methodName, pattern, capacity string, startTime time.Time) {
+	rulesEngineWorkBufferWaitTime.WithLabelValues(methodName, pattern, capacity).Observe(float64(time.Since(startTime).Nanoseconds() / 1e6))
 }
 
 // CallbackWaitTime tracks how much time elapsed between when the rule was evaluated and the callback called.
@@ -150,14 +150,4 @@ func CrawlerEvalTime(name string, startTime time.Time) {
 // CrawlerValuesCount tracks the number of crawler prefix values
 func CrawlerValuesCount(name string, count int) {
 	rulesEngineCrawlerValues.WithLabelValues(name).Set(float64(count))
-}
-
-// IncAvaliableWorkersCount increments the number of avaliable workers
-func IncAvaliableWorkersCount() {
-	rulesEngineAvaliableWorkers.Inc()
-}
-
-// DecAvaliableWorkersCount decrements the number of avaliable workers
-func DecAvaliableWorkersCount() {
-	rulesEngineAvaliableWorkers.Dec()
 }

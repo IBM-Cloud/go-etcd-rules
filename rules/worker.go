@@ -137,7 +137,6 @@ func (bw *baseWorker) doWork(loggerPtr **zap.Logger,
 		}
 		logger.Info("callback complete", zap.Any("attributes", attrMap), zap.Duration("duration", time.Since(startTime)))
 	}
-	metrics.IncAvaliableWorkersCount()
 }
 
 func (bw *baseWorker) addWorkerID(ruleContext map[string]string) {
@@ -181,7 +180,6 @@ func (w *v3Worker) singleRun() {
 		task.Context = context
 		task.cancel = cancelFunc
 		metricsInfo := newMetricsInfo(context, work.keyPattern, work.metricsStartTime)
-		metrics.DecAvaliableWorkersCount()
 		w.doWork(&task.Logger, &work.rule, w.engine.getLockTTLForRule(work.ruleIndex), func() { work.ruleTaskCallback(&task) }, metricsInfo, work.lockKey, work.ruleID)
 	}()
 	wg.Wait()
