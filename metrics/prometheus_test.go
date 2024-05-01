@@ -64,7 +64,7 @@ func TestWokerQueueWaitTime(t *testing.T) {
 }
 
 func TestWorkBufferWaitTime(t *testing.T) {
-	WorkBufferWaitTime("10", "getKey", "/desired/key/pattern", time.Now())
+	WorkBufferWaitTime("getKey", "/desired/key/pattern", "10", time.Now())
 	checkMetrics(t, `rules_etcd_work_buffer_wait_ms_count{capacity="10",method="getKey",pattern="/desired/key/pattern"} 1`)
 }
 
