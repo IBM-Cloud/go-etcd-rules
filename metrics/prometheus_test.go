@@ -73,12 +73,12 @@ func TestCallbackWaitTime(t *testing.T) {
 	checkMetrics(t, `rules_etcd_callback_wait_ms_count{pattern="/desired/key/pattern",rule="ruleID"} 1`)
 }
 
-func TestKeyProcessBufferCap(t *testing.T) {
+func Test_keyProcessBufferCap(t *testing.T) {
 	KeyProcessBufferCap(100)
 	checkMetrics(t, `rules_etcd_key_process_buffer_cap 100`)
 }
 
-func TestIncWatcherErrMetric(t *testing.T) {
+func Test_incWatcherErrMetric(t *testing.T) {
 	IncWatcherErrMetric("err", "/desired/key/prefix")
 	checkMetrics(t, `rules_etcd_watcher_errors{error="err",prefix="/desired/key/prefix"} 1`)
 }
