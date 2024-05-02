@@ -91,7 +91,7 @@ func TestNewV3KeyProcessor(t *testing.T) {
 	channel := make(chan v3RuleWork)
 	kpChannel := make(chan *keyTask, 1000)
 	logger := getTestLogger()
-	kp := newV3KeyProcessor(channel, &rm, kpChannel, 1, logger)
+	kp := newV3KeyProcessor(channel, &rm, kpChannel, 1, 1, logger)
 	kp.setCallback(0, V3RuleTaskCallback(v3DummyCallback))
 	kp.setContextProvider(0, defaultContextProvider)
 	kp.setRuleID(0, "testKey")
