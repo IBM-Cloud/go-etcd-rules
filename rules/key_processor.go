@@ -2,7 +2,6 @@ package rules
 
 import (
 	"fmt"
-	"strconv"
 	"time"
 
 	"github.com/IBM-Cloud/go-etcd-rules/metrics"
@@ -83,10 +82,10 @@ func (v3kp *v3KeyProcessor) dispatchWork(index int, rule staticRule, logger *zap
 	start := time.Now()
 	v3kp.channel <- work
 	// measures the amount of time work is blocked from being added to the buffer
-	metrics.WorkBufferWaitTime(getMethodNameFromProvider(work.contextProvider), keyPattern, strconv.Itoa(v3kp.workers), start)
+	metrics.WorkBufferWaitTime(getMethodNameFromProvider(work.contextProvider), keyPattern, start)
 }
 
-func newV3KeyProcessor(channel chan v3RuleWork, rm *ruleManager, kpChannel chan *keyTask, concurrency, workers int, logger *zap.Logger) v3KeyProcessor {
+func newV3KeyProcessor(channel chan v3RuleWork, rm *ruleManager, kpChannel chan *keyTask, concurrency int, logger *zap.Logger) v3KeyProcessor {
 	kp := v3KeyProcessor{
 		baseKeyProcessor: baseKeyProcessor{
 			contextProviders: map[int]ContextProvider{},
@@ -98,7 +97,6 @@ func newV3KeyProcessor(channel chan v3RuleWork, rm *ruleManager, kpChannel chan 
 		channel:      channel,
 		kpChannel:    kpChannel,
 		lastNotified: -1,
-		workers:      workers,
 	}
 	logger.Info("Starting key processor workers", zap.Int("concurrency", concurrency))
 	for i := 0; i < concurrency; i++ {

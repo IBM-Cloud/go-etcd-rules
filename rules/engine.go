@@ -11,6 +11,7 @@ import (
 	"golang.org/x/net/context"
 
 	"github.com/IBM-Cloud/go-etcd-rules/concurrency"
+	"github.com/IBM-Cloud/go-etcd-rules/metrics"
 	"github.com/IBM-Cloud/go-etcd-rules/rules/lock"
 )
 
@@ -96,7 +97,7 @@ func newV3Engine(logger *zap.Logger, cl *v3.Client, options ...EngineOption) v3E
 	ruleMgr := newRuleManager(opts.constraints, opts.enhancedRuleFilter)
 	channel := make(chan v3RuleWork, opts.ruleWorkBuffer)
 	kpChannel := make(chan *keyTask, opts.keyProcBuffer)
-	keyProc := newV3KeyProcessor(channel, &ruleMgr, kpChannel, opts.keyProcConcurrency, opts.concurrency, logger)
+	keyProc := newV3KeyProcessor(channel, &ruleMgr, kpChannel, opts.keyProcConcurrency, logger)
 
 	baseMetrics := opts.metrics()
 	metrics, ok := baseMetrics.(AdvancedMetricsCollector)
@@ -326,6 +327,7 @@ func (e *v3Engine) Run() {
 	go c.run()
 
 	e.logger.Info("Starting workers", zap.Int("count", e.options.concurrency))
+	metrics.WorkersCount(getMethodNameFromProvider(e.options.contextProvider), e.options.concurrency)
 	for i := 0; i < e.options.concurrency; i++ {
 		id := fmt.Sprintf("worker%d", i)
 		w, err := newV3Worker(id, e)
