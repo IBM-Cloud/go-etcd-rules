@@ -52,7 +52,6 @@ type v3KeyProcessor struct {
 	channel      chan v3RuleWork
 	kpChannel    chan *keyTask
 	lastNotified int
-	workers      int
 }
 
 func (v3kp *v3KeyProcessor) setCallback(index int, callback interface{}) {
