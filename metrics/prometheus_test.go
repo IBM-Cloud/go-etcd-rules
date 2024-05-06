@@ -97,3 +97,8 @@ func TestCrawlerValuesCount(t *testing.T) {
 	CrawlerValuesCount("default", 100)
 	checkMetrics(t, `rules_etcd_crawler_values_count{name="default"} 100`)
 }
+
+func TestWorkersCount(t *testing.T) {
+	WorkersCount("default", 100)
+	checkMetrics(t, `rules_etcd_worker_count{name="default"} 100`)
+}
