@@ -99,6 +99,6 @@ func TestCrawlerValuesCount(t *testing.T) {
 }
 
 func TestWorkersCount(t *testing.T) {
-	WorkersCount("default", 100)
-	checkMetrics(t, `rules_etcd_worker_count{name="default"} 100`)
+	WorkersCount(100)
+	checkMetrics(t, `rules_etcd_worker_count 100`)
 }

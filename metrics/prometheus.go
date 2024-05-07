@@ -79,12 +79,12 @@ var (
 		Namespace: "rules",
 		Help:      "etcd rules engine crawler values count",
 	}, []string{"name"})
-	rulesEngineWorkerCount = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+	rulesEngineWorkerCount = prometheus.NewGauge(prometheus.GaugeOpts{
 		Name:      "worker_count",
 		Subsystem: "etcd",
 		Namespace: "rules",
 		Help:      "etcd rules engine worker count",
-	}, []string{"name"})
+	})
 )
 
 func init() {
@@ -153,6 +153,6 @@ func CrawlerValuesCount(name string, count int) {
 }
 
 // WorkerCount tracks the number of workers
-func WorkersCount(name string, count int) {
-	rulesEngineWorkerCount.WithLabelValues(name).Set(float64(count))
+func WorkersCount(count int) {
+	rulesEngineWorkerCount.Set(float64(count))
 }

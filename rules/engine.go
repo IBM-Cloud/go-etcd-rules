@@ -327,7 +327,7 @@ func (e *v3Engine) Run() {
 	go c.run()
 
 	e.logger.Info("Starting workers", zap.Int("count", e.options.concurrency))
-	metrics.WorkersCount(getMethodNameFromProvider(e.options.contextProvider), e.options.concurrency)
+	metrics.WorkersCount(e.options.concurrency)
 	for i := 0; i < e.options.concurrency; i++ {
 		id := fmt.Sprintf("worker%d", i)
 		w, err := newV3Worker(id, e)
