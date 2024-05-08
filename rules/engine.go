@@ -11,6 +11,7 @@ import (
 	"golang.org/x/net/context"
 
 	"github.com/IBM-Cloud/go-etcd-rules/concurrency"
+	"github.com/IBM-Cloud/go-etcd-rules/metrics"
 	"github.com/IBM-Cloud/go-etcd-rules/rules/lock"
 )
 
@@ -326,6 +327,7 @@ func (e *v3Engine) Run() {
 	go c.run()
 
 	e.logger.Info("Starting workers", zap.Int("count", e.options.concurrency))
+	metrics.WorkersCount(e.options.concurrency)
 	for i := 0; i < e.options.concurrency; i++ {
 		id := fmt.Sprintf("worker%d", i)
 		w, err := newV3Worker(id, e)
