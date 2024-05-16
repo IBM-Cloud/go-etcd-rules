@@ -268,7 +268,10 @@ func (e *v3Engine) AddPolling(namespacePattern string, preconditions DynamicRule
 		lease:          e.cl,
 		engine:         e,
 	}
-	e.AddRule(rule, "/rule_locks"+namespacePattern+"lock", cbw.doRule, RuleID(namespacePattern))
+	err = e.AddRule(rule, "/rule_locks"+namespacePattern+"lock", cbw.doRule, RuleID(namespacePattern))
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
