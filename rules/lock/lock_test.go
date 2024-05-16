@@ -1,6 +1,7 @@
 package lock
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -55,6 +56,42 @@ func Test_V3Locker(t *testing.T) {
 			_, err = rlckr.Lock("test1")
 			assert.Error(t, err)
 			done2 <- true
+		})
+	}
+}
+
+func Test_V3LockerRegex(t *testing.T) {
+	cfg, cl := teststore.InitV3Etcd(t)
+	_, err := v3.New(cfg)
+	require.NoError(t, err)
+	newSession := func(_ context.Context) (*v3c.Session, error) {
+		return v3c.NewSession(cl, v3c.WithTTL(30))
+	}
+
+	testcases := []struct {
+		name    string
+		lockKey string
+		err     error
+	}{
+		{
+			name:    "bad regex",
+			lockKey: "/test?/",
+			err:     fmt.Errorf("Path variable contains an invalid character"),
+		},
+		{
+			name:    "good regex",
+			lockKey: "/test/",
+		},
+	}
+
+	for _, tc := range testcases {
+		t.Run(tc.name, func(t *testing.T) {
+			rlckr := v3Locker{
+				newSession:  newSession,
+				lockTimeout: 5,
+			}
+			_, err := rlckr.Lock(tc.lockKey)
+			assert.Equal(t, err, tc.err)
 		})
 	}
 }
