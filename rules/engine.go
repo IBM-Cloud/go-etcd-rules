@@ -3,6 +3,7 @@ package rules
 import (
 	"fmt"
 	"os"
+	"regexp"
 	"strings"
 	"time"
 
@@ -69,7 +70,7 @@ type V3Engine interface {
 	AddRule(rule DynamicRule,
 		lockPattern string,
 		callback V3RuleTaskCallback,
-		options ...RuleOption)
+		options ...RuleOption) error
 	AddPolling(namespacePattern string,
 		preconditions DynamicRule,
 		ttl int,
@@ -169,8 +170,13 @@ func (e *v3Engine) SetWatcherWrapper(watcherWrapper WrapWatcher) {
 func (e *v3Engine) AddRule(rule DynamicRule,
 	lockPattern string,
 	callback V3RuleTaskCallback,
-	options ...RuleOption) {
+	options ...RuleOption) error {
+	validPath := regexp.MustCompile(`^[[:alnum:] \:\/\"\'\_\.\,\*\=\-]*$`)
+	if !validPath.MatchString(lockPattern) {
+		return fmt.Errorf("Path contains an invalid character")
+	}
 	e.addRuleWithIface(rule, lockPattern, callback, options...)
+	return nil
 }
 
 func (e *baseEngine) Stop() {

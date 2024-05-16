@@ -2,8 +2,6 @@ package lock
 
 import (
 	"errors"
-	"fmt"
-	"regexp"
 	"time"
 
 	"golang.org/x/net/context"
@@ -56,10 +54,6 @@ type v3Locker struct {
 }
 
 func (v3l *v3Locker) Lock(key string, options ...Option) (RuleLock, error) {
-	validPath := regexp.MustCompile(`^[[:alnum:] \/\"\'\_\.\,\*\=\-]+$`)
-	if !validPath.MatchString(key) {
-		return nil, fmt.Errorf("Path variable contains an invalid character")
-	}
 	return v3l.lockWithTimeout(key, v3l.lockTimeout)
 }
 func (v3l *v3Locker) lockWithTimeout(key string, timeout int) (RuleLock, error) {
