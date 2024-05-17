@@ -174,8 +174,8 @@ func (e *v3Engine) AddRule(rule DynamicRule,
 	lockPattern string,
 	callback V3RuleTaskCallback,
 	options ...RuleOption) {
-	if !validPath.MatchString(lockPattern) {
-		e.logger.Fatal("Path contains an invalid character")
+	if !validPath.MatchString(lockPattern) || !strings.Contains(lockPattern, "lock") {
+		e.logger.Fatal("Path contains an invalid character or does not contain \"lock\"")
 	} else {
 		e.addRuleWithIface(rule, lockPattern, callback, options...)
 	}
