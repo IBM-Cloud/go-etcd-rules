@@ -1,7 +1,6 @@
 package rules
 
 import (
-	"fmt"
 	"testing"
 	"time"
 
@@ -31,18 +30,14 @@ func TestV3EngineConstructor(t *testing.T) {
 	eng := NewV3Engine(cfg, getTestLogger())
 	value := "val"
 	rule, _ := NewEqualsLiteralRule("/key", &value)
-	err := eng.AddRule(rule, "/lock?@", v3DummyCallback, RuleID("test"))
-	assert.Equal(t, err, fmt.Errorf("Path contains an invalid character"))
-	err = eng.AddRule(rule, "/lock", v3DummyCallback, RuleID("test"))
-	assert.NoError(t, err)
-	assert.PanicsWithValue(t, "Rule ID option missing", func() { assert.NoError(t, eng.AddRule(rule, "/lock", v3DummyCallback)) })
-	err = eng.AddPolling("/polling", rule, 30, v3DummyCallback)
+	eng.AddRule(rule, "/lock", v3DummyCallback, RuleID("test"))
+	assert.PanicsWithValue(t, "Rule ID option missing", func() { eng.AddRule(rule, "/lock", v3DummyCallback) })
+	err := eng.AddPolling("/polling", rule, 30, v3DummyCallback)
 	assert.NoError(t, err)
 	assertEngineRunStop(t, eng)
 
 	eng = NewV3Engine(cfg, getTestLogger(), KeyExpansion(map[string][]string{"a:": {"b"}}))
-	err = eng.AddRule(rule, "/lock", v3DummyCallback, RuleLockTimeout(30), RuleID("test"))
-	assert.NoError(t, err)
+	eng.AddRule(rule, "/lock", v3DummyCallback, RuleLockTimeout(30), RuleID("test"))
 	err = eng.AddPolling("/polling", rule, 30, v3DummyCallback)
 	assert.NoError(t, err)
 	err = eng.AddPolling("/polling[", rule, 30, v3DummyCallback)

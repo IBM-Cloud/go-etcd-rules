@@ -170,13 +170,12 @@ func main() {
 	doneFalse := "false"
 	doneRule, err := rules.NewEqualsLiteralRule(donePath, &doneFalse)
 	check(err)
-	err = engine.AddRule(doneRule, "/rulesEngineDone/:id", func(task *rules.V3RuleTask) {
+	engine.AddRule(doneRule, "/rulesEngineDone/:id", func(task *rules.V3RuleTask) {
 		path := task.Attr.Format(donePath)
 		doneTrue := "true"
 		_, err := kv.Put(task.Context, path, doneTrue)
 		check(err)
 	}, rules.RuleID(doneRuleID))
-	check(err)
 
 	engine.Run()
 	time.Sleep(time.Second)

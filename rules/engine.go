@@ -70,7 +70,7 @@ type V3Engine interface {
 	AddRule(rule DynamicRule,
 		lockPattern string,
 		callback V3RuleTaskCallback,
-		options ...RuleOption) error
+		options ...RuleOption)
 	AddPolling(namespacePattern string,
 		preconditions DynamicRule,
 		ttl int,
@@ -167,16 +167,18 @@ func (e *v3Engine) SetWatcherWrapper(watcherWrapper WrapWatcher) {
 	e.watcherWrapper = watcherWrapper
 }
 
+// valid paths patterns must be alphanumeric and may only contain a few special characters (:/"'_.,*=-)
+var validPath = regexp.MustCompile(`^[[:alnum:] \:\/\"\'\_\.\,\*\=\-]*$`)
+
 func (e *v3Engine) AddRule(rule DynamicRule,
 	lockPattern string,
 	callback V3RuleTaskCallback,
-	options ...RuleOption) error {
-	validPath := regexp.MustCompile(`^[[:alnum:] \:\/\"\'\_\.\,\*\=\-]*$`)
+	options ...RuleOption) {
 	if !validPath.MatchString(lockPattern) {
-		return fmt.Errorf("Path contains an invalid character")
+		e.logger.Fatal("Path contains an invalid character")
+	} else {
+		e.addRuleWithIface(rule, lockPattern, callback, options...)
 	}
-	e.addRuleWithIface(rule, lockPattern, callback, options...)
-	return nil
 }
 
 func (e *baseEngine) Stop() {
@@ -268,10 +270,7 @@ func (e *v3Engine) AddPolling(namespacePattern string, preconditions DynamicRule
 		lease:          e.cl,
 		engine:         e,
 	}
-	err = e.AddRule(rule, "/rule_locks"+namespacePattern+"lock", cbw.doRule, RuleID(namespacePattern))
-	if err != nil {
-		return err
-	}
+	e.AddRule(rule, "/rule_locks"+namespacePattern+"lock", cbw.doRule, RuleID(namespacePattern))
 	return nil
 }
 
