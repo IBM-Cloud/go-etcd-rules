@@ -168,7 +168,7 @@ func (e *v3Engine) SetWatcherWrapper(watcherWrapper WrapWatcher) {
 }
 
 // valid path patterns must be alphanumeric and may only contain select special characters (:/"'_.,*=-)
-var validPath = regexp.MustCompile(`^[[:alnum:] \:\/\"\'\_\.\,\*\=\-]*$`)
+var validPath = regexp.MustCompile(`^[[:alnum:] \#\:\/\"\'\_\.\,\*\=\-]*$`)
 
 func (e *v3Engine) AddRule(rule DynamicRule,
 	lockPattern string,
