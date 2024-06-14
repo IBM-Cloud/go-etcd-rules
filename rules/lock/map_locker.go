@@ -72,7 +72,7 @@ type toggleLock struct {
 	key    string
 }
 
-func (tl toggleLock) Unlock() error {
+func (tl toggleLock) Unlock(_ ...Option) error {
 	_ = tl.toggle(tl.key, false)
 	return nil
 }

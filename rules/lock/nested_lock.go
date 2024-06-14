@@ -42,7 +42,7 @@ type nestedLock struct {
 	nested RuleLock
 }
 
-func (nl nestedLock) Unlock() error {
+func (nl nestedLock) Unlock(_ ...Option) error {
 	// Always unlock own lock, but after
 	// nested lock. This prevents attempting
 	// to get a new instance of the nested lock
