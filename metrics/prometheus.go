@@ -46,7 +46,7 @@ var (
 		Namespace: "rules",
 		Help:      "etcd rules engine callback duration in ms",
 		Buckets:   []float64{1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 30000, 60000, 300000, 600000},
-	}, []string{"pattern", "rule"})
+	}, []string{"pattern", "rule", "source"})
 	rulesEngineKeyProcessBufferCap = prometheus.NewGauge(prometheus.GaugeOpts{
 		Name:      "key_process_buffer_cap",
 		Subsystem: "etcd",
@@ -123,8 +123,8 @@ func WorkBufferWaitTime(methodName, pattern string, startTime time.Time) {
 }
 
 // CallbackWaitTime tracks how much time elapsed between when the rule was evaluated and the callback called.
-func CallbackWaitTime(pattern, ruleID string, startTime time.Time) {
-	rulesEngineCallbackWaitTime.WithLabelValues(pattern, ruleID).Observe(float64(time.Since(startTime).Nanoseconds() / 1e6))
+func CallbackWaitTime(pattern, ruleID, source string, startTime time.Time) {
+	rulesEngineCallbackWaitTime.WithLabelValues(pattern, ruleID, source).Observe(float64(time.Since(startTime).Nanoseconds() / 1e6))
 }
 
 // KeyProcessBufferCap tracks the capacity of the key processor buffer.
