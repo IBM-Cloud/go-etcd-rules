@@ -72,7 +72,7 @@ func (bw *baseWorker) isStopped() bool {
 
 func (bw *baseWorker) doWork(loggerPtr **zap.Logger,
 	rulePtr *staticRule, lockTTL int, callback workCallback,
-	metricsInfo metricsInfo, lockKey string, ruleID string) {
+	metricsInfo metricsInfo, lockKey string, ruleID string, source string) {
 	logger := *loggerPtr
 	logger = logger.With(zap.String("ruleID", ruleID), zap.String("mutex", lockKey))
 	rule := *rulePtr
@@ -131,7 +131,7 @@ func (bw *baseWorker) doWork(loggerPtr **zap.Logger,
 		logger.Info("callback started", zap.Any("attributes", attrMap))
 		startTime := time.Now()
 		callback()
-		metrics.CallbackWaitTime(metricsInfo.keyPattern, ruleID, startTime)
+		metrics.CallbackWaitTime(metricsInfo.keyPattern, ruleID, source, startTime)
 		if bw.callbackListener != nil {
 			bw.callbackListener.callbackDone(ruleID, attributes)
 		}
@@ -164,6 +164,7 @@ func (w *v3Worker) singleRun() {
 	}
 	w.addWorkerID(newMetadata)
 	task.Metadata = newMetadata
+	source := task.Metadata["source"]
 	task.Logger = task.Logger.With(zap.String("worker", w.workerID))
 	// Use wait group and go routine to prevent killing of workers
 	var wg sync.WaitGroup
@@ -180,7 +181,7 @@ func (w *v3Worker) singleRun() {
 		task.Context = context
 		task.cancel = cancelFunc
 		metricsInfo := newMetricsInfo(context, work.keyPattern, work.metricsStartTime)
-		w.doWork(&task.Logger, &work.rule, w.engine.getLockTTLForRule(work.ruleIndex), func() { work.ruleTaskCallback(&task) }, metricsInfo, work.lockKey, work.ruleID)
+		w.doWork(&task.Logger, &work.rule, w.engine.getLockTTLForRule(work.ruleIndex), func() { work.ruleTaskCallback(&task) }, metricsInfo, work.lockKey, work.ruleID, source)
 	}()
 	wg.Wait()
 }
