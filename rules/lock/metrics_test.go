@@ -17,7 +17,7 @@ func Test_metricLocker_Lock(t *testing.T) {
 	errUnlock := errors.New("unlock")
 	errLock := errors.New("lock")
 	mockLock := FuncMockLock{
-		UnlockF: func() error {
+		UnlockF: func(_ ...Option) error {
 			return errUnlock
 		},
 	}
@@ -77,13 +77,18 @@ func Test_metricLocker_Lock(t *testing.T) {
 					return mockLock, tc.err
 				},
 			}
-			observe := func(locker string, methodName string, pattern string, lockSucceeded bool) {
+			observeLock := func(locker string, methodName string, pattern string, lockSucceeded bool) {
 				assert.Equal(t, tc.pattern, pattern)
 				assert.Equal(t, tc.method, methodName)
 				assert.Equal(t, tc.succeeded, lockSucceeded)
 			}
+			observeUnlock := func(locker string, methodName string, pattern string) {
+				assert.Equal(t, tc.pattern, pattern)
+				assert.Equal(t, tc.method, methodName)
+			}
 			ml := withMetrics(nested, testLockerName,
-				observe,
+				observeLock,
+				observeUnlock,
 			)
 			lock, err := ml.Lock(testKey, tc.options...)
 			if tc.err != nil {

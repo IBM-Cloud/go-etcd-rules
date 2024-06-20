@@ -16,7 +16,7 @@ func Test_nestedLocker_Lock(t *testing.T) {
 	var ownUnlockCalled bool
 	testOwnLock := testLock{
 		RuleLock: FuncMockLock{
-			UnlockF: func() error {
+			UnlockF: func(_ ...Option) error {
 				ownUnlockCalled = true
 				return nil
 			},
