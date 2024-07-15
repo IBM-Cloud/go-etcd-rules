@@ -47,7 +47,9 @@ func TestV3EngineConstructor(t *testing.T) {
 
 func assertEngineRunStop(t *testing.T, eng V3Engine) {
 	eng.Run()
+	time.Sleep(time.Second)
 	eng.Stop()
+	time.Sleep(time.Second)
 	stopped := false
 	for i := 0; i < 60; i++ {
 		stopped = eng.IsStopped()
