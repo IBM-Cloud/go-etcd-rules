@@ -1,7 +1,7 @@
 etcd-rules
 ==========
 
-[![Build Status](https://github.com/IBM-Cloud/go-etcd-rules/actions/workflows/go.yml/badge.svg?branch=master)](https://github.com/IBM-Cloud/go-etcd-rules/actions?query=branch%3Amaster)
+[![Build Status](https://github.com/IBM-Cloud/go-etcd-rules/actions/workflows/go.yml/badge.svg?branch=master)](https://github.com/IBM-Cloud/go-etcd-rules/actions?branch=master)
 [![Coverage Status](https://coveralls.io/repos/github/IBM-Bluemix/go-etcd-rules/badge.svg?branch=master)](https://coveralls.io/github/IBM-Bluemix/go-etcd-rules?branch=master)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
