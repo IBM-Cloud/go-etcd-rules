@@ -6,7 +6,7 @@ toolchain go1.22.7
 
 require (
 	github.com/gorilla/mux v1.8.1
-	github.com/prometheus/client_golang v1.20.3
+	github.com/prometheus/client_golang v1.20.4
 	github.com/stretchr/testify v1.9.0
 	go.etcd.io/etcd/api/v3 v3.5.16
 	go.etcd.io/etcd/client/v3 v3.5.16
