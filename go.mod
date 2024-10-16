@@ -2,16 +2,16 @@ module github.com/IBM-Cloud/go-etcd-rules
 
 go 1.22
 
-toolchain go1.22.7
+toolchain go1.22.8
 
 require (
 	github.com/gorilla/mux v1.8.1
-	github.com/prometheus/client_golang v1.20.4
+	github.com/prometheus/client_golang v1.20.5
 	github.com/stretchr/testify v1.9.0
 	go.etcd.io/etcd/api/v3 v3.5.16
 	go.etcd.io/etcd/client/v3 v3.5.16
 	go.uber.org/zap v1.27.0
-	golang.org/x/net v0.29.0
+	golang.org/x/net v0.30.0
 )
 
 require (
@@ -30,8 +30,8 @@ require (
 	github.com/prometheus/procfs v0.15.1 // indirect
 	go.etcd.io/etcd/client/pkg/v3 v3.5.16 // indirect
 	go.uber.org/multierr v1.10.0 // indirect
-	golang.org/x/sys v0.25.0 // indirect
-	golang.org/x/text v0.18.0 // indirect
+	golang.org/x/sys v0.26.0 // indirect
+	golang.org/x/text v0.19.0 // indirect
 	google.golang.org/genproto v0.0.0-20240123012728-ef4313101c80 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20240123012728-ef4313101c80 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240123012728-ef4313101c80 // indirect
