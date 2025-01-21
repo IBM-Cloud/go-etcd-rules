@@ -136,7 +136,7 @@ func (ev3kw *etcdV3KeyWatcher) next() (string, *string, error) {
 	if ev3kw.ch == nil {
 		ev3kw.ch = ev3kw.w.Watch(ev3kw.ctx, ev3kw.prefix, v3.WithPrefix())
 	}
-	if ev3kw.events == nil || len(ev3kw.events) == 0 {
+	if len(ev3kw.events) == 0 {
 		select {
 		case <-ev3kw.stopCh:
 			ev3kw.reset()
@@ -169,7 +169,7 @@ func (ev3kw *etcdV3KeyWatcher) next() (string, *string, error) {
 			ev3kw.events = wr.Events
 		}
 	}
-	if ev3kw.events == nil || len(ev3kw.events) == 0 {
+	if len(ev3kw.events) == 0 {
 		ev3kw.reset()
 		return "", nil, errors.New("No events received from watcher channel; instantiating new channel")
 	}

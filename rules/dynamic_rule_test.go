@@ -683,6 +683,7 @@ func TestProcessBooleanMap(t *testing.T) {
 		testValue := 0
 		for idx, key := range keys {
 			if values[key] {
+				// nolint:gosec
 				testValue += 1 << uint((len(keys)-1)-idx)
 			}
 		}
