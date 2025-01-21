@@ -134,8 +134,7 @@ func formatPath(pattern string, m Attributes) (string, bool) {
 		if strings.HasPrefix(path, ":") {
 			attr := m.GetAttribute(path[1:])
 			if attr == nil {
-				s := path
-				attr = &s
+				attr = &path
 				allFound = false
 			}
 			result.WriteString(*attr)
