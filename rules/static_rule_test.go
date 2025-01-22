@@ -87,7 +87,8 @@ func getTestAttributes() extendedAttributes {
 
 func verifyTestAttributes(t *testing.T, rule staticRule) {
 	attr := rule.getAttributes()
-	assert.Equal(t, "testvalue", *attr.GetAttribute("testkey"))
+	testkey, _ := attr.GetAttribute("testkey")
+	assert.Equal(t, "testvalue", testkey)
 }
 
 func TestCompareLiteralEquals(t *testing.T) {

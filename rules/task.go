@@ -12,7 +12,7 @@ import (
 // that is matched against "/static/value1" would contain an yield
 // an attribute with the key "dynamic" and the value "value1".
 type Attributes interface {
-	GetAttribute(string) *string
+	GetAttribute(string) (string, bool)
 	Format(string) string
 }
 

@@ -202,10 +202,10 @@ func (na *nestingAttributes) names() []string {
 	return names
 }
 
-func (na *nestingAttributes) GetAttribute(key string) *string {
+func (na *nestingAttributes) GetAttribute(key string) (string, bool) {
 	for _, attribute := range na.attrs {
 		if attribute.key == key {
-			return attribute.value
+			return *attribute.value, true
 		}
 	}
 	return na.nested.GetAttribute(key)

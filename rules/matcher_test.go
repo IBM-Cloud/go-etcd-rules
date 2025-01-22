@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestBasic(t *testing.T) {
@@ -12,14 +13,14 @@ func TestBasic(t *testing.T) {
 	km, _ := newRegexKeyMatcher(test)
 	match, ok := km.match("/user/john/state")
 	assert.True(t, ok)
-	value := *match.GetAttribute("name")
+	value, _ := match.GetAttribute("name")
 	if value != "john" {
 		t.Logf("Incorrect attribute value: %s", value)
 		t.Fail()
 	}
-	missing := match.GetAttribute("missing")
-	if missing != nil {
-		t.Log("Attribute value should be nil")
+	_, ok = match.GetAttribute("missing")
+	if ok {
+		t.Log("Attribute value should not be found")
 		t.Fail()
 	}
 	format := match.Format("/current_user/:name")
@@ -73,51 +74,6 @@ func TestNoRegex(t *testing.T) {
 	}
 }
 
-func formatPathTest(pattern string, m Attributes) (string, bool) {
-	sb := new(strings.Builder)
-	// If the formatted string can fit into 2x the length of the pattern
-	// (and mapAttributes is the attribute implementation used)
-	// this will be the only allocation
-	sb.Grow(len(pattern) * 2)
-
-	all := true
-	var segment string
-	for found := true; found; {
-		segment, pattern, found = strings.Cut(pattern, "/")
-		switch {
-		case segment == "":
-		case strings.HasPrefix(segment, ":"):
-			sb.WriteByte('/')
-			// The Attributes interface is rather inefficient
-			// It requires an allocation/derefence to look up
-			// strings from a map because it replaces the built-in
-			// (string, bool) return with a *string return.
-			// To save allocations we'll avoid calling GetAttribute
-			// if we can directly access a map
-			if ma, ok := m.(*mapAttributes); ok {
-				if attr, ok := ma.values[segment[1:]]; ok {
-					sb.WriteString(attr)
-				} else {
-					all = false
-					sb.WriteString(segment)
-				}
-			} else {
-				attr := m.GetAttribute(segment[1:])
-				if attr == nil {
-					sb.WriteString(segment)
-					all = false
-				} else {
-					sb.WriteString(*attr)
-				}
-			}
-		default:
-			sb.WriteByte('/')
-			sb.WriteString(segment)
-		}
-	}
-	return sb.String(), all
-}
-
 func BenchmarkFormatPath(b *testing.B) {
 	cases := []struct {
 		name    string
@@ -157,25 +113,11 @@ func BenchmarkFormatPath(b *testing.B) {
 	}
 
 	for _, tc := range cases {
-		b.Run("old:"+tc.name, func(b *testing.B) {
+		b.Run(tc.name, func(b *testing.B) {
 			for n := 0; n < b.N; n++ {
 				formatPath(tc.pattern, tc.attr)
 			}
 		})
-		b.Run("new:"+tc.name, func(b *testing.B) {
-			for n := 0; n < b.N; n++ {
-				formatPathTest(tc.pattern, tc.attr)
-			}
-		})
-	}
-}
-
-func BenchmarkFormatPathProfile(b *testing.B) {
-	attr := NewAttributes(map[string]string{"a": "aaaaaaaaaa", "b": "aaaaaaaaaa", "c": "aaaaaaaaaa", "d": "aaaaaaaaaa", "e": "eeeeeeeeee"})
-	pattern := "first/:a/second/:b/third/:c/fourth/:d/fifth/:e/first/:a/second/:b/third/:c/fourth/:d/fifth/:e/sixth"
-
-	for n := 0; n < b.N; n++ {
-		formatPathTest(pattern, attr)
 	}
 }
 
@@ -248,11 +190,6 @@ func TestFormatPath(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			actualstr, actualbool := formatPath(tc.pattern, tc.attr)
-			require.Equal(t, tc.expectstr, actualstr)
-			require.Equal(t, tc.expectbool, actualbool)
-		})
-		t.Run("new:"+tc.name, func(t *testing.T) {
-			actualstr, actualbool := formatPathTest(tc.pattern, tc.attr)
 			require.Equal(t, tc.expectstr, actualstr)
 			require.Equal(t, tc.expectbool, actualbool)
 		})

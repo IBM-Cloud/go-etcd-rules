@@ -19,7 +19,7 @@ type regexKeyMatcher struct {
 }
 
 type keyMatch interface {
-	GetAttribute(name string) *string
+	GetAttribute(name string) (string, bool)
 	Format(pattern string) string
 	names() []string
 }
@@ -94,13 +94,13 @@ func newKeyMatch(path string, kmr *regexKeyMatcher) *regexKeyMatch {
 	return km
 }
 
-func (m *regexKeyMatch) GetAttribute(name string) *string {
+func (m *regexKeyMatch) GetAttribute(name string) (string, bool) {
 	index, ok := m.fieldMap[name]
 	if !ok {
-		return nil
+		return "", false
 	}
 	result := m.matchStrings[index]
-	return &result
+	return result, true
 }
 
 func (m *regexKeyMatch) names() []string {
@@ -123,27 +123,32 @@ func FormatWithAttributes(pattern string, m Attributes) string {
 }
 
 func formatPath(pattern string, m Attributes) (string, bool) {
-	allFound := true
-	paths := strings.Split(pattern, "/")
-	result := strings.Builder{}
-	for _, path := range paths {
-		if len(path) == 0 {
-			continue
-		}
-		result.WriteString("/")
-		if strings.HasPrefix(path, ":") {
-			attr := m.GetAttribute(path[1:])
-			if attr == nil {
-				s := path
-				attr = &s
-				allFound = false
+	sb := new(strings.Builder)
+	// If the formatted string can fit into 2x the length of the pattern
+	// (and mapAttributes is the attribute implementation used)
+	// this will be the only allocation
+	sb.Grow(len(pattern) * 2)
+
+	all := true
+	var segment string
+	for found := true; found; {
+		segment, pattern, found = strings.Cut(pattern, "/")
+		switch {
+		case segment == "":
+		case strings.HasPrefix(segment, ":"):
+			sb.WriteByte('/')
+			if attr, ok := m.GetAttribute(segment[1:]); ok {
+				sb.WriteString(attr)
+			} else {
+				all = false
+				sb.WriteString(segment)
 			}
-			result.WriteString(*attr)
-		} else {
-			result.WriteString(path)
+		default:
+			sb.WriteByte('/')
+			sb.WriteString(segment)
 		}
 	}
-	return result.String(), allFound
+	return sb.String(), all
 }
 
 // Keep the bool return value, because it's tricky to check for null
@@ -179,12 +184,9 @@ type mapAttributes struct {
 	values map[string]string
 }
 
-func (ma *mapAttributes) GetAttribute(key string) *string {
+func (ma *mapAttributes) GetAttribute(key string) (string, bool) {
 	value, ok := ma.values[key]
-	if !ok {
-		return nil
-	}
-	return &value
+	return value, ok
 }
 
 func (ma *mapAttributes) Format(path string) string {
