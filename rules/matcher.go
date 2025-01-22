@@ -129,7 +129,7 @@ func formatPath(pattern string, m Attributes) (string, bool) {
 	// this will be the only allocation
 	sb.Grow(len(pattern) * 2)
 
-	all := true
+	allFound := true
 	var segment string
 	for found := true; found; {
 		segment, pattern, found = strings.Cut(pattern, "/")
@@ -140,7 +140,7 @@ func formatPath(pattern string, m Attributes) (string, bool) {
 			if attr, ok := m.GetAttribute(segment[1:]); ok {
 				sb.WriteString(attr)
 			} else {
-				all = false
+				allFound = false
 				sb.WriteString(segment)
 			}
 		default:
@@ -148,7 +148,7 @@ func formatPath(pattern string, m Attributes) (string, bool) {
 			sb.WriteString(segment)
 		}
 	}
-	return sb.String(), all
+	return sb.String(), allFound
 }
 
 // Keep the bool return value, because it's tricky to check for null
