@@ -72,3 +72,43 @@ func TestNoRegex(t *testing.T) {
 		t.Fail()
 	}
 }
+
+func TestFormatPath(t *testing.T) {
+	testCases := []struct {
+		name        string
+		pattern     string
+		atttributes Attributes
+		result      string
+		allFound    bool
+	}{
+		{
+			"Happy path",
+			"/:region/test",
+			NewAttributes(map[string]string{"region": "region"}),
+			"/region/test",
+			true,
+		},
+		{
+			"Empty path",
+			"",
+			NewAttributes(map[string]string{"region": "region"}),
+			"",
+			true,
+		},
+		{
+			"Missing attribute",
+			"/:region/test",
+			NewAttributes(map[string]string{}),
+			"/:region/test",
+			false,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			result, allFound := formatPath(tc.pattern, tc.atttributes)
+			assert.Equal(t, tc.result, result)
+			assert.Equal(t, tc.allFound, allFound)
+		})
+	}
+}

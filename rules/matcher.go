@@ -1,6 +1,7 @@
 package rules
 
 import (
+	"reflect"
 	"regexp"
 	"strings"
 )
@@ -124,26 +125,26 @@ func FormatWithAttributes(pattern string, m Attributes) string {
 
 func formatPath(pattern string, m Attributes) (string, bool) {
 	allFound := true
+
 	paths := strings.Split(pattern, "/")
-	result := strings.Builder{}
-	for _, path := range paths {
+	reflect.ValueOf(&paths).Elem().SetCap(len(paths))
+
+	for i, path := range paths {
 		if len(path) == 0 {
 			continue
 		}
-		result.WriteString("/")
+
 		if strings.HasPrefix(path, ":") {
 			attr := m.GetAttribute(path[1:])
 			if attr == nil {
-				s := path
-				attr = &s
+				attr = &path
 				allFound = false
 			}
-			result.WriteString(*attr)
-		} else {
-			result.WriteString(path)
+			paths[i] = *attr
 		}
 	}
-	return result.String(), allFound
+
+	return strings.Join(paths, "/"), allFound
 }
 
 // Keep the bool return value, because it's tricky to check for null
