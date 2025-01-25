@@ -128,7 +128,7 @@ func main() {
 		// value is set that will prevent further polling even after the polling key TTL has expired.
 		task.Logger.Info("Callback called")
 		// This is thread safe, because the map is only being read and not written to.
-		id, _ := task.Attr.GetAttribute("id")
+		id := *task.Attr.GetAttribute("id")
 		p := ps[id]
 		pPollCount := atomic.LoadInt32(&p.pollCount)
 		// Retrieve a value from etcd.

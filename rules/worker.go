@@ -126,7 +126,7 @@ func (bw *baseWorker) doWork(loggerPtr **zap.Logger,
 		attributes := (*rulePtr).getAttributes()
 		attrMap := make(map[string]string)
 		for _, attrName := range attributes.names() {
-			attrMap[attrName], _ = attributes.GetAttribute(attrName)
+			attrMap[attrName] = *attributes.GetAttribute(attrName)
 		}
 		logger.Info("callback started", zap.Any("attributes", attrMap))
 		startTime := time.Now()

@@ -202,13 +202,22 @@ func (na *nestingAttributes) names() []string {
 	return names
 }
 
-func (na *nestingAttributes) GetAttribute(key string) (string, bool) {
+func (na *nestingAttributes) GetAttribute(key string) *string {
+	for _, attribute := range na.attrs {
+		if attribute.key == key {
+			return attribute.value
+		}
+	}
+	return na.nested.GetAttribute(key)
+}
+
+func (na *nestingAttributes) FindAttribute(key string) (string, bool) {
 	for _, attribute := range na.attrs {
 		if attribute.key == key {
 			return *attribute.value, true
 		}
 	}
-	return na.nested.GetAttribute(key)
+	return na.nested.FindAttribute(key)
 }
 
 func (na *nestingAttributes) Format(pattern string) string {

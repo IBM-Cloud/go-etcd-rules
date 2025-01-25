@@ -53,9 +53,11 @@ func TestEqualsLiteralRule(t *testing.T) {
 			staticRuleOks[i] = staticRuleOks[i] || ok
 			if ok {
 				for key, value := range expansionAttributes[i] {
-					attrValue, ok := attr.GetAttribute(key)
-					assert.True(t, ok)
-					assert.Equal(t, value, attrValue)
+					attrValue := attr.GetAttribute(key)
+					assert.NotNil(t, attrValue)
+					if attrValue != nil {
+						assert.Equal(t, value, *attrValue)
+					}
 				}
 			}
 		}
@@ -124,9 +126,11 @@ func TestAndRule(t *testing.T) {
 			staticRuleOks[i] = staticRuleOks[i] || ok
 			if ok {
 				for key, value := range expansionAttributes[i] {
-					attrValue, ok := attr1.GetAttribute(key)
-					assert.True(t, ok)
-					assert.Equal(t, value, attrValue)
+					attrValue := attr1.GetAttribute(key)
+					assert.NotNil(t, attrValue)
+					if attrValue != nil {
+						assert.Equal(t, value, *attrValue)
+					}
 				}
 				assert.Equal(t, pattern, attr1.Format("/:a/:b/:var/attr1"))
 			}

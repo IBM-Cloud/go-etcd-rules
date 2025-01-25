@@ -19,7 +19,8 @@ type regexKeyMatcher struct {
 }
 
 type keyMatch interface {
-	GetAttribute(name string) (string, bool)
+	GetAttribute(name string) *string
+	FindAttribute(name string) (string, bool)
 	Format(pattern string) string
 	names() []string
 }
@@ -94,7 +95,16 @@ func newKeyMatch(path string, kmr *regexKeyMatcher) *regexKeyMatch {
 	return km
 }
 
-func (m *regexKeyMatch) GetAttribute(name string) (string, bool) {
+func (m *regexKeyMatch) GetAttribute(name string) *string {
+	index, ok := m.fieldMap[name]
+	if !ok {
+		return nil
+	}
+	result := m.matchStrings[index]
+	return &result
+}
+
+func (m *regexKeyMatch) FindAttribute(name string) (string, bool) {
 	index, ok := m.fieldMap[name]
 	if !ok {
 		return "", false
@@ -127,7 +137,7 @@ func formatPath(pattern string, m Attributes) (string, bool) {
 	// If the formatted string can fit into 2x the length of the pattern
 	// (and mapAttributes is the attribute implementation used)
 	// this will be the only allocation
-	sb.Grow(len(pattern) * 2)
+	sb.Grow(2*len(pattern) + (len(pattern) / 2))
 
 	allFound := true
 	var segment string
@@ -137,12 +147,23 @@ func formatPath(pattern string, m Attributes) (string, bool) {
 		case segment == "":
 		case strings.HasPrefix(segment, ":"):
 			sb.WriteByte('/')
-			if attr, ok := m.GetAttribute(segment[1:]); ok {
-				sb.WriteString(attr)
+			if finder, ok := m.(AtributeFinder); ok {
+				if attr, ok := finder.FindAttribute(segment[1:]); ok {
+					sb.WriteString(attr)
+				} else {
+					allFound = false
+					sb.WriteString(segment)
+				}
 			} else {
-				allFound = false
-				sb.WriteString(segment)
+				attr := m.GetAttribute(segment[1:])
+				if attr != nil {
+					sb.WriteString(*attr)
+				} else {
+					allFound = false
+					sb.WriteString(segment)
+				}
 			}
+
 		default:
 			sb.WriteByte('/')
 			sb.WriteString(segment)
@@ -184,7 +205,15 @@ type mapAttributes struct {
 	values map[string]string
 }
 
-func (ma *mapAttributes) GetAttribute(key string) (string, bool) {
+func (ma *mapAttributes) GetAttribute(key string) *string {
+	value, ok := ma.values[key]
+	if !ok {
+		return nil
+	}
+	return &value
+}
+
+func (ma *mapAttributes) FindAttribute(key string) (string, bool) {
 	value, ok := ma.values[key]
 	return value, ok
 }

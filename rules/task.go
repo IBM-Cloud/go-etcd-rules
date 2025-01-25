@@ -12,12 +12,17 @@ import (
 // that is matched against "/static/value1" would contain an yield
 // an attribute with the key "dynamic" and the value "value1".
 type Attributes interface {
-	GetAttribute(string) (string, bool)
+	GetAttribute(string) *string
 	Format(string) string
+}
+
+type AtributeFinder interface {
+	FindAttribute(string) (string, bool)
 }
 
 type extendedAttributes interface {
 	Attributes
+	AtributeFinder
 	names() []string
 }
 
