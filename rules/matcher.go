@@ -147,7 +147,7 @@ func formatPath(pattern string, m Attributes) (string, bool) {
 		case segment == "":
 		case strings.HasPrefix(segment, ":"):
 			sb.WriteByte('/')
-			if finder, ok := m.(AtributeFinder); ok {
+			if finder, ok := m.(AttributeFinder); ok {
 				if attr, ok := finder.FindAttribute(segment[1:]); ok {
 					sb.WriteString(attr)
 				} else {

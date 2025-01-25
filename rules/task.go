@@ -16,13 +16,13 @@ type Attributes interface {
 	Format(string) string
 }
 
-type AtributeFinder interface {
+type AttributeFinder interface {
 	FindAttribute(string) (string, bool)
 }
 
 type extendedAttributes interface {
 	Attributes
-	AtributeFinder
+	AttributeFinder
 	names() []string
 }
 
