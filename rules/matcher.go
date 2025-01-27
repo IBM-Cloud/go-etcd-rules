@@ -132,12 +132,29 @@ func FormatWithAttributes(pattern string, m Attributes) string {
 	return result
 }
 
+type finderWrapper struct{ Attributes }
+
+func (f finderWrapper) FindAttribute(s string) (string, bool) {
+	if ptr := f.GetAttribute(s); ptr != nil {
+		return *ptr, true
+	}
+
+	return "", false
+}
+
 func formatPath(pattern string, m Attributes) (string, bool) {
 	sb := new(strings.Builder)
 	// If the formatted string can fit into 2x the length of the pattern
 	// (and mapAttributes is the attribute implementation used)
 	// this will be the only allocation
 	sb.Grow(2*len(pattern) + (len(pattern) / 2))
+
+	var finder AttributeFinder
+	if f, ok := m.(AttributeFinder); ok {
+		finder = f
+	} else {
+		finder = finderWrapper{m}
+	}
 
 	allFound := true
 	var segment string
@@ -147,21 +164,11 @@ func formatPath(pattern string, m Attributes) (string, bool) {
 		case segment == "":
 		case strings.HasPrefix(segment, ":"):
 			sb.WriteByte('/')
-			if finder, ok := m.(AttributeFinder); ok {
-				if attr, ok := finder.FindAttribute(segment[1:]); ok {
-					sb.WriteString(attr)
-				} else {
-					allFound = false
-					sb.WriteString(segment)
-				}
+			if attr, ok := finder.FindAttribute(segment[1:]); ok {
+				sb.WriteString(attr)
 			} else {
-				attr := m.GetAttribute(segment[1:])
-				if attr != nil {
-					sb.WriteString(*attr)
-				} else {
-					allFound = false
-					sb.WriteString(segment)
-				}
+				allFound = false
+				sb.WriteString(segment)
 			}
 
 		default:
