@@ -11,11 +11,16 @@ import (
 // with dynamic keys.  For instance, a dynamic key "/static/:dynamic"
 // that is matched against "/static/value1" would contain an yield
 // an attribute with the key "dynamic" and the value "value1".
+// Attributes implementers should also implement AttributeFinder so that
+// the more performant/explicit implementation can be used in internal functions
 type Attributes interface {
 	GetAttribute(string) *string
 	Format(string) string
 }
 
+// AttributeFinder is a more performant replacement for the GetAttribute
+// method of Attributes. Internal functions use the FindAttribute method
+// if passed an implementation of Attributes that also implements AttributeFinder
 type AttributeFinder interface {
 	FindAttribute(string) (string, bool)
 }

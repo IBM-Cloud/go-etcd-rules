@@ -19,6 +19,7 @@ type regexKeyMatcher struct {
 }
 
 type keyMatch interface {
+	// GetAttribute usage should be replaced with FindAttribute
 	GetAttribute(name string) *string
 	FindAttribute(name string) (string, bool)
 	Format(pattern string) string
@@ -144,7 +145,7 @@ func (f finderWrapper) FindAttribute(s string) (string, bool) {
 
 func formatPath(pattern string, m Attributes) (string, bool) {
 	sb := new(strings.Builder)
-	// If the formatted string can fit into 2x the length of the pattern
+	// If the formatted string can fit into 2.5x the length of the pattern
 	// (and mapAttributes is the attribute implementation used)
 	// this will be the only allocation
 	sb.Grow(2*len(pattern) + (len(pattern) / 2))
