@@ -75,30 +75,6 @@ func TestNoRegex(t *testing.T) {
 	}
 }
 
-func originalFormatPath(pattern string, m Attributes) (string, bool) {
-	allFound := true
-	paths := strings.Split(pattern, "/")
-	result := strings.Builder{}
-	for _, path := range paths {
-		if len(path) == 0 {
-			continue
-		}
-		result.WriteString("/")
-		if strings.HasPrefix(path, ":") {
-			attr := m.GetAttribute(path[1:])
-			if attr == nil {
-				s := path
-				attr = &s
-				allFound = false
-			}
-			result.WriteString(*attr)
-		} else {
-			result.WriteString(path)
-		}
-	}
-	return result.String(), allFound
-}
-
 func BenchmarkFormatPath(b *testing.B) {
 	cases := []struct {
 		name    string
@@ -161,11 +137,6 @@ func BenchmarkFormatPath(b *testing.B) {
 		b.Run("curr_"+tc.name, func(b *testing.B) {
 			for n := 0; n < b.N; n++ {
 				formatPath(tc.pattern, tc.attr)
-			}
-		})
-		b.Run("orig_"+tc.name, func(b *testing.B) {
-			for n := 0; n < b.N; n++ {
-				originalFormatPath(tc.pattern, tc.attr)
 			}
 		})
 	}
@@ -247,11 +218,6 @@ func TestFormatPath(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			actualstr, actualbool := formatPath(tc.pattern, tc.attr)
-			require.Equal(t, tc.expectstr, actualstr)
-			require.Equal(t, tc.expectbool, actualbool)
-		})
-		t.Run("orig_"+tc.name, func(t *testing.T) {
-			actualstr, actualbool := originalFormatPath(tc.pattern, tc.attr)
 			require.Equal(t, tc.expectstr, actualstr)
 			require.Equal(t, tc.expectbool, actualbool)
 		})
