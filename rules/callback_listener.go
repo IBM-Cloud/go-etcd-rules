@@ -19,7 +19,7 @@ type httpCallbackListener struct {
 func (htcbl httpCallbackListener) callbackDone(ruleID string, attributes extendedAttributes) {
 	attributeMap := make(map[string]string)
 	for _, k := range attributes.names() {
-		attributeMap[k] = *attributes.GetAttribute(k)
+		attributeMap[k], _ = attributes.FindAttribute(k)
 	}
 	postObj := callbackEvent{
 		RuleID:     ruleID,

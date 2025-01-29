@@ -211,6 +211,15 @@ func (na *nestingAttributes) GetAttribute(key string) *string {
 	return na.nested.GetAttribute(key)
 }
 
+func (na *nestingAttributes) FindAttribute(key string) (string, bool) {
+	for _, attribute := range na.attrs {
+		if attribute.key == key {
+			return *attribute.value, true
+		}
+	}
+	return na.nested.FindAttribute(key)
+}
+
 func (na *nestingAttributes) Format(pattern string) string {
 	return FormatWithAttributes(pattern, na)
 }
