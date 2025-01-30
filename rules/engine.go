@@ -3,6 +3,7 @@ package rules
 import (
 	"fmt"
 	"os"
+	"regexp"
 	"strings"
 	"time"
 
@@ -166,10 +167,16 @@ func (e *v3Engine) SetWatcherWrapper(watcherWrapper WrapWatcher) {
 	e.watcherWrapper = watcherWrapper
 }
 
+// valid path patterns must be alphanumeric and may only contain select special characters (:/"'_.,*=-)
+var validPath = regexp.MustCompile(`^[[:alnum:] \#\:\/\"\'\_\.\,\*\=\-]*$`)
+
 func (e *v3Engine) AddRule(rule DynamicRule,
 	lockPattern string,
 	callback V3RuleTaskCallback,
 	options ...RuleOption) {
+	if !validPath.MatchString(lockPattern) || !strings.Contains(lockPattern, "lock") {
+		e.logger.Fatal("Path contains an invalid character or does not contain \"lock\"")
+	}
 	e.addRuleWithIface(rule, lockPattern, callback, options...)
 }
 
