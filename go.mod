@@ -1,8 +1,8 @@
 module github.com/IBM-Cloud/go-etcd-rules
 
-go 1.22
+go 1.23
 
-toolchain go1.22.12
+toolchain go1.23.6
 
 require (
 	github.com/gorilla/mux v1.8.1
@@ -11,7 +11,7 @@ require (
 	go.etcd.io/etcd/api/v3 v3.5.18
 	go.etcd.io/etcd/client/v3 v3.5.18
 	go.uber.org/zap v1.27.0
-	golang.org/x/net v0.34.0
+	golang.org/x/net v0.35.0
 )
 
 require (
