@@ -2,7 +2,7 @@ module github.com/IBM-Cloud/go-etcd-rules
 
 go 1.23.0
 
-toolchain go1.23.7
+toolchain go1.23.8
 
 require (
 	github.com/gorilla/mux v1.8.1
