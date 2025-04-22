@@ -294,19 +294,20 @@ func (e *baseEngine) addRule(rule DynamicRule,
 func (e *v3Engine) Run() {
 	e.logger.Info("Rules engine options", zap.Object("options", &e.options), zap.Int("rules", len(e.ruleMgr.rules)))
 	prefixSlice := []string{}
-	// THIS BRANCH DOES NOT USE WATCHERS
-	// prefixes := e.ruleMgr.prefixes
+
+	prefixes := e.ruleMgr.prefixes
 	// This is a map; used to ensure there are no duplicates
-	// for prefix := range prefixes {
-	// 	prefixSlice = append(prefixSlice, prefix)
-	// 	logger := e.logger.With(zap.String("prefix", prefix))
-	// 	w, err := newV3Watcher(e.cl, prefix, logger, e.baseEngine.keyProc, e.options.watchTimeout, e.kvWrapper, e.metrics, e.watcherWrapper, e.options.watchDelay)
-	// 	if err != nil {
-	// 		e.logger.Fatal("Failed to initialize watcher", zap.String("prefix", prefix))
-	// 	}
-	// 	e.watchers = append(e.watchers, &w)
-	// 	go w.run()
-	// }
+	for prefix := range prefixes {
+		prefixSlice = append(prefixSlice, prefix)
+		// logger := e.logger.With(zap.String("prefix", prefix))
+		// THIS BRANCH DOES NOT USE WATCHERS
+		// w, err := newV3Watcher(e.cl, prefix, logger, e.baseEngine.keyProc, e.options.watchTimeout, e.kvWrapper, e.metrics, e.watcherWrapper, e.options.watchDelay)
+		// if err != nil {
+		// 	e.logger.Fatal("Failed to initialize watcher", zap.String("prefix", prefix))
+		// }
+		// e.watchers = append(e.watchers, &w)
+		// go w.run()
+	}
 	logger := e.logger
 	c, err := newIntCrawler(e.cl,
 		e.options.syncInterval,
