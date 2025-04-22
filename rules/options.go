@@ -119,7 +119,7 @@ func makeEngineOptions(options ...EngineOption) engineOptions {
 		syncDelay:              jitter.NewDurationGenerator(2*time.Millisecond, syncJitterPercent),
 		lockTimeout:            30,
 		lockAcquisitionTimeout: 5,
-		syncInterval:           jitter.NewDurationGenerator(5*time.Minute, syncJitterPercent),
+		syncInterval:           jitter.NewDurationGenerator(1*time.Minute, syncJitterPercent),
 		syncGetTimeout:         0,
 		watchTimeout:           0,
 		keyProcConcurrency:     5,
