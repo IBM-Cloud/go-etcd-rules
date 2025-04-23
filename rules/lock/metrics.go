@@ -8,12 +8,12 @@ func WithMetrics(ruleLocker RuleLocker, name string) RuleLocker {
 }
 func withMetrics(ruleLocker RuleLocker, name string,
 	observeLock func(locker string, methodName string, pattern string, lockSucceeded bool),
-	observeUnlock func(locker string, methodName string, pattern string)) RuleLocker {
+	observeUnlockError func(locker string, methodName string, pattern string)) RuleLocker {
 	return metricLocker{
 		RuleLocker:         ruleLocker,
 		lockerName:         name,
 		observeLock:        observeLock,
-		observeUnlockError: observeUnlock,
+		observeUnlockError: observeUnlockError,
 	}
 }
 

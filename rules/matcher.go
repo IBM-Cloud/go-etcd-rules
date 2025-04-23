@@ -19,7 +19,9 @@ type regexKeyMatcher struct {
 }
 
 type keyMatch interface {
+	// GetAttribute usage should be replaced with FindAttribute
 	GetAttribute(name string) *string
+	FindAttribute(name string) (string, bool)
 	Format(pattern string) string
 	names() []string
 }
@@ -103,6 +105,15 @@ func (m *regexKeyMatch) GetAttribute(name string) *string {
 	return &result
 }
 
+func (m *regexKeyMatch) FindAttribute(name string) (string, bool) {
+	index, ok := m.fieldMap[name]
+	if !ok {
+		return "", false
+	}
+	result := m.matchStrings[index]
+	return result, true
+}
+
 func (m *regexKeyMatch) names() []string {
 	names := make([]string, 0, len(m.fieldMap))
 	for name := range m.fieldMap {
@@ -122,28 +133,51 @@ func FormatWithAttributes(pattern string, m Attributes) string {
 	return result
 }
 
+type finderWrapper struct{ Attributes }
+
+func (f finderWrapper) FindAttribute(s string) (string, bool) {
+	if ptr := f.GetAttribute(s); ptr != nil {
+		return *ptr, true
+	}
+
+	return "", false
+}
+
 func formatPath(pattern string, m Attributes) (string, bool) {
+	sb := new(strings.Builder)
+	// If the formatted string can fit into 2.5x the length of the pattern
+	// (and mapAttributes is the attribute implementation used)
+	// this will be the only allocation
+	sb.Grow(2*len(pattern) + (len(pattern) / 2))
+
+	var finder AttributeFinder
+	if f, ok := m.(AttributeFinder); ok {
+		finder = f
+	} else {
+		finder = finderWrapper{m}
+	}
+
 	allFound := true
-	paths := strings.Split(pattern, "/")
-	result := strings.Builder{}
-	for _, path := range paths {
-		if len(path) == 0 {
-			continue
-		}
-		result.WriteString("/")
-		if strings.HasPrefix(path, ":") {
-			attr := m.GetAttribute(path[1:])
-			if attr == nil {
-				s := path
-				attr = &s
+	var segment string
+	for found := true; found; {
+		segment, pattern, found = strings.Cut(pattern, "/")
+		switch {
+		case segment == "":
+		case strings.HasPrefix(segment, ":"):
+			sb.WriteByte('/')
+			if attr, ok := finder.FindAttribute(segment[1:]); ok {
+				sb.WriteString(attr)
+			} else {
 				allFound = false
+				sb.WriteString(segment)
 			}
-			result.WriteString(*attr)
-		} else {
-			result.WriteString(path)
+
+		default:
+			sb.WriteByte('/')
+			sb.WriteString(segment)
 		}
 	}
-	return result.String(), allFound
+	return sb.String(), allFound
 }
 
 // Keep the bool return value, because it's tricky to check for null
@@ -185,6 +219,11 @@ func (ma *mapAttributes) GetAttribute(key string) *string {
 		return nil
 	}
 	return &value
+}
+
+func (ma *mapAttributes) FindAttribute(key string) (string, bool) {
+	value, ok := ma.values[key]
+	return value, ok
 }
 
 func (ma *mapAttributes) Format(path string) string {

@@ -292,7 +292,7 @@ func (e *baseEngine) addRule(rule DynamicRule,
 }
 
 func (e *v3Engine) Run() {
-	e.logger.Info("Rules engine options", zap.Object("options", &e.options))
+	e.logger.Info("Rules engine options", zap.Object("options", &e.options), zap.Int("rules", len(e.ruleMgr.rules)))
 	prefixSlice := []string{}
 	prefixes := e.ruleMgr.prefixes
 	// This is a map; used to ensure there are no duplicates
