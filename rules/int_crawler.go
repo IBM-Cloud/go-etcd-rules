@@ -114,6 +114,7 @@ func (ic *intCrawler) isStopped() bool {
 func (ic *intCrawler) run() {
 	atomicSet(&ic.stopped, false)
 	logger := ic.logger.With(zap.String("source", "crawler"))
+	logger.Debug("Starting only run of crawler")
 	if ic.mutex == nil {
 		ic.singleRun(logger)
 	} else {
