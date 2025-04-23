@@ -133,14 +133,8 @@ func (ic *intCrawler) run() {
 				}
 			}
 		}
-		intervalSeconds := int(ic.interval.Generate().Seconds())
-		logger.Debug("Pausing before next crawler run", zap.Int("wait_time_seconds", intervalSeconds))
-		for i := 0; i < intervalSeconds; i++ {
-			time.Sleep(time.Second)
-			if ic.isStopping() {
-				break
-			}
-		}
+		ic.stop()
+		logger.Debug("Crawler run finished")
 	}
 	atomicSet(&ic.stopped, true)
 }
