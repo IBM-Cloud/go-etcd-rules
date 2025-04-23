@@ -64,6 +64,6 @@ func (col coolOffLocker) Lock(key string, options ...Option) (RuleLock, error) {
 type coolOffLock struct {
 }
 
-func (coolOffLock) Unlock() error {
+func (coolOffLock) Unlock(_ ...Option) error {
 	return nil
 }

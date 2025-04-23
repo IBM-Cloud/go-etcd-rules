@@ -4,26 +4,40 @@ import "github.com/IBM-Cloud/go-etcd-rules/metrics"
 
 // WithMetrics decorates a locker with metrics.
 func WithMetrics(ruleLocker RuleLocker, name string) RuleLocker {
-	return withMetrics(ruleLocker, name, metrics.IncLockMetric)
+	return withMetrics(ruleLocker, name, metrics.IncLockMetric, metrics.IncUnlockErrorMetric)
 }
 func withMetrics(ruleLocker RuleLocker, name string,
-	observeLock func(locker string, methodName string, pattern string, lockSucceeded bool)) RuleLocker {
+	observeLock func(locker string, methodName string, pattern string, lockSucceeded bool),
+	observeUnlockError func(locker string, methodName string, pattern string)) RuleLocker {
 	return metricLocker{
-		RuleLocker:  ruleLocker,
-		lockerName:  name,
-		observeLock: observeLock,
+		RuleLocker:         ruleLocker,
+		lockerName:         name,
+		observeLock:        observeLock,
+		observeUnlockError: observeUnlockError,
 	}
 }
 
 type metricLocker struct {
 	RuleLocker
-	lockerName  string
-	observeLock func(locker string, methodName string, pattern string, lockSucceeded bool)
+	RuleLock
+	lockerName         string
+	observeLock        func(locker string, methodName string, pattern string, lockSucceeded bool)
+	observeUnlockError func(locker string, methodName string, pattern string)
 }
 
 func (ml metricLocker) Lock(key string, options ...Option) (RuleLock, error) {
 	opts := buildOptions(options...)
-	lock, err := ml.RuleLocker.Lock(key, options...)
+	var err error
+	ml.RuleLock, err = ml.RuleLocker.Lock(key, options...)
 	ml.observeLock(ml.lockerName, opts.method, opts.pattern, err == nil)
-	return lock, err
+	return ml.RuleLock, err
+}
+
+func (ml metricLocker) Unlock(options ...Option) error {
+	opts := buildOptions(options...)
+	err := ml.RuleLock.Unlock(options...)
+	if err != nil {
+		ml.observeUnlockError(ml.lockerName, opts.method, opts.pattern)
+	}
+	return err
 }

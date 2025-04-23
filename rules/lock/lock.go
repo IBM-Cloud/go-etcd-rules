@@ -15,7 +15,7 @@ type RuleLocker interface {
 }
 
 type RuleLock interface {
-	Unlock() error
+	Unlock(...Option) error
 }
 
 type GetSession func(context.Context) (*v3c.Session, error)
@@ -89,7 +89,7 @@ type v3Lock struct {
 // ErrNilMutex indicates that the lock has a nil mutex
 var ErrNilMutex = errors.New("mutex is nil")
 
-func (v3l *v3Lock) Unlock() error {
+func (v3l *v3Lock) Unlock(_ ...Option) error {
 	if v3l.mutex != nil {
 		// This should be given every chance to complete, otherwise
 		// a lock could prevent future interactions with a resource.

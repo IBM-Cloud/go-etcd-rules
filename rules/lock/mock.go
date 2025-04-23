@@ -22,7 +22,7 @@ type mockLock struct {
 	channel chan bool
 }
 
-func (tl *mockLock) Unlock() error {
+func (tl *mockLock) Unlock(options ...Option) error {
 	tl.channel <- true
 	return nil
 }
@@ -39,10 +39,10 @@ func (ml FuncMockLocker) Lock(key string, options ...Option) (RuleLock, error) {
 
 // FuncMockLock instances are driven by functions that are provided.
 type FuncMockLock struct {
-	UnlockF func() error
+	UnlockF func(options ...Option) error
 }
 
 // Unlock is a mock implementation of RuleLock.Unlock
-func (ml FuncMockLock) Unlock() error {
-	return ml.UnlockF()
+func (ml FuncMockLock) Unlock(options ...Option) error {
+	return ml.UnlockF(options...)
 }

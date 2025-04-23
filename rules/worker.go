@@ -95,13 +95,13 @@ func (bw *baseWorker) doWork(loggerPtr **zap.Logger,
 	}
 	l, err2 := bw.locker.Lock(lockKey, lock.PatternForLock(metricsInfo.keyPattern), lock.MethodForLock("worker_lock"))
 	if err2 != nil {
-		logger.Debug("Failed to acquire lock", zap.Error(err2))
+		logger.Warn("Failed to acquire rule lock", zap.Error(err2))
 		return
 	}
 	defer func() {
 		err := l.Unlock()
 		if err != nil {
-			logger.Error("Could not unlock mutex", zap.Error(err))
+			logger.Error("Failed to unlock rule lock", zap.Error(err))
 		}
 	}()
 	// Check for a second time, since checking and locking
