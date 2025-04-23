@@ -113,7 +113,7 @@ func (eo *engineOptions) MarshalLogObject(enc zapcore.ObjectEncoder) (err error)
 
 func makeEngineOptions(options ...EngineOption) engineOptions {
 	opts := engineOptions{
-		concurrency:            5,
+		concurrency:            15,
 		constraints:            map[string]constraint{},
 		contextProvider:        defaultContextProvider,
 		syncDelay:              jitter.NewDurationGenerator(2*time.Millisecond, syncJitterPercent),
