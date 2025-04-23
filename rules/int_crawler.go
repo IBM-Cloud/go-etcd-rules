@@ -113,29 +113,27 @@ func (ic *intCrawler) isStopped() bool {
 
 func (ic *intCrawler) run() {
 	atomicSet(&ic.stopped, false)
-	for !ic.isStopping() {
-		logger := ic.logger.With(zap.String("source", "crawler"))
-		if ic.mutex == nil {
-			ic.singleRun(logger)
+	logger := ic.logger.With(zap.String("source", "crawler"))
+	if ic.mutex == nil {
+		ic.singleRun(logger)
+	} else {
+		mutex := "/crawler/" + *ic.mutex
+		logger.Info("Attempting to obtain mutex",
+			zap.String("mutex", mutex), zap.Int("Timeout", ic.mutexTimeout))
+		lock, err := ic.locker.Lock(mutex, lock.MethodForLock("crawler"), lock.PatternForLock(mutex))
+		if err != nil {
+			logger.Error("Could not obtain mutex; skipping crawler run", zap.Error(err), zap.String("mutex", mutex))
 		} else {
-			mutex := "/crawler/" + *ic.mutex
-			logger.Info("Attempting to obtain mutex",
-				zap.String("mutex", mutex), zap.Int("Timeout", ic.mutexTimeout))
-			lock, err := ic.locker.Lock(mutex, lock.MethodForLock("crawler"), lock.PatternForLock(mutex))
+			logger.Info("Crawler mutex obtained", zap.String("mutex", mutex))
+			ic.singleRun(logger)
+			err := lock.Unlock()
 			if err != nil {
-				logger.Error("Could not obtain mutex; skipping crawler run", zap.Error(err), zap.String("mutex", mutex))
-			} else {
-				logger.Info("Crawler mutex obtained", zap.String("mutex", mutex))
-				ic.singleRun(logger)
-				err := lock.Unlock()
-				if err != nil {
-					logger.Error("Could not unlock mutex", zap.Error(err), zap.String("mutex", mutex))
-				}
+				logger.Error("Could not unlock mutex", zap.Error(err), zap.String("mutex", mutex))
 			}
 		}
-		ic.stop()
-		logger.Debug("Crawler run finished")
 	}
+	ic.stop()
+	logger.Debug("Crawler run finished")
 	atomicSet(&ic.stopped, true)
 }
 
