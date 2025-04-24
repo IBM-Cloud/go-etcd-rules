@@ -133,7 +133,6 @@ func (ic *intCrawler) run() {
 			}
 		}
 	}
-	ic.stop()
 	logger.Debug("Crawler run finished")
 	atomicSet(&ic.stopped, true)
 }
