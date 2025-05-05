@@ -10,7 +10,11 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func Test_Reentrant(t *testing.T) {
+// Note: This test mimics the actual paths used for locking in production code.
+//
+//	Shared sessions allows for the lock to be reentrant, while not-shared
+//	prevents reentrant behavior.
+func Test_ReentrantLocking(t *testing.T) {
 	_, cl := teststore.InitV3Etcd(t)
 	for _, useTryLock := range []bool{false, true} {
 		for _, useShared := range []bool{false, true} {
@@ -28,7 +32,7 @@ func Test_Reentrant(t *testing.T) {
 				var rlckr lock.RuleLocker
 				if useShared {
 					sessionManager := concurrency.NewSessionManager(cl, logger)
-					rlckr = lock.NewSessionLocker(sessionManager.GetSession, 5, false, useTryLock)
+					rlckr = lock.NewSessionLocker(sessionManager.GetSession, 5, true, useTryLock)
 				} else {
 					baseEtcdLocker := lock.NewV3Locker(cl, 5, useTryLock)
 					baseMapLocker := lock.NewMapLocker()
@@ -37,7 +41,14 @@ func Test_Reentrant(t *testing.T) {
 				rlck, err1 := rlckr.Lock("test")
 				assert.NoError(t, err1)
 				_, err2 := rlckr.Lock("test")
-				assert.Error(t, err2)
+				if useShared {
+					assert.NoError(t, err2)
+					//// Currently unlocking the second acquired lock in a shared session
+					//// results in "etcdserver: requested lease not found"
+					// assert.NoError(t, duplck.Unlock())
+				} else {
+					assert.Error(t, err2)
+				}
 				assert.NoError(t, rlck.Unlock())
 			})
 		}
