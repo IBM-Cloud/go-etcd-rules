@@ -93,7 +93,7 @@ func (v3l *v3Lock) Unlock(_ ...Option) error {
 	if v3l.mutex != nil {
 		// This should be given every chance to complete, otherwise
 		// a lock could prevent future interactions with a resource.
-		ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 		defer cancel()
 		err := v3l.mutex.Unlock(ctx)
 		// If the lock failed to be released, as least closing the session
