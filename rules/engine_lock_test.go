@@ -18,39 +18,49 @@ func Test_ReentrantLocking(t *testing.T) {
 	_, cl := teststore.InitV3Etcd(t)
 	for _, useTryLock := range []bool{false, true} {
 		for _, useShared := range []bool{false, true} {
-			var name string
-			if useTryLock {
-				name = "use_try_lock"
-			} else {
-				name = "use_lock"
-			}
-			if useShared {
-				name += "_shared"
-			}
-			t.Run(name, func(t *testing.T) {
-				logger := getTestLogger()
-				var rlckr lock.RuleLocker
-				if useShared {
-					sessionManager := concurrency.NewSessionManager(cl, logger)
-					rlckr = lock.NewSessionLocker(sessionManager.GetSession, 5, true, useTryLock)
-				} else {
-					baseEtcdLocker := lock.NewV3Locker(cl, 5, useTryLock)
-					baseMapLocker := lock.NewMapLocker()
-					rlckr = lock.NewNestedLocker(baseMapLocker, baseEtcdLocker)
+			for _, closeSession := range []bool{false, true} {
+				if !useShared && closeSession {
+					continue
 				}
-				rlck, err1 := rlckr.Lock("test")
-				assert.NoError(t, err1)
-				_, err2 := rlckr.Lock("test")
-				if useShared {
-					assert.NoError(t, err2)
-					//// Currently unlocking the second acquired lock in a shared session
-					//// results in "etcdserver: requested lease not found"
-					// assert.NoError(t, duplck.Unlock())
+				var name string
+				if useTryLock {
+					name = "use_try_lock"
 				} else {
-					assert.Error(t, err2)
+					name = "use_lock"
 				}
-				assert.NoError(t, rlck.Unlock())
-			})
+				if useShared {
+					name += "_shared"
+				}
+				if closeSession {
+					name += "_closed"
+				}
+				t.Run(name, func(t *testing.T) {
+					logger := getTestLogger()
+					var rlckr lock.RuleLocker
+					if useShared {
+						sessionManager := concurrency.NewSessionManager(cl, logger)
+						rlckr = lock.NewSessionLocker(sessionManager.GetSession, 5, closeSession, useTryLock)
+					} else {
+						baseEtcdLocker := lock.NewV3Locker(cl, 5, useTryLock)
+						baseMapLocker := lock.NewMapLocker()
+						rlckr = lock.NewNestedLocker(baseMapLocker, baseEtcdLocker)
+					}
+					rlck, err1 := rlckr.Lock("test")
+					assert.NoError(t, err1)
+					duplck, err2 := rlckr.Lock("test")
+					if useShared {
+						assert.NoError(t, err2)
+						assert.NoError(t, duplck.Unlock())
+					} else {
+						assert.Error(t, err2)
+					}
+					if closeSession {
+						assert.Error(t, rlck.Unlock())
+					} else {
+						assert.NoError(t, rlck.Unlock())
+					}
+				})
+			}
 		}
 	}
 }
