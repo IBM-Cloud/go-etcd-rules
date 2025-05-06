@@ -18,6 +18,7 @@ func newRuleManager(constraints map[string]constraint, enhancedRuleFilter bool) 
 	rm := ruleManager{
 		rulesBySlashCount:  map[int]map[DynamicRule]int{},
 		prefixes:           map[string]string{},
+		watcherPrefixes:    map[string]string{},
 		constraints:        constraints,
 		currentIndex:       0,
 		rules:              []DynamicRule{},
