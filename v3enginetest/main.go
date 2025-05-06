@@ -20,11 +20,14 @@ var (
 )
 
 const (
-	dataPath   = "/rulesEngine/data/:id"
-	blockPath  = "/rulesEngine/block/:id"
-	donePath   = "/rulesEngine/done/:id"
-	doneRuleID = "done"
-	doneID     = "4567"
+	dataPath          = "/rulesEngine/data/:id"
+	blockPath         = "/rulesEngine/block/:id"
+	donePath          = "/rulesEngine/done/:id"
+	doneCrawlerPath   = "/rulesEngineCrawler/done/:id"
+	doneRuleID        = "done"
+	doneRuleIDCrawler = "doneCrawler"
+	doneID            = "4567"
+	doneIDCrawler     = "8910"
 )
 
 type polled struct {
@@ -170,6 +173,7 @@ func main() {
 	// Set up a simple callback to verify that the callback handler is working correctly.
 	doneFalse := "false"
 	doneRule, err := rules.NewEqualsLiteralRule(donePath, &doneFalse)
+	doneCrawlerRule, err := rules.NewEqualsLiteralRule(doneCrawlerPath, &doneFalse)
 	check(err)
 	engine.AddRule(doneRule, "/rulesEngineDone/:id", func(task *rules.V3RuleTask) {
 		path := task.Attr.Format(donePath)
@@ -177,6 +181,21 @@ func main() {
 		_, err := kv.Put(task.Context, path, doneTrue)
 		check(err)
 	}, rules.RuleID(doneRuleID))
+
+	engine.AddRule(doneRule, "/rulesEngineDone/:id", func(task *rules.V3RuleTask) {
+		path := task.Attr.Format(donePath)
+		doneTrue := "true"
+		_, err := kv.Put(task.Context, path, doneTrue)
+		check(err)
+	}, rules.RuleID(doneRuleID))
+
+	// create a crawler only rule
+	engine.AddRule(doneCrawlerRule, "/rulesEngineCrawlerDone/:id", func(task *rules.V3RuleTask) {
+		path := task.Attr.Format(doneCrawlerPath)
+		doneTrue := "true"
+		_, err := kv.Put(task.Context, path, doneTrue)
+		check(err)
+	}, rules.RuleID(doneRuleIDCrawler), rules.CrawlerOnly())
 
 	engine.Run()
 	time.Sleep(time.Second)
@@ -200,10 +219,21 @@ func main() {
 	_, err = kv.Put(context.Background(), strings.Replace(donePath, ":id", doneID, 1), doneFalse)
 	check(err)
 
-	// Verify that it ran
-	tenSecCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-	err = cbHandler.WaitForCallback(tenSecCtx, doneRuleID, map[string]string{"id": doneID})
+	// Trigger the done crawler rule
+	_, err = kv.Put(context.Background(), strings.Replace(doneCrawlerPath, ":id", doneIDCrawler, 1), doneFalse)
 	check(err)
+
+	// Verify that it ran
+	tenSecCtx1, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	err = cbHandler.WaitForCallback(tenSecCtx1, doneRuleID, map[string]string{"id": doneID})
+	check(err)
+
+	// Verify the crawler rule ran
+	tenSecCtx2, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+	err = cbHandler.WaitForCallback(tenSecCtx2, doneRuleIDCrawler, map[string]string{"id": doneIDCrawler})
+	check(err)
+
 	_ = engine.Shutdown(ctx) // #nosec G104 -- For testing only
 }
