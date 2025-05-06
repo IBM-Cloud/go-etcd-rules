@@ -110,13 +110,19 @@ func reducePrefixes(prefixes map[string]string) map[string]string {
 	sorted := sortPrefixesByLength(prefixes)
 	for _, prefix := range sorted {
 		add := true
-		for addedPrefix := range out {
+		priority := prefixes[prefix]
+		for addedPrefix, priorityCheck := range out {
 			if strings.HasPrefix(prefix, addedPrefix) {
 				add = false
+				// if any overlapping prefixes are marked
+				// as high priority, keep priority high
+				if priorityCheck == "high" {
+					priority = "high"
+				}
 			}
 		}
 		if add {
-			out[prefix] = ""
+			out[prefix] = priority
 		}
 	}
 	return out
