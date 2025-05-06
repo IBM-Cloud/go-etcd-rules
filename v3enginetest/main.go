@@ -173,6 +173,7 @@ func main() {
 	// Set up a simple callback to verify that the callback handler is working correctly.
 	doneFalse := "false"
 	doneRule, err := rules.NewEqualsLiteralRule(donePath, &doneFalse)
+	check(err)
 	doneCrawlerRule, err := rules.NewEqualsLiteralRule(doneCrawlerPath, &doneFalse)
 	check(err)
 	engine.AddRule(doneRule, "/rulesEngineDone/:id", func(task *rules.V3RuleTask) {
