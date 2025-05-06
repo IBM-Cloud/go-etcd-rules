@@ -1,6 +1,8 @@
 package rules
 
 import (
+	"maps"
+	"slices"
 	"strings"
 )
 
@@ -95,6 +97,10 @@ func (rm *ruleManager) getPrioritizedPrefixes() []string {
 		}
 	}
 	return append(high, low...)
+}
+
+func (rm *ruleManager) getWatcherPrefixes() []string {
+	return slices.Collect(maps.Keys(rm.watcherPrefixes))
 }
 
 // Removes any path prefixes that have other path prefixes as
