@@ -270,8 +270,8 @@ func (e *baseEngine) addRule(rule DynamicRule,
 	lockPattern string,
 	callback interface{},
 	options ...RuleOption) {
-	ruleIndex := e.ruleMgr.addRule(rule)
 	opts := makeRuleOptions(options...)
+	ruleIndex := e.ruleMgr.addRule(rule, opts)
 	ttl := e.options.lockTimeout
 	if opts.lockTimeout > 0 {
 		ttl = opts.lockTimeout
@@ -293,11 +293,8 @@ func (e *baseEngine) addRule(rule DynamicRule,
 
 func (e *v3Engine) Run() {
 	e.logger.Info("Rules engine options", zap.Object("options", &e.options), zap.Int("rules", len(e.ruleMgr.rules)))
-	prefixSlice := []string{}
-	prefixes := e.ruleMgr.prefixes
 	// This is a map; used to ensure there are no duplicates
-	for prefix := range prefixes {
-		prefixSlice = append(prefixSlice, prefix)
+	for prefix := range e.ruleMgr.watcherPrefixes {
 		logger := e.logger.With(zap.String("prefix", prefix))
 		w, err := newV3Watcher(e.cl, prefix, logger, e.baseEngine.keyProc, e.options.watchTimeout, e.kvWrapper, e.metrics, e.watcherWrapper, e.options.watchDelay)
 		if err != nil {
@@ -314,7 +311,7 @@ func (e *v3Engine) Run() {
 		logger,
 		e.options.crawlMutex,
 		e.options.lockAcquisitionTimeout,
-		prefixSlice,
+		e.ruleMgr.getPrioritizedPrefixes(),
 		e.kvWrapper,
 		e.options.syncDelay,
 		e.locker,
