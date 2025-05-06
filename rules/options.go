@@ -400,7 +400,8 @@ func CrawlerOnly() RuleOption {
 
 // HighPriority places priority on fields
 // that are associated with a rule during
-// a crawler run
+// a crawler run; watcher processing will
+// still be done unless CrawlerOnly() is used
 func HighPriority() RuleOption {
 	return ruleOptionFunction((func(o *ruleOptions) {
 		o.highPriority = true
