@@ -71,3 +71,20 @@ func TestCombineRuleData(t *testing.T) {
 		compareUnorderedStringArrays(t, testCase.expectedData, combineRuleData(rules, source), "index %d", idx)
 	}
 }
+
+func TestGetPrioritizedPrefixes(t *testing.T) {
+	rm := newRuleManager(map[string]constraint{}, false)
+	rule1, err1 := NewEqualsLiteralRule("/this/is/:a/rule", nil)
+	assert.NoError(t, err1)
+	optsHigh := makeRuleOptions(HighPriority())
+	optsLow := makeRuleOptions()
+	rm.addRule(rule1, optsHigh)
+	rule2, err2 := NewEqualsLiteralRule("/that/is/:a/nother", nil)
+	assert.NoError(t, err2)
+	rm.addRule(rule2, optsLow)
+	rule3, err3 := NewEqualsLiteralRule("/this/is/:a", nil)
+	assert.NoError(t, err3)
+	rm.addRule(rule3, optsLow)
+
+	assert.Equal(t, []string{"/this/is/", "/that/is/"}, rm.getPrioritizedPrefixes())
+}
