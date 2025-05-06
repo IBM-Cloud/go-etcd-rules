@@ -9,6 +9,7 @@ type ruleManager struct {
 	currentIndex       int
 	rulesBySlashCount  map[int]map[DynamicRule]int
 	prefixes           map[string]string
+	watcherPrefixes    map[string]string
 	rules              []DynamicRule
 	enhancedRuleFilter bool
 }
@@ -49,7 +50,7 @@ func (rm *ruleManager) getStaticRules(key string, value *string) map[staticRule]
 	return out
 }
 
-func (rm *ruleManager) addRule(rule DynamicRule) int {
+func (rm *ruleManager) addRule(rule DynamicRule, opts ruleOptions) int {
 	rm.rules = append(rm.rules, rule)
 	for _, pattern := range rule.getPatterns() {
 		slashCount := strings.Count(pattern, "/")
@@ -61,12 +62,38 @@ func (rm *ruleManager) addRule(rule DynamicRule) int {
 		rules[rule] = rm.currentIndex
 	}
 	for _, prefix := range rule.getPrefixesWithConstraints(rm.constraints) {
-		rm.prefixes[prefix] = ""
+		if !opts.crawlerOnly {
+			rm.watcherPrefixes[prefix] = ""
+		}
+
+		// ensure that no high priority is overwritten
+		if rm.prefixes[prefix] != "high" {
+			if !opts.highPriority {
+				rm.prefixes[prefix] = ""
+			} else {
+				// assign high priority if specified
+				rm.prefixes[prefix] = "high"
+			}
+		}
 	}
 	rm.prefixes = reducePrefixes(rm.prefixes)
+	rm.watcherPrefixes = reducePrefixes(rm.watcherPrefixes)
 	lastIndex := rm.currentIndex
 	rm.currentIndex = rm.currentIndex + 1
 	return lastIndex
+}
+
+func (rm *ruleManager) getPrioritizedPrefixes() []string {
+	high := []string{}
+	low := []string{}
+	for prefix, priority := range rm.prefixes {
+		if priority == "high" {
+			high = append(high, prefix)
+		} else {
+			low = append(low, prefix)
+		}
+	}
+	return append(high, low...)
 }
 
 // Removes any path prefixes that have other path prefixes as
