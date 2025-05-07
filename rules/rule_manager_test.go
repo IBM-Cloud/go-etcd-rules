@@ -77,7 +77,7 @@ func TestGetPrioritizedPrefixes(t *testing.T) {
 	rule1, err1 := NewEqualsLiteralRule("/this/is/:a/rule", nil)
 	assert.NoError(t, err1)
 	optsLow := makeRuleOptions()
-	rm.addRule(rule1, makeRuleOptions(Priority(100000)))
+	rm.addRule(rule1, makeRuleOptions(Priority(100)))
 	rule2, err2 := NewEqualsLiteralRule("/that/is/:a/nother", nil)
 	assert.NoError(t, err2)
 	rm.addRule(rule2, optsLow)
@@ -86,7 +86,7 @@ func TestGetPrioritizedPrefixes(t *testing.T) {
 	rm.addRule(rule3, optsLow)
 	rule4, err4 := NewEqualsLiteralRule("/this/one/is/:a", nil)
 	assert.NoError(t, err4)
-	rm.addRule(rule4, makeRuleOptions(Priority(8)))
+	rm.addRule(rule4, makeRuleOptions(Priority(200)))
 
-	assert.Equal(t, []string{"/this/is/", "/this/one/is/", "/that/is/"}, rm.getPrioritizedPrefixes())
+	assert.Equal(t, []string{"/this/one/is/", "/this/is/", "/that/is/"}, rm.getPrioritizedPrefixes())
 }
