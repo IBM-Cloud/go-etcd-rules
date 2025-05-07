@@ -295,6 +295,7 @@ func (e *v3Engine) Run() {
 	e.logger.Info("Rules engine options", zap.Object("options", &e.options), zap.Int("rules", len(e.ruleMgr.rules)))
 	for _, prefix := range e.ruleMgr.getWatcherPrefixes() {
 		logger := e.logger.With(zap.String("prefix", prefix))
+		logger.Info("starting watcher for prefix")
 		w, err := newV3Watcher(e.cl, prefix, logger, e.baseEngine.keyProc, e.options.watchTimeout, e.kvWrapper, e.metrics, e.watcherWrapper, e.options.watchDelay)
 		if err != nil {
 			e.logger.Fatal("Failed to initialize watcher", zap.String("prefix", prefix))
