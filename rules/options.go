@@ -340,15 +340,15 @@ type ruleOptions struct {
 	contextProvider ContextProvider
 	ruleID          string
 	crawlerOnly     bool
-	highPriority    bool
+	priority        uint
 }
 
 func makeRuleOptions(options ...RuleOption) ruleOptions {
 	opts := ruleOptions{
-		lockTimeout:  0,
-		ruleID:       defaultRuleID,
-		crawlerOnly:  false,
-		highPriority: false,
+		lockTimeout: 0,
+		ruleID:      defaultRuleID,
+		crawlerOnly: false,
+		priority:    0,
 	}
 	for _, opt := range options {
 		opt.apply(&opts)
@@ -398,12 +398,15 @@ func CrawlerOnly() RuleOption {
 	}))
 }
 
-// HighPriority places priority on fields
+// Priority sets the priority for fields
 // that are associated with a rule during
-// a crawler run; watcher processing will
-// still be done unless CrawlerOnly() is used
-func HighPriority() RuleOption {
+// a crawler run.  The higher the number, the
+// higher the priority.  The default is 0, or
+// lowest priority.
+// Watcher processing will
+// still be done unless CrawlerOnly() is used.
+func Priority(priority uint) RuleOption {
 	return ruleOptionFunction((func(o *ruleOptions) {
-		o.highPriority = true
+		o.priority = priority
 	}))
 }

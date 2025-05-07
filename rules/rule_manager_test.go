@@ -31,15 +31,15 @@ func TestRuleManager(t *testing.T) {
 }
 
 func TestReducePrefixes(t *testing.T) {
-	prefixes := map[string]string{"/servers/internal/states": "", "/servers/internal": "", "/servers": ""}
+	prefixes := map[string]uint{"/servers/internal/states": 0, "/servers/internal": 0, "/servers": 0}
 	prefixes = reducePrefixes(prefixes)
 	assert.Equal(t, 1, len(prefixes))
-	assert.Equal(t, "", prefixes["/servers"])
+	assert.Equal(t, uint(0), prefixes["/servers"])
 
 }
 
 func TestSortPrefixesByLength(t *testing.T) {
-	prefixes := map[string]string{"/servers/internal": "", "/servers/internal/states": "", "/servers": ""}
+	prefixes := map[string]uint{"/servers/internal": 0, "/servers/internal/states": 0, "/servers": 0}
 	sorted := sortPrefixesByLength(prefixes)
 	assert.Equal(t, "/servers/internal/states", sorted[2])
 	assert.Equal(t, "/servers/internal", sorted[1])
@@ -76,15 +76,17 @@ func TestGetPrioritizedPrefixes(t *testing.T) {
 	rm := newRuleManager(map[string]constraint{}, false)
 	rule1, err1 := NewEqualsLiteralRule("/this/is/:a/rule", nil)
 	assert.NoError(t, err1)
-	optsHigh := makeRuleOptions(HighPriority())
 	optsLow := makeRuleOptions()
-	rm.addRule(rule1, optsHigh)
+	rm.addRule(rule1, makeRuleOptions(Priority(100000)))
 	rule2, err2 := NewEqualsLiteralRule("/that/is/:a/nother", nil)
 	assert.NoError(t, err2)
 	rm.addRule(rule2, optsLow)
 	rule3, err3 := NewEqualsLiteralRule("/this/is/:a", nil)
 	assert.NoError(t, err3)
 	rm.addRule(rule3, optsLow)
+	rule4, err4 := NewEqualsLiteralRule("/this/one/is/:a", nil)
+	assert.NoError(t, err4)
+	rm.addRule(rule4, makeRuleOptions(Priority(8)))
 
-	assert.Equal(t, []string{"/this/is/", "/that/is/"}, rm.getPrioritizedPrefixes())
+	assert.Equal(t, []string{"/this/is/", "/this/one/is/", "/that/is/"}, rm.getPrioritizedPrefixes())
 }

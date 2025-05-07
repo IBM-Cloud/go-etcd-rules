@@ -10,8 +10,8 @@ type ruleManager struct {
 	constraints        map[string]constraint
 	currentIndex       int
 	rulesBySlashCount  map[int]map[DynamicRule]int
-	prefixes           map[string]string
-	watcherPrefixes    map[string]string
+	prefixes           map[string]uint
+	watcherPrefixes    map[string]uint
 	rules              []DynamicRule
 	enhancedRuleFilter bool
 }
@@ -19,8 +19,8 @@ type ruleManager struct {
 func newRuleManager(constraints map[string]constraint, enhancedRuleFilter bool) ruleManager {
 	rm := ruleManager{
 		rulesBySlashCount:  map[int]map[DynamicRule]int{},
-		prefixes:           map[string]string{},
-		watcherPrefixes:    map[string]string{},
+		prefixes:           map[string]uint{},
+		watcherPrefixes:    map[string]uint{},
 		constraints:        constraints,
 		currentIndex:       0,
 		rules:              []DynamicRule{},
@@ -66,18 +66,15 @@ func (rm *ruleManager) addRule(rule DynamicRule, opts ruleOptions) int {
 	}
 	for _, prefix := range rule.getPrefixesWithConstraints(rm.constraints) {
 		if !opts.crawlerOnly {
-			rm.watcherPrefixes[prefix] = ""
+			rm.watcherPrefixes[prefix] = 0
 		}
 
 		// ensure that no high priority is overwritten
-		if rm.prefixes[prefix] != "high" {
-			if !opts.highPriority {
-				rm.prefixes[prefix] = ""
-			} else {
-				// assign high priority if specified
-				rm.prefixes[prefix] = "high"
-			}
+		_, currentPriority := rm.prefixes[prefix]
+		if !currentPriority || rm.prefixes[prefix] < opts.priority {
+			rm.prefixes[prefix] = opts.priority
 		}
+
 	}
 	rm.prefixes = reducePrefixes(rm.prefixes)
 	rm.watcherPrefixes = reducePrefixes(rm.watcherPrefixes)
@@ -87,16 +84,20 @@ func (rm *ruleManager) addRule(rule DynamicRule, opts ruleOptions) int {
 }
 
 func (rm *ruleManager) getPrioritizedPrefixes() []string {
-	high := []string{}
-	low := []string{}
-	for prefix, priority := range rm.prefixes {
-		if priority == "high" {
-			high = append(high, prefix)
-		} else {
-			low = append(low, prefix)
-		}
+	out := []string{}
+	for prefix := range rm.prefixes {
+		out = append(out, prefix)
 	}
-	return append(high, low...)
+	for i := 1; i < len(out); i++ {
+		x := out[i]
+		j := i - 1
+		for j >= 0 && rm.prefixes[out[j]] < rm.prefixes[x] {
+			out[j+1] = out[j]
+			j = j - 1
+		}
+		out[j+1] = x
+	}
+	return out
 }
 
 func (rm *ruleManager) getWatcherPrefixes() []string {
@@ -105,8 +106,8 @@ func (rm *ruleManager) getWatcherPrefixes() []string {
 
 // Removes any path prefixes that have other path prefixes as
 // string prefixes
-func reducePrefixes(prefixes map[string]string) map[string]string {
-	out := map[string]string{}
+func reducePrefixes(prefixes map[string]uint) map[string]uint {
+	out := map[string]uint{}
 	sorted := sortPrefixesByLength(prefixes)
 	for _, prefix := range sorted {
 		add := true
@@ -114,10 +115,10 @@ func reducePrefixes(prefixes map[string]string) map[string]string {
 		for addedPrefix, priorityCheck := range out {
 			if strings.HasPrefix(prefix, addedPrefix) {
 				add = false
-				// if any overlapping prefixes are marked
-				// as high priority, keep priority high
-				if priorityCheck == "high" {
-					priority = "high"
+				// use the highest priority of any
+				// overlapping prefixes
+				if priorityCheck > priority {
+					priority = priorityCheck
 				}
 			}
 		}
@@ -129,7 +130,7 @@ func reducePrefixes(prefixes map[string]string) map[string]string {
 }
 
 // Sorts prefixes shortest to longest
-func sortPrefixesByLength(prefixes map[string]string) []string {
+func sortPrefixesByLength(prefixes map[string]uint) []string {
 	out := []string{}
 	for prefix := range prefixes {
 		out = append(out, prefix)
