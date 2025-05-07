@@ -183,16 +183,12 @@ func main() {
 		check(err)
 	}, rules.RuleID(doneRuleID))
 
-	engine.AddRule(doneRule, "/rulesEngineDone/:id", func(task *rules.V3RuleTask) {
-		path := task.Attr.Format(donePath)
-		doneTrue := "true"
-		_, err := kv.Put(task.Context, path, doneTrue)
-		check(err)
-	}, rules.RuleID(doneRuleID))
-
 	// create a crawler only rule
 	engine.AddRule(doneCrawlerRule, "/rulesEngineCrawlerDone/:id", func(task *rules.V3RuleTask) {
 		path := task.Attr.Format(doneCrawlerPath)
+		if task.Metadata["source"] != "crawler" {
+			panic("Crawler only rule not processed by the crawler")
+		}
 		doneTrue := "true"
 		_, err := kv.Put(task.Context, path, doneTrue)
 		check(err)
