@@ -391,7 +391,7 @@ func RuleID(ruleID string) RuleOption {
 }
 
 // CrawlerOnly makes it so the rule is only
-// evaluated by crawler and is not assigned a watcher
+// evaluated by the crawler and is not assigned a watcher
 func CrawlerOnly() RuleOption {
 	return ruleOptionFunction((func(o *ruleOptions) {
 		o.crawlerOnly = true
