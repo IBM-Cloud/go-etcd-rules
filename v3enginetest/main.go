@@ -231,7 +231,7 @@ func main() {
 	check(err)
 
 	// Verify the crawler rule ran
-	tenSecCtx2, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	tenSecCtx2, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	err = cbHandler.WaitForCallback(tenSecCtx2, doneRuleIDCrawler, map[string]string{"id": doneIDCrawler})
 	check(err)

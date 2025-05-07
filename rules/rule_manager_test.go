@@ -6,6 +6,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+var defaultOpts = ruleMgrRuleOptions{priority: 0, crawlerOnly: false}
+
 func TestRuleManager(t *testing.T) {
 	for _, erf := range []bool{true, false} {
 		rm := newRuleManager(map[string]constraint{}, erf)
@@ -31,15 +33,14 @@ func TestRuleManager(t *testing.T) {
 }
 
 func TestReducePrefixes(t *testing.T) {
-	prefixes := map[string]uint{"/servers/internal/states": 0, "/servers/internal": 0, "/servers": 0}
+	prefixes := map[string]ruleMgrRuleOptions{"/servers/internal/states": defaultOpts, "/servers/internal": {priority: 10, crawlerOnly: true}, "/servers": {priority: 0, crawlerOnly: true}}
 	prefixes = reducePrefixes(prefixes)
 	assert.Equal(t, 1, len(prefixes))
-	assert.Equal(t, uint(0), prefixes["/servers"])
-
+	assert.Equal(t, ruleMgrRuleOptions{priority: 10, crawlerOnly: false}, prefixes["/servers"])
 }
 
 func TestSortPrefixesByLength(t *testing.T) {
-	prefixes := map[string]uint{"/servers/internal": 0, "/servers/internal/states": 0, "/servers": 0}
+	prefixes := map[string]ruleMgrRuleOptions{"/servers/internal": defaultOpts, "/servers/internal/states": defaultOpts, "/servers": defaultOpts}
 	sorted := sortPrefixesByLength(prefixes)
 	assert.Equal(t, "/servers/internal/states", sorted[2])
 	assert.Equal(t, "/servers/internal", sorted[1])
@@ -74,18 +75,55 @@ func TestCombineRuleData(t *testing.T) {
 
 func TestGetPrioritizedPrefixes(t *testing.T) {
 	rm := newRuleManager(map[string]constraint{}, false)
+
+	// Final priority - 300
+	// shorter prefix rule, with lower priority than later overlapping rule
 	rule1, err1 := NewEqualsLiteralRule("/this/is/:a/rule", nil)
 	assert.NoError(t, err1)
-	rm.addRule(rule1, makeRuleOptions(Priority(200)))
+	rm.addRule(rule1, makeRuleOptions(Priority(100)))
+
+	// overlapping, longer prefix with a higher priority
+	rule5, err5 := NewEqualsLiteralRule("/this/is/overlapping/:a", nil)
+	assert.NoError(t, err5)
+	rm.addRule(rule5, makeRuleOptions(Priority(300)))
+
+	// Final priority - 200
+	// same prefix as earlier, largest one should be considered
+	rule6, err6 := NewEqualsLiteralRule("/these/are/:a/ruleset", nil)
+	assert.NoError(t, err6)
+	rm.addRule(rule6, makeRuleOptions(Priority(200)))
+
+	// same prefix as earlier, largest one should be considered
+	rule3, err3 := NewEqualsLiteralRule("/these/are/:a", nil)
+	assert.NoError(t, err3)
+	rm.addRule(rule3, makeRuleOptions(Priority(50)))
+
+	// Final priority - 0
+	// no priority, should be last
 	rule2, err2 := NewEqualsLiteralRule("/that/is/:a/nother", nil)
 	assert.NoError(t, err2)
 	rm.addRule(rule2, makeRuleOptions())
-	rule3, err3 := NewEqualsLiteralRule("/this/is/:a", nil)
-	assert.NoError(t, err3)
-	rm.addRule(rule3, makeRuleOptions(Priority(50)))
+
+	// Final priority - 100
+	// third tier priority rule
 	rule4, err4 := NewEqualsLiteralRule("/this/one/is/:a", nil)
 	assert.NoError(t, err4)
 	rm.addRule(rule4, makeRuleOptions(Priority(100)))
 
-	assert.Equal(t, []string{"/this/is/", "/this/one/is/", "/that/is/"}, rm.getPrioritizedPrefixes())
+	assert.Equal(t, []string{"/this/is/", "/these/are/", "/this/one/is/", "/that/is/"}, rm.getPrioritizedPrefixes())
+}
+
+func TestAddRuleCrawlerOnly(t *testing.T) {
+	rm := newRuleManager(map[string]constraint{}, false)
+
+	rule1, err1 := NewEqualsLiteralRule("/this/is/:a/rule", nil)
+	assert.NoError(t, err1)
+	rm.addRule(rule1, makeRuleOptions(Priority(100), CrawlerOnly()))
+
+	// overlapping, longer prefix with a higher priority
+	rule5, err5 := NewEqualsLiteralRule("/this/is/overlapping/:a", nil)
+	assert.NoError(t, err5)
+	rm.addRule(rule5, makeRuleOptions(Priority(300), CrawlerOnly()))
+
+	assert.True(t, assert.ObjectsAreEqual(map[string]ruleMgrRuleOptions{"/this/is/": {priority: 300, crawlerOnly: true}}, rm.prefixes))
 }
