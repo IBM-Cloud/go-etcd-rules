@@ -3,6 +3,7 @@ package rules
 import (
 	"maps"
 	"slices"
+	"sort"
 	"strings"
 )
 
@@ -88,15 +89,10 @@ func (rm *ruleManager) getPrioritizedPrefixes() []string {
 	for prefix := range rm.prefixes {
 		out = append(out, prefix)
 	}
-	for i := 1; i < len(out); i++ {
-		x := out[i]
-		j := i - 1
-		for j >= 0 && rm.prefixes[out[j]] < rm.prefixes[x] {
-			out[j+1] = out[j]
-			j = j - 1
-		}
-		out[j+1] = x
-	}
+	// sort slice by highest priority value
+	sort.SliceStable(out, func(i, j int) bool {
+		return rm.prefixes[out[i]] > rm.prefixes[out[j]]
+	})
 	return out
 }
 
