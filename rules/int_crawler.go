@@ -187,6 +187,7 @@ func (ic *intCrawler) singleRun(logger *zap.Logger) {
 	}
 	logger.Info("Crawler run complete", zap.Duration("time", time.Since(crawlerStart)), zap.Int("values", len(values)))
 }
+
 func (ic *intCrawler) processData(values map[string]string, logger *zap.Logger) {
 	api := &cacheReadAPI{values: values}
 	for k := range values {
