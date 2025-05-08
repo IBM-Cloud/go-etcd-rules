@@ -10,7 +10,7 @@ type ruleManager struct {
 	currentIndex       int
 	rulesBySlashCount  map[int]map[DynamicRule]int
 	prefixes           map[string]ruleMgrRuleOptions
-	rules              []DynamicRule
+	rules              map[DynamicRule]uint
 	enhancedRuleFilter bool
 }
 
@@ -25,15 +25,16 @@ func newRuleManager(constraints map[string]constraint, enhancedRuleFilter bool) 
 		prefixes:           map[string]ruleMgrRuleOptions{},
 		constraints:        constraints,
 		currentIndex:       0,
-		rules:              []DynamicRule{},
+		rules:              map[DynamicRule]uint{},
 		enhancedRuleFilter: enhancedRuleFilter,
 	}
 	return rm
 }
 
-func (rm *ruleManager) getStaticRules(key string, value *string) map[staticRule]int {
+func (rm *ruleManager) getStaticRules(key string, value *string) (map[staticRule]int, []staticRule) {
 	slashCount := strings.Count(key, "/")
 	out := make(map[staticRule]int)
+	prioritized := make(map[staticRule]uint)
 	rules, ok := rm.rulesBySlashCount[slashCount]
 	if ok {
 		for rule, index := range rules {
@@ -43,20 +44,22 @@ func (rm *ruleManager) getStaticRules(key string, value *string) map[staticRule]
 					qSat := sRule.qSatisfiable(key, value)
 					if qSat == qTrue || qSat == qMaybe {
 						out[sRule] = index
+						prioritized[sRule] = rm.rules[rule]
 					}
 				} else {
 					if sRule.satisfiable(key, value) {
 						out[sRule] = index
+						prioritized[sRule] = rm.rules[rule]
 					}
 				}
 			}
 		}
 	}
-	return out
+	return out, sortRulesByPriority(prioritized)
 }
 
 func (rm *ruleManager) addRule(rule DynamicRule, opts ruleOptions) int {
-	rm.rules = append(rm.rules, rule)
+	rm.rules[rule] = opts.priority
 	for _, pattern := range rule.getPatterns() {
 		slashCount := strings.Count(pattern, "/")
 		rules, ok := rm.rulesBySlashCount[slashCount]
@@ -98,6 +101,18 @@ func (rm *ruleManager) getPrioritizedPrefixes() []string {
 	// sort slice by highest priority value
 	sort.SliceStable(out, func(i, j int) bool {
 		return rm.prefixes[out[i]].priority > rm.prefixes[out[j]].priority
+	})
+	return out
+}
+
+func sortRulesByPriority(rules map[staticRule]uint) []staticRule {
+	out := []staticRule{}
+	for rule := range rules {
+		out = append(out, rule)
+	}
+	// sort slice by highest priority value
+	sort.SliceStable(out, func(i, j int) bool {
+		return rules[out[i]] > rules[out[j]]
 	})
 	return out
 }
