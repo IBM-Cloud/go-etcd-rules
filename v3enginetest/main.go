@@ -183,16 +183,31 @@ func main() {
 		check(err)
 	}, rules.RuleID(doneRuleID))
 
-	// create a crawler only rule
+	// create a no priority crawler only rule
+	highPriorityCalled := false
 	engine.AddRule(doneCrawlerRule, "/rulesEngineCrawlerDone/:id", func(task *rules.V3RuleTask) {
 		path := task.Attr.Format(doneCrawlerPath)
 		if task.Metadata["source"] != "crawler" {
 			panic("Crawler only rule not processed by the crawler")
+		} else if !highPriorityCalled {
+			panic("High priority crawler rule not called yet")
 		}
 		doneTrue := "true"
 		_, err := kv.Put(task.Context, path, doneTrue)
 		check(err)
 	}, rules.RuleID(doneRuleIDCrawler), rules.CrawlerOnly())
+
+	// create a high priority crawler only rule
+	engine.AddRule(doneCrawlerRule, "/rulesEngineCrawlerDone/:id", func(task *rules.V3RuleTask) {
+		path := task.Attr.Format(doneCrawlerPath)
+		if task.Metadata["source"] != "crawler" {
+			panic("Crawler only rule not processed by the crawler")
+		}
+		highPriorityCalled = true
+		doneTrue := "true"
+		_, err := kv.Put(task.Context, path, doneTrue)
+		check(err)
+	}, rules.RuleID(doneRuleIDCrawler), rules.CrawlerOnly(), rules.Priority(100))
 
 	engine.Run()
 	time.Sleep(time.Second)
