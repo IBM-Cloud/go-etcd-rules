@@ -34,7 +34,7 @@ func newRuleManager(constraints map[string]constraint, enhancedRuleFilter bool) 
 func (rm *ruleManager) getStaticRules(key string, value *string) (map[staticRule]int, []staticRule) {
 	slashCount := strings.Count(key, "/")
 	out := make(map[staticRule]int)
-	prioritized := make(map[staticRule]uint)
+	toSort := make(map[staticRule]uint)
 	rules, ok := rm.rulesBySlashCount[slashCount]
 	if ok {
 		for rule, index := range rules {
@@ -44,18 +44,18 @@ func (rm *ruleManager) getStaticRules(key string, value *string) (map[staticRule
 					qSat := sRule.qSatisfiable(key, value)
 					if qSat == qTrue || qSat == qMaybe {
 						out[sRule] = index
-						prioritized[sRule] = rm.rules[rule]
+						toSort[sRule] = rm.rules[rule]
 					}
 				} else {
 					if sRule.satisfiable(key, value) {
 						out[sRule] = index
-						prioritized[sRule] = rm.rules[rule]
+						toSort[sRule] = rm.rules[rule]
 					}
 				}
 			}
 		}
 	}
-	return out, sortRulesByPriority(prioritized)
+	return out, sortRulesByPriority(toSort)
 }
 
 func (rm *ruleManager) addRule(rule DynamicRule, opts ruleOptions) int {
