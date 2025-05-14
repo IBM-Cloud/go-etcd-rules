@@ -75,6 +75,7 @@ func (bw *baseWorker) doWork(loggerPtr **zap.Logger,
 	metricsInfo metricsInfo, lockKey string, ruleID string, source string) {
 	logger := *loggerPtr
 	logger = logger.With(zap.String("ruleID", ruleID), zap.String("mutex", lockKey))
+	// TODO remove, used for debugging to see order rules are processed
 	logger.Info("Processing rule")
 	rule := *rulePtr
 	capi, err1 := bw.api.getCachedAPI(rule.getKeys())
