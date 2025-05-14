@@ -1,6 +1,33 @@
+version: "2"
 linters:
   enable:
-    # Default linters plus these:
-    # - revive  disabled for now to many minor issues
+    - forbidigo
+    # - revive TODO
+  settings:
+    staticcheck:
+      checks:
+        - "-ST1005"
+        - "-QF1008"
+    forbidigo:
+      forbid:
+        - pattern: ^fmt\.Println.*$
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
+formatters:
+  enable:
     - gofmt
-    - gosec
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
