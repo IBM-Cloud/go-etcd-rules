@@ -107,7 +107,7 @@ func newV3KeyProcessor(channel chan v3RuleWork, rm *ruleManager, kpChannel chan 
 
 func (v3kp *v3KeyProcessor) processKey(key string, value *string, api readAPI, logger *zap.Logger,
 	metadata map[string]string, timesEvaluated func(rulesID string)) {
-	logger.Info("submitting key to be processed", zap.String("key", key))
+	logger.Debug("submitting key to be processed", zap.String("key", key))
 	task := &keyTask{
 		key:            key,
 		value:          value,
@@ -176,7 +176,7 @@ func (bkp *baseKeyProcessor) processKey(key string, value *string, rapi readAPI,
 		}
 		satisfied, _ := rule.satisfied(api) // #nosec G104 -- Map lookup
 		if logger.Core().Enabled(zap.DebugLevel) {
-			logger.Info("Rule evaluated", zap.Bool("satisfied", satisfied), zap.String("rule", rule.String()), zap.String("value", fmt.Sprintf("%.30s", valueString)), zap.String("key", key))
+			logger.Debug("Rule evaluated", zap.Bool("satisfied", satisfied), zap.String("rule", rule.String()), zap.String("value", fmt.Sprintf("%.30s", valueString)), zap.String("key", key))
 		}
 		if satisfied {
 			keyPattern, ok := bkp.lockKeyPatterns[index]
