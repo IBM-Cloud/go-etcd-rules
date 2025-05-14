@@ -1,7 +1,6 @@
 package rules
 
 import (
-	"fmt"
 	"sync"
 	"time"
 
@@ -113,11 +112,9 @@ func (ic *intCrawler) isStopped() bool {
 }
 
 func (ic *intCrawler) run() {
-	logger := ic.logger.With(zap.String("source", "crawler"))
-	logger.Info(fmt.Sprintf("SET OF PRIORITIZED RULES %v", ic.prefixes))
 	atomicSet(&ic.stopped, false)
 	for !ic.isStopping() {
-		// logger := ic.logger.With(zap.String("source", "crawler"))
+		logger := ic.logger.With(zap.String("source", "crawler"))
 		if ic.mutex == nil {
 			ic.singleRun(logger)
 		} else {
@@ -198,7 +195,6 @@ func (ic *intCrawler) singleRun(logger *zap.Logger) {
 func (ic *intCrawler) processData(values map[string]string, prioritizedKeys []string, logger *zap.Logger) {
 	api := &cacheReadAPI{values: values}
 	for _, k := range prioritizedKeys {
-		logger.Info(fmt.Sprintf("Starting processing for key %v", k))
 		v := values[k]
 		if ic.isStopping() {
 			return
