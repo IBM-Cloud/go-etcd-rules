@@ -165,6 +165,7 @@ func (ic *intCrawler) singleRun(logger *zap.Logger) {
 	ic.rulesProcessedCount = make(map[string]int)
 
 	queryStart := time.Now()
+	prioritizedKeys := []string{}
 	for _, prefix := range ic.prefixes {
 		pCtx := SetMethod(ctx, crawlerMethodName+"-"+prefix)
 		resp, err := ic.kv.Get(pCtx, prefix, v3.WithPrefix())
@@ -174,12 +175,15 @@ func (ic *intCrawler) singleRun(logger *zap.Logger) {
 		}
 		for _, kv := range resp.Kvs {
 			values[string(kv.Key)] = string(kv.Value)
+			// Using a map unsorts the prefixes, keep
+			// the priority by using a slice
+			prioritizedKeys = append(prioritizedKeys, string(kv.Key))
 		}
 	}
 	metrics.CrawlerQueryTime(ic.name, queryStart)
 	metrics.CrawlerValuesCount(ic.name, len(values))
 	evalStart := time.Now()
-	ic.processData(values, logger)
+	ic.processData(values, prioritizedKeys, logger)
 	metrics.CrawlerEvalTime(ic.name, evalStart)
 
 	ic.metricMutex.Lock()
@@ -191,9 +195,10 @@ func (ic *intCrawler) singleRun(logger *zap.Logger) {
 	logger.Info("Crawler run complete", zap.Duration("time", time.Since(crawlerStart)), zap.Int("values", len(values)))
 }
 
-func (ic *intCrawler) processData(values map[string]string, logger *zap.Logger) {
+func (ic *intCrawler) processData(values map[string]string, prioritizedKeys []string, logger *zap.Logger) {
 	api := &cacheReadAPI{values: values}
-	for k := range values {
+	for _, k := range prioritizedKeys {
+		logger.Info(fmt.Sprintf("Starting processing for key %v", k))
 		v := values[k]
 		if ic.isStopping() {
 			return
