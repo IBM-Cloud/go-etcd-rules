@@ -176,7 +176,7 @@ func (bkp *baseKeyProcessor) processKey(key string, value *string, rapi readAPI,
 		}
 		satisfied, _ := rule.satisfied(api) // #nosec G104 -- Map lookup
 		if logger.Core().Enabled(zap.DebugLevel) {
-			logger.Debug("Rule evaluated", zap.Bool("satisfied", satisfied), zap.String("rule", rule.String()), zap.String("value", fmt.Sprintf("%.30s", valueString)), zap.String("key", key))
+			logger.Info("Rule evaluated", zap.Bool("satisfied", satisfied), zap.String("rule", rule.String()), zap.String("value", fmt.Sprintf("%.30s", valueString)), zap.String("key", key))
 		}
 		if satisfied {
 			keyPattern, ok := bkp.lockKeyPatterns[index]
