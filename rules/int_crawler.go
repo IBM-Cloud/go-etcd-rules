@@ -1,6 +1,7 @@
 package rules
 
 import (
+	"fmt"
 	"sync"
 	"time"
 
@@ -112,9 +113,11 @@ func (ic *intCrawler) isStopped() bool {
 }
 
 func (ic *intCrawler) run() {
+	logger := ic.logger.With(zap.String("source", "crawler"))
+	logger.Info(fmt.Sprintf("SET OF PRIORITIZED RULES %v", ic.prefixes))
 	atomicSet(&ic.stopped, false)
 	for !ic.isStopping() {
-		logger := ic.logger.With(zap.String("source", "crawler"))
+		// logger := ic.logger.With(zap.String("source", "crawler"))
 		if ic.mutex == nil {
 			ic.singleRun(logger)
 		} else {
