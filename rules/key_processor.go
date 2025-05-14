@@ -107,7 +107,7 @@ func newV3KeyProcessor(channel chan v3RuleWork, rm *ruleManager, kpChannel chan 
 
 func (v3kp *v3KeyProcessor) processKey(key string, value *string, api readAPI, logger *zap.Logger,
 	metadata map[string]string, timesEvaluated func(rulesID string)) {
-	logger.Debug("submitting key to be processed", zap.String("key", key))
+	logger.Info("submitting key to be processed", zap.String("key", key))
 	task := &keyTask{
 		key:            key,
 		value:          value,
