@@ -34,9 +34,9 @@ func (ml metricLocker) Lock(key string, options ...Option) (RuleLock, error) {
 }
 
 func (ml metricLocker) Unlock(options ...Option) error {
-	opts := buildOptions(options...)
 	err := ml.RuleLock.Unlock(options...)
 	if err != nil {
+		opts := buildOptions(options...)
 		ml.observeUnlockError(ml.lockerName, opts.method, opts.pattern)
 	}
 	return err
