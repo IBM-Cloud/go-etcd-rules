@@ -20,14 +20,11 @@ var (
 )
 
 const (
-	dataPath          = "/rulesEngine/data/:id"
-	blockPath         = "/rulesEngine/block/:id"
-	donePath          = "/rulesEngine/done/:id"
-	doneCrawlerPath   = "/rulesEngineCrawler/done/:id"
-	doneRuleID        = "done"
-	doneRuleIDCrawler = "doneCrawler"
-	doneID            = "4567"
-	doneIDCrawler     = "8910"
+	dataPath   = "/rulesEngine/data/:id"
+	blockPath  = "/rulesEngine/block/:id"
+	donePath   = "/rulesEngine/done/:id"
+	doneRuleID = "done"
+	doneID     = "4567"
 )
 
 type polled struct {
@@ -100,7 +97,7 @@ func main() {
 	engine := rules.NewV3Engine(cfg, logger,
 		rules.EngineContextProvider(cpFunc),
 		rules.EngineMetricsCollector(mFunc),
-		rules.EngineSyncInterval(5),
+		rules.EngineSyncInterval(10),
 		rules.EngineCrawlMutex("inttest", 5),
 		rules.EngineLockAcquisitionTimeout(5))
 	mw := &rules.MockWatcherWrapper{
@@ -174,40 +171,12 @@ func main() {
 	doneFalse := "false"
 	doneRule, err := rules.NewEqualsLiteralRule(donePath, &doneFalse)
 	check(err)
-	doneCrawlerRule, err := rules.NewEqualsLiteralRule(doneCrawlerPath, &doneFalse)
-	check(err)
 	engine.AddRule(doneRule, "/rulesEngineDone/:id", func(task *rules.V3RuleTask) {
 		path := task.Attr.Format(donePath)
 		doneTrue := "true"
 		_, err := kv.Put(task.Context, path, doneTrue)
 		check(err)
 	}, rules.RuleID(doneRuleID))
-
-	// create a no priority crawler only rule
-	highPriorityCalled := false
-	engine.AddRule(doneCrawlerRule, "/rulesEngineCrawlerDone/:id", func(task *rules.V3RuleTask) {
-		path := task.Attr.Format(doneCrawlerPath)
-		if task.Metadata["source"] != "crawler" {
-			panic("Crawler only rule not processed by the crawler")
-		} else if !highPriorityCalled {
-			panic("High priority crawler rule not called yet")
-		}
-		doneTrue := "true"
-		_, err := kv.Put(task.Context, path, doneTrue)
-		check(err)
-	}, rules.RuleID(doneRuleIDCrawler), rules.CrawlerOnly())
-
-	// create a high priority crawler only rule
-	engine.AddRule(doneCrawlerRule, "/rulesEngineCrawlerDone/:id", func(task *rules.V3RuleTask) {
-		path := task.Attr.Format(doneCrawlerPath)
-		if task.Metadata["source"] != "crawler" {
-			panic("Crawler only rule not processed by the crawler")
-		}
-		highPriorityCalled = true
-		doneTrue := "true"
-		_, err := kv.Put(task.Context, path, doneTrue)
-		check(err)
-	}, rules.RuleID(doneRuleIDCrawler), rules.CrawlerOnly(), rules.Priority(100))
 
 	engine.Run()
 	time.Sleep(time.Second)
@@ -231,21 +200,10 @@ func main() {
 	_, err = kv.Put(context.Background(), strings.Replace(donePath, ":id", doneID, 1), doneFalse)
 	check(err)
 
-	// Trigger the done crawler rule
-	_, err = kv.Put(context.Background(), strings.Replace(doneCrawlerPath, ":id", doneIDCrawler, 1), doneFalse)
-	check(err)
-
 	// Verify that it ran
-	tenSecCtx1, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	tenSecCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	err = cbHandler.WaitForCallback(tenSecCtx1, doneRuleID, map[string]string{"id": doneID})
+	err = cbHandler.WaitForCallback(tenSecCtx, doneRuleID, map[string]string{"id": doneID})
 	check(err)
-
-	// Verify the crawler rule ran
-	tenSecCtx2, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-	err = cbHandler.WaitForCallback(tenSecCtx2, doneRuleIDCrawler, map[string]string{"id": doneIDCrawler})
-	check(err)
-
 	_ = engine.Shutdown(ctx) // #nosec G104 -- For testing only
 }

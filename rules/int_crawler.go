@@ -114,14 +114,14 @@ func (ic *intCrawler) isStopped() bool {
 func (ic *intCrawler) run() {
 	atomicSet(&ic.stopped, false)
 	for !ic.isStopping() {
-		logger := ic.logger.With(zap.String("source", "crawler"))
+		logger := ic.logger.With(zap.String("source", sourceCrawler))
 		if ic.mutex == nil {
 			ic.singleRun(logger)
 		} else {
 			mutex := "/crawler/" + *ic.mutex
 			logger.Info("Attempting to obtain mutex",
 				zap.String("mutex", mutex), zap.Int("Timeout", ic.mutexTimeout))
-			lock, err := ic.locker.Lock(mutex, lock.MethodForLock("crawler"), lock.PatternForLock(mutex))
+			lock, err := ic.locker.Lock(mutex, lock.MethodForLock(sourceCrawler), lock.PatternForLock(mutex))
 			if err != nil {
 				logger.Error("Could not obtain mutex; skipping crawler run", zap.Error(err), zap.String("mutex", mutex))
 			} else {
@@ -148,7 +148,7 @@ func (ic *intCrawler) run() {
 func (ic *intCrawler) singleRun(logger *zap.Logger) {
 	crawlerStart := time.Now()
 	logger.Info("Starting crawler run", zap.Int("prefixes", len(ic.prefixes)))
-	crawlerMethodName := "crawler"
+	crawlerMethodName := sourceCrawler
 	if ic.isStopping() {
 		return
 	}
@@ -162,7 +162,6 @@ func (ic *intCrawler) singleRun(logger *zap.Logger) {
 	ic.rulesProcessedCount = make(map[string]int)
 
 	queryStart := time.Now()
-	prioritizedKeys := []string{}
 	for _, prefix := range ic.prefixes {
 		pCtx := SetMethod(ctx, crawlerMethodName+"-"+prefix)
 		resp, err := ic.kv.Get(pCtx, prefix, v3.WithPrefix())
@@ -172,15 +171,12 @@ func (ic *intCrawler) singleRun(logger *zap.Logger) {
 		}
 		for _, kv := range resp.Kvs {
 			values[string(kv.Key)] = string(kv.Value)
-			// Using a map unsorts the prefixes, keep
-			// the priority by using a slice
-			prioritizedKeys = append(prioritizedKeys, string(kv.Key))
 		}
 	}
 	metrics.CrawlerQueryTime(ic.name, queryStart)
 	metrics.CrawlerValuesCount(ic.name, len(values))
 	evalStart := time.Now()
-	ic.processData(values, prioritizedKeys, logger)
+	ic.processData(values, logger)
 	metrics.CrawlerEvalTime(ic.name, evalStart)
 
 	ic.metricMutex.Lock()
@@ -192,9 +188,9 @@ func (ic *intCrawler) singleRun(logger *zap.Logger) {
 	logger.Info("Crawler run complete", zap.Duration("time", time.Since(crawlerStart)), zap.Int("values", len(values)))
 }
 
-func (ic *intCrawler) processData(values map[string]string, prioritizedKeys []string, logger *zap.Logger) {
+func (ic *intCrawler) processData(values map[string]string, logger *zap.Logger) {
 	api := &cacheReadAPI{values: values}
-	for _, k := range prioritizedKeys {
+	for k := range values {
 		v := values[k]
 		if ic.isStopping() {
 			return
@@ -202,7 +198,7 @@ func (ic *intCrawler) processData(values map[string]string, prioritizedKeys []st
 		// Check to see if any rule is satisfied from cache
 		if ic.kp.isWork(k, &v, api) {
 			// Process key if it is
-			ic.kp.processKey(k, &v, ic.api, logger, map[string]string{"source": "crawler"}, ic.incRuleProcessedCount)
+			ic.kp.processKey(k, &v, ic.api, logger, map[string]string{sourceSource: sourceCrawler}, ic.incRuleProcessedCount)
 		}
 		time.Sleep(ic.delay.Generate())
 	}

@@ -162,6 +162,8 @@ func KeyProcessorBuffer(size int) EngineOption {
 }
 
 // EngineLockTimeout controls the TTL of a lock in seconds.
+// Default is 30s
+// NOT BEING USED ANYMORE
 func EngineLockTimeout(lockTimeout int) EngineOption {
 	return engineOptionFunction(func(o *engineOptions) {
 		o.lockTimeout = lockTimeout
@@ -169,7 +171,7 @@ func EngineLockTimeout(lockTimeout int) EngineOption {
 }
 
 // EngineLockAcquisitionTimeout controls the length of time we
-// wait to acquire a lock.
+// wait to acquire a lock. Default is 5s.
 func EngineLockAcquisitionTimeout(lockAcquisitionTimeout int) EngineOption {
 	return engineOptionFunction(func(o *engineOptions) {
 		o.lockAcquisitionTimeout = lockAcquisitionTimeout
@@ -336,19 +338,19 @@ func EngineWatchProcessDelay(base time.Duration, jitterPercent float64) EngineOp
 }
 
 type ruleOptions struct {
-	lockTimeout     int
-	contextProvider ContextProvider
-	ruleID          string
-	crawlerOnly     bool
-	priority        uint
+	lockTimeout      int
+	contextProvider  ContextProvider
+	ruleID           string
+	watcherLockTries uint
+	watcherLockWait  time.Duration
 }
 
 func makeRuleOptions(options ...RuleOption) ruleOptions {
 	opts := ruleOptions{
-		lockTimeout: 0,
-		ruleID:      defaultRuleID,
-		crawlerOnly: false,
-		priority:    0,
+		lockTimeout:      0,
+		ruleID:           defaultRuleID,
+		watcherLockTries: 1,
+		watcherLockWait:  0,
 	}
 	for _, opt := range options {
 		opt.apply(&opts)
@@ -367,8 +369,18 @@ func (f ruleOptionFunction) apply(o *ruleOptions) {
 	f(o)
 }
 
+// RuleWatcherLockWait controls the number of tries and time to wait for a
+// watcher rule lock. Default is one try and no wait
+func RuleWatcherLockRetries(tries uint, wait time.Duration) RuleOption {
+	return ruleOptionFunction(func(o *ruleOptions) {
+		o.watcherLockTries = tries
+		o.watcherLockWait = wait
+	})
+}
+
 // RuleLockTimeout controls the TTL of the locks associated
 // with the rule, in seconds.
+// NOT BEING USED ANYMORE
 func RuleLockTimeout(lockTimeout int) RuleOption {
 	return ruleOptionFunction(func(o *ruleOptions) {
 		o.lockTimeout = lockTimeout
@@ -388,25 +400,4 @@ func RuleID(ruleID string) RuleOption {
 	return ruleOptionFunction(func(o *ruleOptions) {
 		o.ruleID = ruleID
 	})
-}
-
-// CrawlerOnly makes it so the rule is only
-// evaluated by the crawler and is not assigned a watcher
-func CrawlerOnly() RuleOption {
-	return ruleOptionFunction((func(o *ruleOptions) {
-		o.crawlerOnly = true
-	}))
-}
-
-// Priority sets the priority for fields
-// that are associated with a rule during
-// a crawler run.  The higher the number, the
-// higher the priority.  The default is 0, or
-// lowest priority.
-// Watcher processing will
-// still be done unless CrawlerOnly() is used.
-func Priority(priority uint) RuleOption {
-	return ruleOptionFunction((func(o *ruleOptions) {
-		o.priority = priority
-	}))
 }

@@ -154,7 +154,7 @@ type keyTask struct {
 func (bkp *baseKeyProcessor) processKey(key string, value *string, rapi readAPI, logger *zap.Logger, dispatcher workDispatcher,
 	metadata map[string]string, timesEvaluated func(rulesID string)) {
 	logger.Debug("Processing key", zap.String("key", key))
-	rules, prioritized := bkp.rm.getStaticRules(key, value)
+	rules := bkp.rm.getStaticRules(key, value)
 	valueString := "<nil>"
 	if value != nil {
 		valueString = *value
@@ -168,8 +168,7 @@ func (bkp *baseKeyProcessor) processKey(key string, value *string, rapi readAPI,
 		logger.Error("Error getting keys to evaluate rules", zap.Error(err), zap.Int("rules", len(rules)), zap.Int("keys", len(keys)))
 		return
 	}
-	for _, rule := range prioritized {
-		index := rules[rule]
+	for rule, index := range rules {
 		ruleID := bkp.ruleIDs[index]
 		if timesEvaluated != nil {
 			timesEvaluated(ruleID)
@@ -190,7 +189,7 @@ func (bkp *baseKeyProcessor) processKey(key string, value *string, rapi readAPI,
 }
 
 func (bkp *baseKeyProcessor) isWork(key string, value *string, api readAPI) bool {
-	rules, _ := bkp.rm.getStaticRules(key, value)
+	rules := bkp.rm.getStaticRules(key, value)
 	for rule := range rules {
 		satisfied, _ := rule.satisfied(api) // #nosec G104 -- Map lookup
 		if satisfied {

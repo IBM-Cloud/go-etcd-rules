@@ -77,7 +77,7 @@ func Test_metricLocker_Lock(t *testing.T) {
 					return mockLock, tc.err
 				},
 			}
-			observeLock := func(locker string, methodName string, pattern string, lockSucceeded bool) {
+			observeLock := func(locker string, methodName string, pattern string, attempt uint, lockSucceeded bool) {
 				assert.Equal(t, tc.pattern, pattern)
 				assert.Equal(t, tc.method, methodName)
 				assert.Equal(t, tc.succeeded, lockSucceeded)
