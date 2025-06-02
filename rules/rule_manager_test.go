@@ -6,7 +6,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var defaultOpts = ruleMgrRuleOptions{priority: 0, crawlerOnly: false}
+var defaultOpts = ruleMgrRuleCrawlerOptions{priority: 0, crawlerOnly: false}
 
 func TestRuleManager(t *testing.T) {
 	for _, erf := range []bool{true, false} {
@@ -29,18 +29,24 @@ func TestRuleManager(t *testing.T) {
 		}
 		rules, _ = rm.getStaticRules("/nothing", nil)
 		assert.Equal(t, 0, len(rules))
+
+		rule4, err4 := NewEqualsLiteralRule("/this/is/another/rule:a", nil)
+		assert.NoError(t, err4)
+		opts = makeRuleOptions(RuleWatcherLockRetries(3, 4))
+		ruleIndex := rm.addRule(rule4, opts)
+		assert.Equal(t, ruleMgrRuleLockOptions{3, 4}, rm.getRuleLockOptions(ruleIndex))
 	}
 }
 
 func TestReducePrefixes(t *testing.T) {
-	prefixes := map[string]ruleMgrRuleOptions{"/servers/internal/states": defaultOpts, "/servers/internal": {priority: 10, crawlerOnly: true}, "/servers": {priority: 0, crawlerOnly: true}}
+	prefixes := map[string]ruleMgrRuleCrawlerOptions{"/servers/internal/states": defaultOpts, "/servers/internal": {priority: 10, crawlerOnly: true}, "/servers": {priority: 0, crawlerOnly: true}}
 	prefixes = reducePrefixes(prefixes)
 	assert.Equal(t, 1, len(prefixes))
-	assert.Equal(t, ruleMgrRuleOptions{priority: 10, crawlerOnly: false}, prefixes["/servers"])
+	assert.Equal(t, ruleMgrRuleCrawlerOptions{priority: 10, crawlerOnly: false}, prefixes["/servers"])
 }
 
 func TestSortPrefixesByLength(t *testing.T) {
-	prefixes := map[string]ruleMgrRuleOptions{"/servers/internal": defaultOpts, "/servers/internal/states": defaultOpts, "/servers": defaultOpts}
+	prefixes := map[string]ruleMgrRuleCrawlerOptions{"/servers/internal": defaultOpts, "/servers/internal/states": defaultOpts, "/servers": defaultOpts}
 	sorted := sortPrefixesByLength(prefixes)
 	assert.Equal(t, "/servers/internal/states", sorted[2])
 	assert.Equal(t, "/servers/internal", sorted[1])
@@ -124,7 +130,7 @@ func TestAddRuleCrawlerOnly(t *testing.T) {
 	assert.NoError(t, err2)
 	rm.addRule(rule2, makeRuleOptions(Priority(300), CrawlerOnly()))
 
-	assert.True(t, assert.ObjectsAreEqual(map[string]ruleMgrRuleOptions{"/this/is/": {priority: 300, crawlerOnly: true}}, rm.prefixes))
+	assert.True(t, assert.ObjectsAreEqual(map[string]ruleMgrRuleCrawlerOptions{"/this/is/": {priority: 300, crawlerOnly: true}}, rm.prefixes))
 }
 
 func TestGetStaticRules(t *testing.T) {
