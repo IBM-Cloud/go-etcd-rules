@@ -2,6 +2,7 @@ package lock
 
 import (
 	"errors"
+	"strings"
 	"time"
 
 	"golang.org/x/net/context"
@@ -89,17 +90,31 @@ type v3Lock struct {
 // ErrNilMutex indicates that the lock has a nil mutex
 var ErrNilMutex = errors.New("mutex is nil")
 
+// Max number of unlock retries
+var unlockMaxRetries = 3
+
 func (v3l *v3Lock) Unlock(_ ...Option) error {
 	if v3l.mutex != nil {
-		// This should be given every chance to complete, otherwise
-		// a lock could prevent future interactions with a resource.
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
-		defer cancel()
-		err := v3l.mutex.Unlock(ctx)
+		var err error
+		for range unlockMaxRetries {
+			// This should be given every chance to complete, otherwise
+			// a lock could prevent future interactions with a resource.
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+			err = v3l.mutex.Unlock(ctx)
+			cancel()
+			if err == nil {
+				break
+			}
+			time.Sleep(time.Minute)
+		}
 		// If the lock failed to be released, as least closing the session
 		// will allow the lease it is associated with to expire.
 		if v3l.session != nil {
 			serr := v3l.session.Close()
+			// The Unlock will close the session in some cases
+			if serr != nil && strings.Contains(serr.Error(), "requested lease not found") {
+				serr = nil
+			}
 			if err == nil {
 				err = serr
 			}
