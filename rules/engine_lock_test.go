@@ -54,11 +54,7 @@ func Test_ReentrantLocking(t *testing.T) {
 					} else {
 						assert.Error(t, err2)
 					}
-					if closeSession {
-						assert.NoError(t, rlck.Unlock())
-					} else {
-						assert.NoError(t, rlck.Unlock())
-					}
+					assert.NoError(t, rlck.Unlock())
 				})
 			}
 		}

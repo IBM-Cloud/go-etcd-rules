@@ -107,6 +107,10 @@ func (v3l *v3Lock) Unlock(_ ...Option) error {
 			}
 			time.Sleep(time.Minute)
 		}
+		if err != nil {
+			err = errors.Join(errors.New("UnLock"), err)
+		}
+
 		// If the lock failed to be released, as least closing the session
 		// will allow the lease it is associated with to expire.
 		if v3l.session != nil {
@@ -115,8 +119,8 @@ func (v3l *v3Lock) Unlock(_ ...Option) error {
 			if serr != nil && strings.Contains(serr.Error(), "requested lease not found") {
 				serr = nil
 			}
-			if err == nil {
-				err = serr
+			if err == nil && serr != nil {
+				err = errors.Join(errors.New("Close"), serr)
 			}
 		}
 		return err

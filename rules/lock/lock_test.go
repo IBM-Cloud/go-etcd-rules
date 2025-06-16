@@ -32,28 +32,29 @@ func Test_V3Locker(t *testing.T) {
 				newSession:  newSession,
 				lockTimeout: 5,
 			}
-			rlck, err1 := rlckr.Lock("test")
-			assert.NoError(t, err1)
-			_, err2 := rlckr.lockWithTimeout("test", 10)
-			assert.Error(t, err2)
-			assert.NoError(t, rlck.Unlock())
+			rlck, err := rlckr.Lock("test")
+			assert.NoError(t, err, err)
+			_, err = rlckr.lockWithTimeout("test", 10)
+			assert.Error(t, err, err)
+			err = rlck.Unlock()
+			assert.NoError(t, err, err)
 
 			done1 := make(chan bool)
 			done2 := make(chan bool)
-
 			go func() {
 				lckr := NewV3Locker(c, 5, useTryLock)
-				lck, lErr := lckr.Lock("test1")
-				assert.NoError(t, lErr)
+				lck, err := lckr.Lock("test1")
+				assert.NoError(t, err, err)
 				done1 <- true
 				<-done2
 				if lck != nil {
-					assert.NoError(t, lck.Unlock())
+					err = lck.Unlock()
+					assert.NoError(t, err, err)
 				}
 			}()
 			<-done1
 			_, err = rlckr.Lock("test1")
-			assert.Error(t, err)
+			assert.Error(t, err, err)
 			done2 <- true
 		})
 	}
