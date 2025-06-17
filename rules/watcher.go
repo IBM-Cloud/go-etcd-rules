@@ -54,11 +54,14 @@ func (w *watcher) isStopped() bool {
 func (w *watcher) singleRun() {
 	key, value, err := w.kw.next()
 	if err != nil {
-		w.logger.Error("Watcher error", zap.Error(err))
 		if strings.Contains(err.Error(), "connection refused") {
 			w.logger.Info("Cluster unavailable; waiting one minute to retry")
 			time.Sleep(time.Minute)
 		} else {
+			// Watchers are always closed periodically, no need to log that
+			if !strings.Contains(err.Error(), "Watcher closing") {
+				w.logger.Error("Watcher error", zap.Error(err))
+			}
 			// Maximum logging rate is 1 per second.
 			time.Sleep(time.Second)
 		}
@@ -70,7 +73,7 @@ func (w *watcher) singleRun() {
 		time.Sleep(delay) // TODO ideally a context should be used for fast shutdown, e.g. select { case <-ctx.Done(); case <-time.After(delay) }
 	}
 	w.logger.Debug("Calling process key", zap.String("key", key))
-	w.kp.processKey(key, value, w.api, w.logger, map[string]string{"source": "watcher"}, incRuleProcessedCount)
+	w.kp.processKey(key, value, w.api, w.logger, map[string]string{sourceSource: sourceWatcher}, incRuleProcessedCount)
 }
 
 func incRuleProcessedCount(ruleID string) {

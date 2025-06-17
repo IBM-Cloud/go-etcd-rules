@@ -7,7 +7,7 @@ func WithMetrics(ruleLocker RuleLocker, name string) RuleLocker {
 	return withMetrics(ruleLocker, name, metrics.IncLockMetric, metrics.IncUnlockErrorMetric)
 }
 func withMetrics(ruleLocker RuleLocker, name string,
-	observeLock func(locker string, methodName string, pattern string, lockSucceeded bool),
+	observeLock func(locker string, methodName string, pattern string, attempt uint, lockSucceeded bool),
 	observeUnlockError func(locker string, methodName string, pattern string)) RuleLocker {
 	return metricLocker{
 		RuleLocker:         ruleLocker,
@@ -21,7 +21,7 @@ type metricLocker struct {
 	RuleLocker
 	RuleLock
 	lockerName         string
-	observeLock        func(locker string, methodName string, pattern string, lockSucceeded bool)
+	observeLock        func(locker string, methodName string, pattern string, attempt uint, lockSucceeded bool)
 	observeUnlockError func(locker string, methodName string, pattern string)
 }
 
@@ -29,14 +29,14 @@ func (ml metricLocker) Lock(key string, options ...Option) (RuleLock, error) {
 	opts := buildOptions(options...)
 	var err error
 	ml.RuleLock, err = ml.RuleLocker.Lock(key, options...)
-	ml.observeLock(ml.lockerName, opts.method, opts.pattern, err == nil)
+	ml.observeLock(ml.lockerName, opts.method, opts.pattern, opts.attempt, err == nil)
 	return ml.RuleLock, err
 }
 
 func (ml metricLocker) Unlock(options ...Option) error {
-	opts := buildOptions(options...)
 	err := ml.RuleLock.Unlock(options...)
 	if err != nil {
+		opts := buildOptions(options...)
 		ml.observeUnlockError(ml.lockerName, opts.method, opts.pattern)
 	}
 	return err
