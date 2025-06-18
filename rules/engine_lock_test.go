@@ -39,9 +39,9 @@ func Test_ReentrantLocking(t *testing.T) {
 					var rlckr lock.RuleLocker
 					if useShared {
 						sessionManager := concurrency.NewSessionManager(cl, logger)
-						rlckr = lock.NewSessionLocker(sessionManager.GetSession, 5, closeSession, useTryLock)
+						rlckr = lock.NewSessionLocker(sessionManager.GetSession, 5, closeSession, useTryLock, logger)
 					} else {
-						baseEtcdLocker := lock.NewV3Locker(cl, 5, useTryLock)
+						baseEtcdLocker := lock.NewV3Locker(cl, 5, useTryLock, logger)
 						baseMapLocker := lock.NewMapLocker()
 						rlckr = lock.NewNestedLocker(baseMapLocker, baseEtcdLocker)
 					}

@@ -1,6 +1,7 @@
 package rules
 
 import (
+	"errors"
 	"strings"
 	"time"
 
@@ -59,7 +60,7 @@ func (w *watcher) singleRun() {
 			time.Sleep(time.Minute)
 		} else {
 			// Watcher are always closed periodically, no need to log that
-			if !strings.Contains(err.Error(), "Watcher closing") {
+			if !errors.Is(err, ErrWatcherClosing) {
 				w.logger.Error("Watcher error", zap.Error(err))
 			}
 			// Maximum logging rate is 1 per second.
