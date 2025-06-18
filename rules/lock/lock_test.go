@@ -7,12 +7,14 @@ import (
 	"github.com/stretchr/testify/require"
 	v3 "go.etcd.io/etcd/client/v3"
 	v3c "go.etcd.io/etcd/client/v3/concurrency"
+	"go.uber.org/zap"
 	"golang.org/x/net/context"
 
 	"github.com/IBM-Cloud/go-etcd-rules/rules/teststore"
 )
 
 func Test_V3Locker(t *testing.T) {
+	logger, _ := zap.NewDevelopment()
 	cfg, cl := teststore.InitV3Etcd(t)
 	c, err := v3.New(cfg)
 	require.NoError(t, err)
@@ -31,10 +33,11 @@ func Test_V3Locker(t *testing.T) {
 			rlckr := v3Locker{
 				newSession:  newSession,
 				lockTimeout: 5,
+				logger:      logger,
 			}
 			rlck, err := rlckr.Lock("test")
 			assert.NoError(t, err, err)
-			_, err = rlckr.lockWithTimeout("test", 10)
+			_, err = rlckr.lockWithTimeout("test", 10, logger)
 			assert.Error(t, err, err)
 			err = rlck.Unlock()
 			assert.NoError(t, err, err)
@@ -42,7 +45,7 @@ func Test_V3Locker(t *testing.T) {
 			done1 := make(chan bool)
 			done2 := make(chan bool)
 			go func() {
-				lckr := NewV3Locker(c, 5, useTryLock)
+				lckr := NewV3Locker(c, 5, useTryLock, logger)
 				lck, err := lckr.Lock("test1")
 				assert.NoError(t, err, err)
 				done1 <- true
