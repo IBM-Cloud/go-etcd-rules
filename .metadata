@@ -1,0 +1,11 @@
+service: 
+  - containers-kubernetes
+  - satellite
+production_code: yes
+production_branches: 
+  - master
+security_sensitive: no
+ip_sensitive: no
+compliance:
+  owner: ibm-armada-ballast
+  psirt_issue_location: https://github.ibm.com/alchemy-containers/armada-ballast
