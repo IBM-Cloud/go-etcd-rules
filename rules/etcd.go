@@ -16,6 +16,8 @@ type etcdV3ReadAPI struct {
 	kV v3.KV
 }
 
+var ErrWatcherClosing = errors.New("Watcher closing")
+
 // This method is currently not used but is being kept around to limit
 // the blast radius of implementing batch gets for rule evaluations.
 // The arrangement of interfaces is not ideal and should be addressed
@@ -142,7 +144,7 @@ func (ev3kw *etcdV3KeyWatcher) next() (string, *string, error) {
 			ev3kw.reset()
 			err := ev3kw.w.Close()
 			if err == nil {
-				err = errors.New("Watcher closing")
+				err = ErrWatcherClosing
 			}
 			return "", nil, err
 		case wr, stillOpen := <-ev3kw.ch:
