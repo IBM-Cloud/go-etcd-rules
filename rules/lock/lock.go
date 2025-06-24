@@ -115,7 +115,7 @@ func (v3l *v3Lock) Unlock(_ ...Option) error {
 			}
 		}
 		if err != nil {
-			err = errors.Join(errors.New("UnLock:"), err)
+			err = errors.Join(errors.New("Unlock:"), err)
 		}
 
 		// If the lock failed to be released, as least closing the session
