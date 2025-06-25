@@ -1,6 +1,7 @@
 package rules
 
 import (
+	"errors"
 	"strings"
 	"time"
 
@@ -54,11 +55,14 @@ func (w *watcher) isStopped() bool {
 func (w *watcher) singleRun() {
 	key, value, err := w.kw.next()
 	if err != nil {
-		w.logger.Error("Watcher error", zap.Error(err))
 		if strings.Contains(err.Error(), "connection refused") {
 			w.logger.Info("Cluster unavailable; waiting one minute to retry")
 			time.Sleep(time.Minute)
 		} else {
+			// Watcher are always closed periodically, no need to log that
+			if !errors.Is(err, ErrWatcherClosing) {
+				w.logger.Error("Watcher error", zap.Error(err))
+			}
 			// Maximum logging rate is 1 per second.
 			time.Sleep(time.Second)
 		}
