@@ -1,33 +1,48 @@
 package rules
 
 import (
+	"sort"
 	"strings"
+	"time"
 )
 
 type ruleManager struct {
 	constraints        map[string]constraint
 	currentIndex       int
 	rulesBySlashCount  map[int]map[DynamicRule]int
-	prefixes           map[string]string
-	rules              []DynamicRule
+	prefixes           map[string]ruleMgrRuleCrawlerOptions
+	rulesLockOptions   map[int]ruleMgrRuleLockOptions
+	rules              map[DynamicRule]uint
 	enhancedRuleFilter bool
+}
+
+type ruleMgrRuleCrawlerOptions struct {
+	crawlerOnly bool
+	priority    uint
+}
+
+type ruleMgrRuleLockOptions struct {
+	watcherTries uint
+	watcherWait  time.Duration
 }
 
 func newRuleManager(constraints map[string]constraint, enhancedRuleFilter bool) ruleManager {
 	rm := ruleManager{
 		rulesBySlashCount:  map[int]map[DynamicRule]int{},
-		prefixes:           map[string]string{},
+		prefixes:           map[string]ruleMgrRuleCrawlerOptions{},
+		rulesLockOptions:   map[int]ruleMgrRuleLockOptions{},
 		constraints:        constraints,
 		currentIndex:       0,
-		rules:              []DynamicRule{},
+		rules:              map[DynamicRule]uint{},
 		enhancedRuleFilter: enhancedRuleFilter,
 	}
 	return rm
 }
 
-func (rm *ruleManager) getStaticRules(key string, value *string) map[staticRule]int {
+func (rm *ruleManager) getStaticRules(key string, value *string) (map[staticRule]int, []staticRule) {
 	slashCount := strings.Count(key, "/")
 	out := make(map[staticRule]int)
+	toSort := make(map[staticRule]uint)
 	rules, ok := rm.rulesBySlashCount[slashCount]
 	if ok {
 		for rule, index := range rules {
@@ -37,20 +52,23 @@ func (rm *ruleManager) getStaticRules(key string, value *string) map[staticRule]
 					qSat := sRule.qSatisfiable(key, value)
 					if qSat == qTrue || qSat == qMaybe {
 						out[sRule] = index
+						toSort[sRule] = rm.rules[rule]
 					}
 				} else {
 					if sRule.satisfiable(key, value) {
 						out[sRule] = index
+						toSort[sRule] = rm.rules[rule]
 					}
 				}
 			}
 		}
 	}
-	return out
+	return out, sortRulesByPriority(toSort)
 }
 
-func (rm *ruleManager) addRule(rule DynamicRule) int {
-	rm.rules = append(rm.rules, rule)
+func (rm *ruleManager) addRule(rule DynamicRule, opts ruleOptions) int {
+	rm.rulesLockOptions[rm.currentIndex] = ruleMgrRuleLockOptions{watcherTries: opts.watcherLockTries, watcherWait: opts.watcherLockWait}
+	rm.rules[rule] = opts.priority
 	for _, pattern := range rule.getPatterns() {
 		slashCount := strings.Count(pattern, "/")
 		rules, ok := rm.rulesBySlashCount[slashCount]
@@ -61,7 +79,22 @@ func (rm *ruleManager) addRule(rule DynamicRule) int {
 		rules[rule] = rm.currentIndex
 	}
 	for _, prefix := range rule.getPrefixesWithConstraints(rm.constraints) {
-		rm.prefixes[prefix] = ""
+
+		_, currentPriority := rm.prefixes[prefix]
+		// if value does not exist in map yet
+		if !currentPriority {
+			rm.prefixes[prefix] = ruleMgrRuleCrawlerOptions{crawlerOnly: opts.crawlerOnly, priority: opts.priority}
+		} else {
+			// ensure that no high priority is overwritten
+			if rm.prefixes[prefix].priority < opts.priority {
+				rm.prefixes[prefix] = ruleMgrRuleCrawlerOptions{crawlerOnly: rm.prefixes[prefix].crawlerOnly, priority: opts.priority}
+			}
+			// only update crawlerOnly value if new option is false
+			if !opts.crawlerOnly {
+				rm.prefixes[prefix] = ruleMgrRuleCrawlerOptions{crawlerOnly: false, priority: rm.prefixes[prefix].priority}
+			}
+		}
+
 	}
 	rm.prefixes = reducePrefixes(rm.prefixes)
 	lastIndex := rm.currentIndex
@@ -69,27 +102,81 @@ func (rm *ruleManager) addRule(rule DynamicRule) int {
 	return lastIndex
 }
 
+func (rm *ruleManager) getRuleLockOptions(ruleIndex int) ruleMgrRuleLockOptions {
+	return rm.rulesLockOptions[ruleIndex]
+}
+
+func (rm *ruleManager) getPrioritizedPrefixes() []string {
+	out := []string{}
+	for prefix := range rm.prefixes {
+		out = append(out, prefix)
+	}
+	// sort slice by highest priority value
+	sort.SliceStable(out, func(i, j int) bool {
+		return rm.prefixes[out[i]].priority > rm.prefixes[out[j]].priority
+	})
+	return out
+}
+
+func sortRulesByPriority(rules map[staticRule]uint) []staticRule {
+	out := []staticRule{}
+	for rule := range rules {
+		out = append(out, rule)
+	}
+	// sort slice by highest priority value
+	sort.SliceStable(out, func(i, j int) bool {
+		return rules[out[i]] > rules[out[j]]
+	})
+	return out
+}
+
+func (rm *ruleManager) getWatcherPrefixes() []string {
+	out := []string{}
+	for prefix, ruleOpt := range rm.prefixes {
+		if !ruleOpt.crawlerOnly {
+			out = append(out, prefix)
+		}
+	}
+	return out
+}
+
 // Removes any path prefixes that have other path prefixes as
 // string prefixes
-func reducePrefixes(prefixes map[string]string) map[string]string {
-	out := map[string]string{}
+func reducePrefixes(prefixes map[string]ruleMgrRuleCrawlerOptions) map[string]ruleMgrRuleCrawlerOptions {
+	out := map[string]ruleMgrRuleCrawlerOptions{}
 	sorted := sortPrefixesByLength(prefixes)
 	for _, prefix := range sorted {
 		add := true
-		for addedPrefix := range out {
+		optionsToAdd := prefixes[prefix]
+		for addedPrefix, addedOptions := range out {
 			if strings.HasPrefix(prefix, addedPrefix) {
 				add = false
+				optsToUpdate := out[addedPrefix]
+				// update the addedPrefix to be the
+				// highest priority of any
+				// overlapping prefixes
+				if addedOptions.priority < optionsToAdd.priority {
+					optsToUpdate.priority = optionsToAdd.priority
+					out[addedPrefix] = optsToUpdate
+				}
+				// if any rule associated with the prefix
+				// is not crawler only, set crawlerOnly option
+				// to be false
+				if !optionsToAdd.crawlerOnly {
+					optsToUpdate.crawlerOnly = false
+					out[addedPrefix] = optsToUpdate
+				}
 			}
 		}
 		if add {
-			out[prefix] = ""
+			out[prefix] = optionsToAdd
 		}
 	}
 	return out
 }
 
 // Sorts prefixes shortest to longest
-func sortPrefixesByLength(prefixes map[string]string) []string {
+func sortPrefixesByLength(prefixes map[string]ruleMgrRuleCrawlerOptions) []string {
 	out := []string{}
 	for prefix := range prefixes {
 		out = append(out, prefix)
