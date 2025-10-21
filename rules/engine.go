@@ -19,6 +19,9 @@ const (
 	// WebhookURLEnv is the environment variable used to specify a callback
 	// webhook that will get called every time a callback has finished executing.
 	WebhookURLEnv = "RULES_ENGINE_CALLBACK_WEBHOOK"
+	sourceSource  = "source"
+	sourceWatcher = "watcher"
+	sourceCrawler = "crawler"
 )
 
 type stoppable interface {
@@ -43,7 +46,6 @@ type baseEngine struct {
 	metrics          AdvancedMetricsCollector
 	logger           *zap.Logger
 	options          engineOptions
-	ruleLockTTLs     map[int]int
 	ruleMgr          ruleManager
 	stopped          uint32
 	crawlers         []stoppable
@@ -144,7 +146,6 @@ func newV3Engine(logger *zap.Logger, cl *v3.Client, options ...EngineOption) v3E
 			metrics:          metrics,
 			logger:           logger,
 			options:          opts,
-			ruleLockTTLs:     map[int]int{},
 			ruleMgr:          ruleMgr,
 			locker:           finalLocker,
 			callbackListener: cbListener,
@@ -270,12 +271,8 @@ func (e *baseEngine) addRule(rule DynamicRule,
 	lockPattern string,
 	callback interface{},
 	options ...RuleOption) {
-	ruleIndex := e.ruleMgr.addRule(rule)
 	opts := makeRuleOptions(options...)
-	ttl := e.options.lockTimeout
-	if opts.lockTimeout > 0 {
-		ttl = opts.lockTimeout
-	}
+	ruleIndex := e.ruleMgr.addRule(rule, opts)
 	contextProvider := opts.contextProvider
 	if contextProvider == nil {
 		contextProvider = e.options.contextProvider
@@ -284,7 +281,6 @@ func (e *baseEngine) addRule(rule DynamicRule,
 		panic("Rule ID option missing")
 	}
 	ruleID := opts.ruleID
-	e.ruleLockTTLs[ruleIndex] = ttl
 	e.keyProc.setCallback(ruleIndex, callback)
 	e.keyProc.setLockKeyPattern(ruleIndex, lockPattern)
 	e.keyProc.setContextProvider(ruleIndex, contextProvider)
@@ -292,7 +288,7 @@ func (e *baseEngine) addRule(rule DynamicRule,
 }
 
 func (e *v3Engine) Run() {
-	e.logger.Info("Rules engine options", zap.Object("options", &e.options), zap.Int("rules", len(e.ruleMgr.rules)))
+	e.logger.Info("Rules engine options", zap.Object("options", &e.options), zap.Int("rules", len(e.ruleMgr.rulesLockOptions)))
 	prefixSlice := []string{}
 	prefixes := e.ruleMgr.prefixes
 	// This is a map; used to ensure there are no duplicates
@@ -338,10 +334,6 @@ func (e *v3Engine) Run() {
 		go w.run()
 	}
 
-}
-
-func (e *baseEngine) getLockTTLForRule(index int) int {
-	return e.ruleLockTTLs[index]
 }
 
 type v3CallbackWrapper struct {
