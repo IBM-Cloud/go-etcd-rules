@@ -11,13 +11,14 @@ func TestRuleManager(t *testing.T) {
 		rm := newRuleManager(map[string]constraint{}, erf)
 		rule1, err1 := NewEqualsLiteralRule("/this/is/:a/rule", nil)
 		assert.NoError(t, err1)
-		rm.addRule(rule1)
+		opts := makeRuleOptions()
+		rm.addRule(rule1, opts)
 		rule2, err2 := NewEqualsLiteralRule("/that/is/:a/nother", nil)
 		assert.NoError(t, err2)
-		rm.addRule(rule2)
+		rm.addRule(rule2, opts)
 		rule3, err3 := NewEqualsLiteralRule("/this/is/:a", nil)
 		assert.NoError(t, err3)
-		rm.addRule(rule3)
+		rm.addRule(rule3, opts)
 		rules := rm.getStaticRules("/this/is/a/rule", nil)
 		assert.Equal(t, 1, len(rules))
 		for r, index := range rules {
@@ -26,6 +27,12 @@ func TestRuleManager(t *testing.T) {
 		}
 		rules = rm.getStaticRules("/nothing", nil)
 		assert.Equal(t, 0, len(rules))
+
+		rule4, err4 := NewEqualsLiteralRule("/this/is/another/rule:a", nil)
+		assert.NoError(t, err4)
+		opts = makeRuleOptions(RuleWatcherLockRetries(3, 4))
+		ruleIndex := rm.addRule(rule4, opts)
+		assert.Equal(t, ruleMgrRuleLockOptions{3, 4}, rm.getRuleLockOptions(ruleIndex))
 	}
 }
 
@@ -34,7 +41,6 @@ func TestReducePrefixes(t *testing.T) {
 	prefixes = reducePrefixes(prefixes)
 	assert.Equal(t, 1, len(prefixes))
 	assert.Equal(t, "", prefixes["/servers"])
-
 }
 
 func TestSortPrefixesByLength(t *testing.T) {
