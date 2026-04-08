@@ -1,0 +1,9 @@
+# Spellcheck config
+[default]
+extend-ignore-re = [
+    "setable",
+]
+
+[default.extend-identifiers]
+# Common registered claim abbreviations
+nosec = "nosec"

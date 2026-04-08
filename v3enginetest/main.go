@@ -54,7 +54,7 @@ func checkWatchResp(resp []v3.WatchResponse) {
 }
 
 // Main
-// Optional paramater for port "6969"
+// Optional parameter for port "6969"
 func main() {
 	port := "6969"
 	if len(os.Args) > 1 {
@@ -84,7 +84,7 @@ func main() {
 		return ctx, cancel
 	}
 	// Set up a callback handler
-	cbHandler := rules.NewHTTPCallbackHander()
+	cbHandler := rules.NewHTTPCallbackHandler()
 	http.HandleFunc("/callback", cbHandler.HandleRequest)
 	go func() {
 		err := http.ListenAndServe(":"+port, nil) // #nosec G114 - For testing

@@ -304,7 +304,7 @@ func EngineMetricsCollector(m MetricsCollectorOpt) EngineOption {
 // functionality is only implemented in etcd v3 and that a mutex in etcd v3 is held
 // only while the app instance that created it is still active. This means that setting
 // a high value, such as 3600 seconds, does not expose one to the risk of no crawls
-// occuring for a maximum of one hour if an application instance terminates at the
+// occurring for a maximum of one hour if an application instance terminates at the
 // beginning of a crawler run.
 func EngineCrawlMutex(mutex string, mutexTTL int) EngineOption {
 	return engineOptionFunction(func(o *engineOptions) {

@@ -122,9 +122,9 @@ func (krp *dynamicRule) String() string {
 func (krp *dynamicRule) Expand(valueMap map[string][]string) ([]DynamicRule, bool) {
 	params := map[string]string{}
 	for _, pattern := range krp.patterns {
-		fieldsToParms, _ := parsePath(pattern)
-		for parm := range fieldsToParms {
-			params[parm] = ""
+		fieldsToParams, _ := parsePath(pattern)
+		for param := range fieldsToParams {
+			params[param] = ""
 		}
 	}
 	expanded := false

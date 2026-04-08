@@ -48,7 +48,7 @@ func TestBasic(t *testing.T) {
 	assert.Equal(t, "/test/:asdf", format)
 }
 
-func TestNoParms(t *testing.T) {
+func TestNoParams(t *testing.T) {
 	test := "/user/my_user"
 	km, _ := newRegexKeyMatcher(test)
 	_, ok := km.match("/user/my_user")

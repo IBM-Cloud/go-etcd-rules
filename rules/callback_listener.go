@@ -46,7 +46,7 @@ type callbackEvent struct {
 	Attributes map[string]string `json:"attributes"`
 }
 
-func NewHTTPCallbackHander() HTTPCallbackHandler {
+func NewHTTPCallbackHandler() HTTPCallbackHandler {
 	return HTTPCallbackHandler{
 		// The buffer size is arbitrary and not relevant in
 		// production settings, since this should only
@@ -56,7 +56,7 @@ func NewHTTPCallbackHander() HTTPCallbackHandler {
 }
 
 // HTTPCallbackHandler instances can be used to get immediate confirmation that a callback was executed
-// when perfoming integration testing. Not for production use.
+// when performing integration testing. Not for production use.
 type HTTPCallbackHandler struct {
 	events chan callbackEvent
 }
