@@ -59,7 +59,7 @@ func (edv3ra *etcdV3ReadAPI) getCachedAPI(keys []string) (readAPI, error) {
 	// 3. A set of "else" operations which are performed if the "if" condition is not true.
 	//    In this case these operations are never performed.
 	// 4. A commit, which finalizes the transaction and commits it. In this case everything is a read,
-	//    so "commiting" doesn't really do anything to change the state of etcd.
+	//    so "committing" doesn't really do anything to change the state of etcd.
 	txnResp, err := edv3ra.kV.Txn(ctx).If().Then(ops...).Else().Commit()
 	if err != nil {
 		return nil, err

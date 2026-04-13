@@ -472,7 +472,7 @@ func TestEquals(t *testing.T) {
 	sat, _ = rule.satisfied(api)
 	assert.True(t, sat)
 	// Both not nil and different values
-	api.put("key1", "anyting else")
+	api.put("key1", "anything else")
 	sat, _ = rule.satisfied(api)
 	assert.False(t, sat)
 
