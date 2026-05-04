@@ -1,13 +1,13 @@
 package rules
 
 import (
+	"context"
 	"testing"
 
 	"github.com/IBM-Cloud/go-etcd-rules/rules/lock"
 	"github.com/stretchr/testify/assert"
 	v3 "go.etcd.io/etcd/client/v3"
 	"go.uber.org/zap"
-	"golang.org/x/net/context"
 )
 
 func TestWorkerSingleRun(t *testing.T) {

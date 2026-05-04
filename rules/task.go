@@ -1,10 +1,10 @@
 package rules
 
 import (
+	"context"
 	"time"
 
 	"go.uber.org/zap"
-	"golang.org/x/net/context"
 )
 
 // Attributes provide access to the key/value pairs associated

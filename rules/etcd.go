@@ -1,6 +1,7 @@
 package rules
 
 import (
+	"context"
 	"errors"
 	"sync"
 	"time"
@@ -9,7 +10,6 @@ import (
 	"go.etcd.io/etcd/api/v3/mvccpb"
 
 	v3 "go.etcd.io/etcd/client/v3"
-	"golang.org/x/net/context"
 )
 
 type etcdV3ReadAPI struct {

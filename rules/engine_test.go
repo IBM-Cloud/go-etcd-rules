@@ -1,6 +1,7 @@
 package rules
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -9,7 +10,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	v3 "go.etcd.io/etcd/client/v3"
-	"golang.org/x/net/context"
 )
 
 func channelWriteAfterCall(channel chan bool, f func()) {

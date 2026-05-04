@@ -1,10 +1,10 @@
 package rules
 
 import (
+	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"golang.org/x/net/context"
 )
 
 func TestGetMetricsMetadata(t *testing.T) {
