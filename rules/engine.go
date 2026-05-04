@@ -1,6 +1,7 @@
 package rules
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"strings"
@@ -8,7 +9,6 @@ import (
 
 	v3 "go.etcd.io/etcd/client/v3"
 	"go.uber.org/zap"
-	"golang.org/x/net/context"
 
 	"github.com/IBM-Cloud/go-etcd-rules/concurrency"
 	"github.com/IBM-Cloud/go-etcd-rules/metrics"

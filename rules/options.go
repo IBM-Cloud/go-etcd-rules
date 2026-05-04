@@ -1,11 +1,11 @@
 package rules
 
 import (
+	"context"
 	"time"
 
 	"github.com/IBM-Cloud/go-etcd-rules/internal/jitter"
 	"go.uber.org/zap/zapcore"
-	"golang.org/x/net/context"
 )
 
 const (

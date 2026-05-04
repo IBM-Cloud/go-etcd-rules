@@ -34,12 +34,12 @@ Example
 package main
 
 import (
+    "context"
     "time"
 
     "github.com/IBM-Cloud/go-etcd-rules/rules"
     v3 "go.etcd.io/etcd/client/v3"
     "github.com/uber-go/zap"
-    "golang.org/x/net/context"
 )
 
 func lTP(val string) *string {

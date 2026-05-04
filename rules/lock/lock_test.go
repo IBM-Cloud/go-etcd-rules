@@ -1,6 +1,7 @@
 package lock
 
 import (
+	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -8,7 +9,6 @@ import (
 	v3 "go.etcd.io/etcd/client/v3"
 	v3c "go.etcd.io/etcd/client/v3/concurrency"
 	"go.uber.org/zap"
-	"golang.org/x/net/context"
 
 	"github.com/IBM-Cloud/go-etcd-rules/rules/teststore"
 )

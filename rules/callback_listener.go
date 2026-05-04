@@ -2,13 +2,13 @@ package rules
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"reflect"
 
 	"go.uber.org/zap"
-	"golang.org/x/net/context"
 )
 
 type httpCallbackListener struct {

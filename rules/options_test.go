@@ -1,12 +1,12 @@
 package rules
 
 import (
+	"context"
 	"testing"
 	"time"
 
 	"github.com/IBM-Cloud/go-etcd-rules/internal/jitter"
 	"github.com/stretchr/testify/assert"
-	"golang.org/x/net/context"
 )
 
 func TestRuleOptions(t *testing.T) {

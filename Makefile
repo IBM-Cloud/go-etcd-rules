@@ -1,7 +1,7 @@
 SHELL = /bin/bash
 
 export
-LINT_VERSION="2.11.4"
+LINT_VERSION="2.12.1"
 
 .PHONY: all
 all: deps lint test
@@ -9,7 +9,7 @@ all: deps lint test
 .PHONY: deps
 deps:
 	@if ! which golangci-lint >/dev/null || [[ "$$(golangci-lint --version)" != *${LINT_VERSION}* ]]; then \
-		curl -sfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(shell go env GOPATH)/bin v${LINT_VERSION}; \
+		curl -sfL https://raw.githubusercontent.com/golangci/golangci-lint/main/install.sh | sh -s -- -b $(shell go env GOPATH)/bin v${LINT_VERSION}; \
 	fi
 
 .PHONY: update-deps
