@@ -2,6 +2,7 @@ package rules
 
 import (
 	"strings"
+	"time"
 )
 
 type ruleManager struct {
@@ -9,17 +10,22 @@ type ruleManager struct {
 	currentIndex       int
 	rulesBySlashCount  map[int]map[DynamicRule]int
 	prefixes           map[string]string
-	rules              []DynamicRule
+	rulesLockOptions   map[int]ruleMgrRuleLockOptions
 	enhancedRuleFilter bool
+}
+
+type ruleMgrRuleLockOptions struct {
+	watcherTries uint
+	watcherWait  time.Duration
 }
 
 func newRuleManager(constraints map[string]constraint, enhancedRuleFilter bool) ruleManager {
 	rm := ruleManager{
 		rulesBySlashCount:  map[int]map[DynamicRule]int{},
 		prefixes:           map[string]string{},
+		rulesLockOptions:   map[int]ruleMgrRuleLockOptions{},
 		constraints:        constraints,
 		currentIndex:       0,
-		rules:              []DynamicRule{},
 		enhancedRuleFilter: enhancedRuleFilter,
 	}
 	return rm
@@ -49,8 +55,8 @@ func (rm *ruleManager) getStaticRules(key string, value *string) map[staticRule]
 	return out
 }
 
-func (rm *ruleManager) addRule(rule DynamicRule) int {
-	rm.rules = append(rm.rules, rule)
+func (rm *ruleManager) addRule(rule DynamicRule, opts ruleOptions) int {
+	rm.rulesLockOptions[rm.currentIndex] = ruleMgrRuleLockOptions{watcherTries: opts.watcherLockTries, watcherWait: opts.watcherLockWait}
 	for _, pattern := range rule.getPatterns() {
 		slashCount := strings.Count(pattern, "/")
 		rules, ok := rm.rulesBySlashCount[slashCount]
@@ -67,6 +73,10 @@ func (rm *ruleManager) addRule(rule DynamicRule) int {
 	lastIndex := rm.currentIndex
 	rm.currentIndex = rm.currentIndex + 1
 	return lastIndex
+}
+
+func (rm *ruleManager) getRuleLockOptions(ruleIndex int) ruleMgrRuleLockOptions {
+	return rm.rulesLockOptions[ruleIndex]
 }
 
 // Removes any path prefixes that have other path prefixes as

@@ -21,6 +21,9 @@ func TestWorkerSingleRun(t *testing.T) {
 	cl, err := v3.New(conf)
 	assert.NoError(t, err)
 	e := newV3Engine(getTestLogger(), cl, EngineLockTimeout(300))
+	ruleTest, err := NewEqualsLiteralRule("/this/is/another/rule:a", nil)
+	assert.NoError(t, err)
+	ruleIndex := e.ruleMgr.addRule(ruleTest, makeRuleOptions(RuleWatcherLockRetries(2, 2)))
 	channel := e.workChannel
 	lockChannel := make(chan bool)
 	locker := lock.MockLocker{
@@ -43,7 +46,7 @@ func TestWorkerSingleRun(t *testing.T) {
 	task := V3RuleTask{
 		Attr:     &attr,
 		Logger:   getTestLogger(),
-		Metadata: map[string]string{},
+		Metadata: map[string]string{sourceSource: sourceWatcher},
 	}
 	cbChannel := make(chan bool)
 	callback := testCallback{
@@ -57,6 +60,8 @@ func TestWorkerSingleRun(t *testing.T) {
 	}
 	rw := v3RuleWork{
 		rule:             &rule,
+		ruleIndex:        ruleIndex,
+		ruleID:           "ID1",
 		ruleTask:         task,
 		ruleTaskCallback: callback.callback,
 		lockKey:          "key",
