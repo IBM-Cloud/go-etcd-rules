@@ -857,7 +857,7 @@ func TestCompoundQSatisfiable(t *testing.T) {
 			qState: qTrue,
 		},
 		{
-			name: "NotTruOrNotFalse <=> Not(TrueAndFalse)",
+			name: "NotTrueOrNotFalse <=> Not(TrueAndFalse)",
 			rule: func() staticRule {
 				return osrfn(&notStaticRule{staticRule: rules["dummyTrue"]}, &notStaticRule{staticRule: rules["dummyFalse"]})
 			},

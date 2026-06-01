@@ -58,7 +58,7 @@ func TestTimesEvaluated(t *testing.T) {
 	checkMetrics(t, `rules_etcd_evaluations{method="getKey",rule="rule1234"} 5`)
 }
 
-func TestWokerQueueWaitTime(t *testing.T) {
+func TestWorkerQueueWaitTime(t *testing.T) {
 	WorkerQueueWaitTime("getKey", time.Now())
 	checkMetrics(t, `rules_etcd_worker_queue_wait_ms_count{method="getKey"} 1`)
 }
