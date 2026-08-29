@@ -9,12 +9,15 @@ type options struct {
 	pattern string
 	// The method to provide context
 	method string
+	// The attempt number for the lock
+	attempt uint
 }
 
 func buildOptions(opts ...Option) options {
 	os := options{
 		pattern: unknown,
 		method:  unknown,
+		attempt: uint(1),
 	}
 	for _, opt := range opts {
 		opt(&os)
@@ -39,5 +42,13 @@ func PatternForLock(pattern string) Option {
 func MethodForLock(method string) Option {
 	return func(lo *options) {
 		lo.method = method
+	}
+}
+
+// MethodForLock is used to specify the context in which the lock was
+// obtained.
+func AttempForLock(attempt uint) Option {
+	return func(lo *options) {
+		lo.attempt = attempt
 	}
 }

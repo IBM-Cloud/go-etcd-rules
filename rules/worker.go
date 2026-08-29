@@ -71,7 +71,7 @@ func (bw *baseWorker) isStopped() bool {
 }
 
 func (bw *baseWorker) doWork(loggerPtr **zap.Logger,
-	rulePtr *staticRule, lockTTL int, callback workCallback,
+	rulePtr *staticRule, ruleOpts ruleMgrRuleLockOptions, callback workCallback,
 	metricsInfo metricsInfo, lockKey string, ruleID string, source string) {
 	logger := *loggerPtr
 	logger = logger.With(zap.String("ruleID", ruleID), zap.String("mutex", lockKey))
@@ -93,11 +93,29 @@ func (bw *baseWorker) doWork(loggerPtr **zap.Logger,
 		}
 		return
 	}
-	l, err2 := bw.locker.Lock(lockKey, lock.PatternForLock(metricsInfo.keyPattern), lock.MethodForLock("worker_lock"))
-	if err2 != nil {
-		logger.Warn("Failed to acquire rule lock", zap.Error(err2))
+
+	// Attempt to get the lock multiple times for the Watcher events to avoid being pushed to the crawler
+	var l lock.RuleLock
+	var lockErr error
+	for watcherTryCount := range ruleOpts.watcherTries {
+		// Wait after first attempt
+		if watcherTryCount > 0 {
+			time.Sleep(ruleOpts.watcherWait)
+		}
+		// Attempt to get the rule lock
+		l, lockErr = bw.locker.Lock(lockKey, lock.PatternForLock(metricsInfo.keyPattern), lock.MethodForLock("worker_lock"), lock.AttempForLock(watcherTryCount+1))
+		if lockErr != nil {
+			logger.Warn("Failed to acquire rule lock", zap.Error(lockErr), zap.Uint("attempt", watcherTryCount+1))
+			if source != sourceWatcher {
+				return
+			}
+		}
+	}
+	// Failed to get the lock after all attempts
+	if lockErr != nil {
 		return
 	}
+
 	defer func() {
 		err := l.Unlock()
 		if err != nil {
@@ -181,7 +199,7 @@ func (w *v3Worker) singleRun() {
 		task.Context = context
 		task.cancel = cancelFunc
 		metricsInfo := newMetricsInfo(context, work.keyPattern, work.metricsStartTime)
-		w.doWork(&task.Logger, &work.rule, w.engine.getLockTTLForRule(work.ruleIndex), func() { work.ruleTaskCallback(&task) }, metricsInfo, work.lockKey, work.ruleID, source)
+		w.doWork(&task.Logger, &work.rule, w.engine.ruleMgr.getRuleLockOptions(work.ruleIndex), func() { work.ruleTaskCallback(&task) }, metricsInfo, work.lockKey, work.ruleID, source)
 	}()
 	wg.Wait()
 }

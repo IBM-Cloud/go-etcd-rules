@@ -14,6 +14,8 @@ func TestRuleOptions(t *testing.T) {
 	assert.Equal(t, defaultRuleID, opts.ruleID)
 	var defaultLockTimeout int
 	assert.Equal(t, defaultLockTimeout, opts.lockTimeout)
+	assert.Equal(t, uint(1), opts.watcherLockTries)
+	assert.Equal(t, time.Duration(0), opts.watcherLockWait)
 	opts = makeRuleOptions(RuleLockTimeout(300))
 	var threeHundred = 300
 	assert.Equal(t, threeHundred, opts.lockTimeout)
@@ -22,6 +24,9 @@ func TestRuleOptions(t *testing.T) {
 	testRuleID := "super-awesome-rule-id"
 	opts = makeRuleOptions(RuleID(testRuleID))
 	assert.Equal(t, testRuleID, opts.ruleID)
+	opts = makeRuleOptions(RuleWatcherLockRetries(3, 4))
+	assert.Equal(t, uint(3), opts.watcherLockTries)
+	assert.Equal(t, time.Duration(4), opts.watcherLockWait)
 }
 
 func TestEngineOptions(t *testing.T) {
