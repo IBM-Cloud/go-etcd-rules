@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/IBM-Cloud/go-etcd-rules/metrics"
-	"go.etcd.io/etcd/api/v3/mvccpb"
+	"github.com/gogo/protobuf/proto"
 
 	v3 "go.etcd.io/etcd/client/v3"
 )
@@ -180,7 +180,7 @@ func (ev3kw *etcdV3KeyWatcher) next() (string, *string, error) {
 	var events, size int
 	for _, event := range ev3kw.events {
 		events++
-		size += (*mvccpb.Event)(event).Size()
+		size += proto.Size(event.Kv)
 	}
 	ev3kw.metrics.ObserveWatchEvents(ev3kw.prefix, events, size)
 
