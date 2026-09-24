@@ -74,7 +74,7 @@ func (w *watcher) singleRun() {
 		time.Sleep(delay) // TODO ideally a context should be used for fast shutdown, e.g. select { case <-ctx.Done(); case <-time.After(delay) }
 	}
 	w.logger.Debug("Calling process key", zap.String("key", key))
-	w.kp.processKey(key, value, w.api, w.logger, map[string]string{"source": "watcher"}, incRuleProcessedCount)
+	w.kp.processKey(key, value, w.api, w.logger, map[string]string{sourceSource: sourceWatcher}, incRuleProcessedCount)
 }
 
 func incRuleProcessedCount(ruleID string) {

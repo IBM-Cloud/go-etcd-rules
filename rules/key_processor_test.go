@@ -52,7 +52,8 @@ func TestV3KeyProcessor(t *testing.T) {
 	rule, err := NewEqualsLiteralRule("/test/:key", &value)
 	assert.NoError(t, err)
 	rm := newRuleManager(map[string]constraint{}, false)
-	rm.addRule(rule)
+	opts := makeRuleOptions()
+	rm.addRule(rule, opts)
 	api := newMapReadAPI()
 	api.put("/test/key", value)
 	callbacks := map[int]V3RuleTaskCallback{0: v3DummyCallback}
@@ -84,7 +85,8 @@ func TestNewV3KeyProcessor(t *testing.T) {
 	rule, err := NewEqualsLiteralRule("/test/:key", &value)
 	assert.NoError(t, err)
 	rm := newRuleManager(map[string]constraint{}, false)
-	rm.addRule(rule)
+	opts := makeRuleOptions()
+	rm.addRule(rule, opts)
 	api := newMapReadAPI()
 	api.put("/test/key", value)
 
