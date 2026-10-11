@@ -97,7 +97,7 @@ func main() {
 	engine := rules.NewV3Engine(cfg, logger,
 		rules.EngineContextProvider(cpFunc),
 		rules.EngineMetricsCollector(mFunc),
-		rules.EngineSyncInterval(5),
+		rules.EngineSyncInterval(10),
 		rules.EngineCrawlMutex("inttest", 5),
 		rules.EngineLockAcquisitionTimeout(5))
 	mw := &rules.MockWatcherWrapper{

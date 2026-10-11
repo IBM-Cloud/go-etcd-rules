@@ -13,7 +13,7 @@ var (
 		Subsystem: "etcd",
 		Namespace: "rules",
 		Help:      "etcd rules engine lock count",
-	}, []string{"locker", "method", "pattern", "success"})
+	}, []string{"locker", "method", "pattern", "attempt", "success"})
 	rulesEngineUnlockErrorCount = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Name:      "unlock_error_count",
 		Subsystem: "etcd",
@@ -101,8 +101,8 @@ func init() {
 }
 
 // IncLockMetric increments the lock count.
-func IncLockMetric(locker string, methodName string, pattern string, lockSucceeded bool) {
-	rulesEngineLockCount.WithLabelValues(locker, methodName, pattern, strconv.FormatBool(lockSucceeded)).Inc()
+func IncLockMetric(locker string, methodName string, pattern string, attempt uint, lockSucceeded bool) {
+	rulesEngineLockCount.WithLabelValues(locker, methodName, pattern, strconv.FormatUint(uint64(attempt), 10), strconv.FormatBool(lockSucceeded)).Inc()
 }
 
 // IncUnlockMetric increments the unlock error count.
